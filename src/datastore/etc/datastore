@@ -6,6 +6,7 @@
 # PROVIDE: datastore
 
 name="datastore"
+rcvar="datastore_enable"
 start_cmd="datastore_start"
 start_precmd="precmd"
 init_cmd="datastore_init"

@@ -10,6 +10,7 @@
 . /etc/rc.subr
 
 name="networkd"
+rcvar="networkd_enable"
 pidfile="/var/run/networkd.pid"
 command="/usr/sbin/daemon"
 start_precmd="prestart"

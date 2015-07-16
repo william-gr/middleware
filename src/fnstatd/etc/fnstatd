@@ -9,6 +9,7 @@
 . /etc/rc.subr
 
 name="statd"
+rcvar="fnstatd_enable"
 pidfile="/var/run/fnstatd.pid"
 command="/usr/sbin/daemon"
 start_precmd="prestart"

@@ -10,6 +10,7 @@
 . /etc/rc.subr
 
 name="etcd"
+rcvar="etcd_enable"
 pidfile="/var/run/etcd.pid"
 command="/usr/sbin/daemon"
 start_precmd="prestart"
