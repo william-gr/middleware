@@ -30,7 +30,11 @@ import types
 
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy, strcpy
+from libc.errno cimport *
+from cpython cimport array as c_array
+from array import array
 
+cimport cython
 cimport c_sysctl
 
 # XXX: sys/sysctl.h
@@ -392,3 +396,73 @@ def sysctlnametomib(name, size=CTL_MAXNAME):
         free(mibp)
 
 
+def sysctlmibtoname(mib):
+    cdef:
+        c_array.array c_mib
+        int name[22]
+        char ret[256]
+        size_t l1
+        size_t l2
+
+    name[0] = 0
+    name[1] = 1
+    l1 = len(mib) + 2
+    l2 = cython.sizeof(ret)
+
+    c_mib = array('i', mib)
+    memcpy(&name[2], c_mib.data.as_voidptr, len(mib) * cython.sizeof(int))
+    if c_sysctl.sysctl(name, l1, ret, &l2, NULL, 0) < 0:
+        raise OSError(errno, os.strerror(errno))
+
+    return ret[:l2 - 1]
+
+
+def filter(name=None):
+    cdef:
+        c_array.array mib
+        int name1[22]
+        int name2[22]
+        size_t l1
+        size_t l2
+
+    name1[0] = 0
+    name1[1] = 2
+
+    l1 = 2
+    if name:
+        mib = array('i', sysctlnametomib(name))
+    else:
+        mib = array('i', [])
+
+    memcpy(&name1[2], mib.data.as_voidptr, len(mib) * cython.sizeof(int))
+    l1 += len(mib)
+
+    while True:
+        l2 = cython.sizeof(name2)
+        j = c_sysctl.sysctl(name1, l1, name2, &l2, NULL, 0)
+        if j < 0:
+            if errno == ENOENT:
+                return
+            else:
+                raise OSError(errno, os.strerror(errno))
+
+        l2 /= cython.sizeof(int)
+
+        if name and (len(mib) < 0 or l2 < len(mib)):
+            return
+
+        for i in range(0, len(mib)):
+            if name2[i] != mib[i]:
+                return
+
+        try:
+            ret = sysctl([x for x in name2[:l2]])
+        except OSError, e:
+            if e.errno == ENOENT:
+                return
+
+        else:
+            yield (sysctlmibtoname([x for x in name2[:l2]]), ret)
+
+        memcpy(name1+2, name2, l2 * sizeof(int))
+        l1 = 2 + l2
