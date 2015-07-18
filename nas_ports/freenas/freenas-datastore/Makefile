@@ -32,8 +32,6 @@ RUN_DEPENDS=	pymongo:${PORTSDIR}/databases/pymongo \
 
 EXTRACT_ONLY=
 
-SUB_FILES=	pkg-install
-
 NO_BUILD= 	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
