@@ -19,7 +19,7 @@ EXTRACT_ONLY=
 NO_BUILD= 	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
-WRKSRC=		/usr/freenas_src/fnstatd
+WRKSRC=		/usr/middleware_src/fnstatd
 
 USES=		python
 

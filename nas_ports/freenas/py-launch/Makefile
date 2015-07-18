@@ -20,7 +20,7 @@ USES=		python
 EXTRACT_ONLY=
 BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
 
-WRKSRC=		/usr/freenas_src/py-launch
+WRKSRC=		/usr/middleware_src/py-launch
 
 USES=		python:2
 USE_PYTHON=	autoplist distutils

@@ -19,7 +19,7 @@ BUILD_DEPENDS=
 USES=		python
 EXTRACT_ONLY=
 
-WRKSRC=		/usr/freenas_src/py-fnutils
+WRKSRC=		/usr/middleware_src/py-fnutils
 
 USES=		python:2
 USE_PYTHON=	autoplist distutils

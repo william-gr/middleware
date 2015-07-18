@@ -20,7 +20,7 @@ RUN_DEPENDS=	smartctl:${PORTSDIR}/sysutils/smartmontools
 USES=		python
 EXTRACT_ONLY=
 
-WRKSRC=		/usr/freenas_src/py-SMART
+WRKSRC=		/usr/middleware_src/py-SMART
 
 USES=		python:2
 USE_PYTHON=	autoplist distutils

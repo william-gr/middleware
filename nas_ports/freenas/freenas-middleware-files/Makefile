@@ -22,7 +22,7 @@ FREEBSD_SRCTOP=/usr/src
 PLIST_SUB=	MACHINE_ARCH=${MACHINE_ARCH}
 
 EXTRACT_ONLY=
-WRKSRC=/usr/freenas_src
+WRKSRC=/usr/middleware_src
 
 # no checksum, we just used git!
  #extract:
