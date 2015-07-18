@@ -37,7 +37,7 @@ SUB_FILES=	pkg-install
 NO_BUILD= 	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
-WRKSRC=		/usr/freenas_src/datastore
+WRKSRC=		/usr/middleware_src/datastore
 
 checksum fetch:
 	echo ${.TARGET} not needed because building direct

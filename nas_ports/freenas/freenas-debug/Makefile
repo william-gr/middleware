@@ -18,7 +18,7 @@ USE_XZ=		yes
 PREFIX=/usr/local
 
 EXTRACT_ONLY=
-WRKSRC=/usr/freenas_src
+WRKSRC=/usr/middleware_src
 
 # no checksum, we just used git!
 checksum fetch:
