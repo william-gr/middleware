@@ -557,6 +557,7 @@
                     "file:group",
                     "file:master.passwd",
 					"file:motd",
+                    "file:local/sudoers",
                     "plugin:pubkeys",
                     "plugin:pwd_database"
                 ]
