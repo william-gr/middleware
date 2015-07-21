@@ -41,6 +41,12 @@ def exclude(d, *keys):
     return {k: v for k, v in d.items() if k not in keys}
 
 
+def extend(d, d2):
+    ret = copy.copy(d)
+    ret.update(d2)
+    return ret
+
+
 def materialized_paths_to_tree(lst, separator='.'):
     result = {'children': {}, 'path': []}
 
