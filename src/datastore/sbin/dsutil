@@ -145,8 +145,8 @@ def query(name, filter, select=None, sort=None, limit=None):
 
 def config_list(key=None):
     cfg = ConfigStore(ds)
-    for key, value in cfg.list_children(key).items():
-        print("{0} = {1}".format(key, json.dumps(value)))
+    for item in cfg.list_children(key):
+        print("{0} = {1}".format(item['id'], json.dumps(item['value'])))
 
 
 def config_get(key):
