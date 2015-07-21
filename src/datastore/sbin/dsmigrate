@@ -206,8 +206,8 @@ def main():
         print("Cannot open logfile {0}: {1}".format(filename, str(err)), file=sys.stderr)
         sys.exit(1)
 
-    print("Logfile: {0}".format(filename))
     log("Migration started at {0}".format(datetime.datetime.now()))
+    log("Logfile: {0}".format(filename))
     log("Input file: {0}".format(args.f))
 
     for i in dump:
