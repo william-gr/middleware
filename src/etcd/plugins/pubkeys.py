@@ -32,7 +32,7 @@ import os
 def run(context):
     for user in context.client.call_sync('users.query'):
         home = user['home']
-        filename = os.path.join(home, '.ssh', 'id_rsa.pub')
+        filename = os.path.join(home, '.ssh', 'authorized_keys')
 
         if not os.path.isdir(home):
             # No home directory - ignore
