@@ -1,0 +1,221 @@
+#!/usr/local/bin/python2.7
+#+
+# Copyright 2015 iXsystems, Inc.
+# All rights reserved
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted providing that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#####################################################################
+
+from __future__ import print_function
+import os
+import sys
+import copy
+import datetime
+import argparse
+import json
+import datastore
+import jsonpatch
+import glob
+import imp
+import traceback
+
+
+DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
+ds = None
+logfile = None
+
+
+def log(s):
+    print(s)
+    print(s, file=logfile)
+
+
+def log_indented(f, s):
+    for line in s.split('\n'):
+        f(' ' * 2 + line)
+
+
+def init_datastore(filename, alt):
+    global ds
+
+    try:
+        f = open(filename)
+        conf = json.load(f)
+        f.close()
+    except IOError, err:
+        print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+    except ValueError, err:
+        print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+
+    if 'datastore' not in conf:
+        print("Cannot initialize datastore: configuration not found", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        dsn = 'dsn-alt' if alt else 'dsn'
+        ds = datastore.get_datastore(
+            conf['datastore']['driver'],
+            conf['datastore'][dsn],
+            conf['datastore'].get('database', 'freenas')
+        )
+
+    except datastore.DatastoreException, err:
+        print("Cannot initialize datastore: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+
+
+def apply_migrations(collection, directory, force=False):
+    log("Running migrations for collection {0}".format(collection))
+    for f in sorted(glob.glob(os.path.join(directory, "*.py"))):
+        name, _ = os.path.splitext(os.path.basename(f))
+
+        try:
+            mod = imp.load_source(name, f)
+        except:
+            log('Cannot load migration from {0}:'.format(f))
+            log_indented(log, traceback.format_exc())
+            sys.exit(1)
+
+        def mig_log(s):
+            log('[{0}, {1}] {2}'.format(collection, name, s))
+
+        migrated = 0
+        total = 0
+
+        log("[{0}] Applying migration {0}".format(collection, name))
+
+        if ds.collection_has_migration(collection, name):
+            mig_log("Migration already applied")
+            continue
+
+        for i in ds.query(collection, sort='id', dir='asc'):
+            total += 1
+            try:
+                if not mod.probe(i, ds):
+                    mig_log('Object <id:{0}> fails probe() condition, skipping'.format(i['id']))
+                    continue
+            except:
+                mig_log('probe() failed on object <id:{0}>')
+                log_indented(mig_log, traceback.format_exc())
+                sys.exit(1)
+
+            old_obj = copy.deepcopy(i)
+            try:
+                new_obj = mod.apply(i, ds)
+                diff = jsonpatch.make_patch(old_obj, new_obj)
+            except:
+                mig_log('apply() failed on object <id:{0}>:'.format(old_obj['id']))
+                log_indented(mig_log, traceback.format_exc())
+                sys.exit(1)
+
+            mig_log('Sucessfully migrated object <id:{0}>'.format(i['id']))
+            if diff.patch:
+                mig_log('JSON delta:')
+                log_indented(mig_log, json.dumps(diff.patch, indent=4))
+            else:
+                mig_log('Object unchanged after migration')
+
+            ds.update(collection, old_obj['id'], new_obj)
+            migrated += 1
+
+        mig_log("{0} out of {1} objects migrated".format(migrated, total))
+        ds.collection_record_migration(collection, name)
+
+
+def migrate_collection(dump, directory, force=False):
+    metadata = dump['metadata']
+    data = dump['data']
+    name = metadata['name']
+    integer = metadata['pkey-type'] == 'integer'
+    upsert = metadata['migration'] in ('merge-overwrite', 'replace')
+
+    if metadata['migration'] != 'replace' and directory:
+        apply_migrations(name, directory, force)
+
+    if metadata['migration'] == 'keep':
+        return
+
+    if metadata['migration'] == 'replace':
+        ds.collection_delete(name)
+
+    if not ds.collection_exists(name):
+        ds.collection_create(name, metadata['pkey-type'], metadata['attributes'])
+
+    for key, row in data.items():
+        pkey = int(key) if integer else key
+        if metadata['migration'] == 'merge-preserve':
+            if not ds.exists(name, ('id', '=', pkey)):
+                ds.insert(name, row, pkey=pkey)
+
+            continue
+
+        ds.update(name, pkey, row, upsert=upsert)
+
+
+def main():
+    global ds
+    global logfile
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
+    parser.add_argument('-f', metavar='FILE', help='Input file path')
+    parser.add_argument('-d', metavar='DIR', help='Migrations directory path')
+    parser.add_argument('--force', action='store_true', help='Forcibly (re)apply migrations')
+    parser.add_argument('--alt', action='store_true', help='Use alternate DSN')
+
+    args = parser.parse_args()
+    init_datastore(args.c, args.alt)
+
+    try:
+        fd = open(args.f, 'r') if args.f else sys.stdin
+        dump = json.load(fd)
+        fd.close()
+    except IOError, err:
+        print("Cannot open input file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+    except ValueError, err:
+        print("Cannot parse input file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+
+    # Open logfile
+    filename = '/var/log/dsmigrate.{0}.log'.format(os.getpid())
+    try:
+        logfile = open(filename, 'w')
+    except OSError, err:
+        print("Cannot open logfile {0}: {1}".format(filename, str(err)), file=sys.stderr)
+        sys.exit(1)
+
+    print("Logfile: {0}".format(filename))
+    log("Migration started at {0}".format(datetime.datetime.now()))
+    log("Input file: {0}".format(args.f))
+
+    for i in dump:
+        directory = os.path.join(args.d, i['metadata']['name']) if args.d else None
+        migrate_collection(i, directory, args.force)
+        print("Migrated collection {0}".format(i['metadata']['name']), file=sys.stderr)
+
+    logfile.close()
+
+if __name__ == '__main__':
+    main()

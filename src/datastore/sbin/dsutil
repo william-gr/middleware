@@ -33,6 +33,7 @@ import sys
 import datastore
 from datastore.config import ConfigStore
 
+
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 ds = None
 

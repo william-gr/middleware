@@ -126,6 +126,20 @@ class MongodbDatastore(object):
         item = self.db['collections'].find_one({"_id": name})
         return item['last-id']
 
+    def collection_get_migrations(self, name):
+        item = self.db['collections'].find_one({"_id": name})
+        return item.get('migrations', [])
+
+    def collection_has_migration(self, name, migration_name):
+        item = self.db['collections'].find_one({"_id": name})
+        return migration_name in item.get('migrations', [])
+
+    def collection_record_migration(self, name, migration_name):
+        item = self.db['collections'].find_one({"_id": name})
+        migs = item.setdefault('migrations', [])
+        migs.append(migration_name)
+        self.db['collections'].update({'_id': name}, item)
+
     def collection_list(self):
         return [x['_id'] for x in self.db['collections'].find()]
 
