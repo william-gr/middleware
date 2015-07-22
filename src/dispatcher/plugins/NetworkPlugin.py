@@ -105,26 +105,27 @@ class NetworkConfigureTask(Task):
 
 
 @accepts(
-    {'type': 'string'},
-    {'type': 'string'}
+    {'type': 'string', 'enum': ['VLAN', 'BRIDGE', 'LAGG']},
 )
 class CreateInterfaceTask(Task):
-    def verify(self, name, type):
-        if self.datastore.exists('network.interfaces', ('name', '=', name)):
-            raise VerifyException(errno.EEXIST, 'Interface {0} exists'.format(name))
-
+    def verify(self, type):
         return ['system']
 
-    def run(self, name, type):
+    def run(self, type):
+        name = self.dispatcher.call_sync('networkd.configuration.get_next_name', type)
         self.datastore.insert('network.interfaces', {
             'id': name,
-            'type': type
+            'type': type,
+            'cloned': True,
+            'enabled': True
         })
 
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_network')
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure network: {0}'.format(str(e)))
+
+        return name
 
 
 @description("Deletes interface")
@@ -138,10 +139,13 @@ class DeleteInterfaceTask(Task):
 
 
 @description("Alters network interface configuration")
-@accepts(str, h.ref('network-interface'))
+@accepts(str, h.all_of(
+    h.ref('network-interface'),
+    h.forbidden('id', 'type')
+))
 class ConfigureInterfaceTask(Task):
     def verify(self, name, updated_fields):
-        if not self.datastore.exists('network.interfaces', ('name', '=', name)):
+        if not self.datastore.exists('network.interfaces', ('id', '=', name)):
             raise VerifyException(errno.ENOENT, 'Interface {0} does not exist'.format(name))
 
         return ['system']
@@ -189,7 +193,7 @@ class ConfigureInterfaceTask(Task):
 @accepts(str)
 class InterfaceUpTask(Task):
     def verify(self, name):
-        if not self.datastore.exists('network.interfaces', ('name', '=', name)):
+        if not self.datastore.exists('network.interfaces', ('id', '=', name)):
             raise VerifyException(errno.ENOENT, 'Interface {0} does not exist'.format(name))
 
         return ['system']
@@ -210,7 +214,7 @@ class InterfaceUpTask(Task):
 @accepts(str)
 class InterfaceDownTask(Task):
     def verify(self, name):
-        if not self.datastore.exists('network.interfaces', ('name', '=', name)):
+        if not self.datastore.exists('network.interfaces', ('id', '=', name)):
             raise VerifyException(errno.ENOENT, 'Interface {0} does not exist'.format(name))
 
         return ['system']
@@ -361,7 +365,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('network-interface', {
         'type': 'object',
         'properties': {
-            'type': {'type': 'string'},
+            'type': {'$ref': 'network-interface-type'},
             'id': {'type': 'string'},
             'name': {'type': 'string'},
             'enabled': {'type': 'boolean'},
@@ -370,6 +374,23 @@ def _init(dispatcher, plugin):
             'aliases': {
                 'type': 'array',
                 'items': {'$ref': 'network-interface-alias'}
+            },
+            'vlan': {
+                'type': 'object',
+                'properties': {
+                    'parent': {'type': 'string'},
+                    'tag': {'type': 'integer'}
+                }
+            },
+            'lagg': {
+                'type': 'object',
+                'properties': {
+                    'protocol': {'$ref': 'network-aggregation-protocols'},
+                    'ports': {
+                        'type': 'array',
+                        'items': {'type': 'string'}
+                    }
+                }
             },
             'status': {
                 'type': 'object',

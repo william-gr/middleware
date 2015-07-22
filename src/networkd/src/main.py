@@ -280,6 +280,24 @@ class ConfigurationService(RpcService):
         self.datastore = context.datastore
         self.client = context.client
 
+    def get_next_name(self, type):
+        type_map = {
+            'VLAN': 'vlan',
+            'LAGG': 'lagg',
+            'BRIDGE': 'bridge'
+        }
+
+        if type not in type_map.keys():
+            raise RpcException(errno.EINVAL, 'Invalid type: {0}'.format(type))
+
+        ifaces = netif.list_interfaces()
+        for i in range(0, 999):
+            name = '{0}{1}'.format(type_map[type], i)
+            if name not in ifaces.keys() and not self.datastore.exists('network.interfaces', name):
+                return name
+
+        return RpcException(errno.EBUSY, 'No free interfaces left')
+
     def query_interfaces(self):
         result = {}
 
@@ -340,6 +358,14 @@ class ConfigurationService(RpcService):
         for i in self.datastore.query('network.interfaces'):
             self.logger.info('Configuring interface {0}...'.format(i['id']))
             self.configure_interface(i['id'])
+
+        # Are there any orphaned interfaces?
+        for name, iface in netif.list_interfaces():
+            if not name.startswith(('vlan', 'lagg', 'bridge')):
+                continue
+
+            if not self.datastore.exists(name):
+                netif.destroy_interface(name)
 
         self.configure_routes()
         self.client.emit_event('network.changed', {
@@ -404,11 +430,11 @@ class ConfigurationService(RpcService):
                 self.logger.error('Cannot add static route to {0}: {1}'.format(describe_route(i), str(e)))
 
     def configure_interface(self, name):
-        entity = self.datastore.get_one('network.interfaces', ('name', '=', name))
+        entity = self.datastore.get_one('network.interfaces', ('id', '=', name))
         if not entity:
             raise RpcException(errno.ENXIO, "Configuration for interface {0} not found".format(name))
 
-        if not entity['enabled']:
+        if not entity.get('enabled'):
             self.logger.info('Interface {0} is disabled'.format(name))
             return
 
@@ -416,15 +442,16 @@ class ConfigurationService(RpcService):
             iface = netif.get_interface(name)
         except KeyError:
             if entity.get('cloned'):
-                netif.create_interface(entity['name'])
+                netif.create_interface(entity['id'])
                 iface = netif.get_interface(name)
             else:
                 raise RpcException(errno.ENOENT, "Interface {0} not found".format(name))
 
         # If it's VLAN, configure parent and tag
         if entity.get('type') == 'VLAN':
-            parent = entity.get('parent')
-            tag = entity.get('tag')
+            vlan = entity.get('vlan')
+            parent = vlan.get('parent')
+            tag = vlan.get('tag')
 
             if parent and tag:
                 try:
@@ -432,6 +459,14 @@ class ConfigurationService(RpcService):
                     iface.configure(parent, tag)
                 except Exception, e:
                     self.logger.warn('Failed to configure VLAN interface {0}: {1}'.format(name), str(e))
+
+        # Configure protocol and member ports for a LAGG
+        if entity.get('type') == 'LAGG':
+            lagg = entity.get('lagg')
+            iface.protocol = getattr(netif.AggregationProtocol, lagg['protocol'])
+
+            for i in lagg['ports']:
+                iface.add_port(i)
 
         if entity.get('dhcp'):
             self.logger.info('Trying to acquire DHCP lease on interface {0}...'.format(name))
@@ -485,11 +520,13 @@ class ConfigurationService(RpcService):
             try:
                 iface.remove_address(addr)
             except:
-                raise RpcException(errno.ENXIO,
-                                   "Interface {0} could not be downed because\
-                                   address {1} could not be removed".format(
-                                        name, addr)
-                                   )
+                raise RpcException(
+                    errno.ENXIO,
+                    "Interface {0} could not be downed because address {1} could not be removed".format(
+                        name,
+                        addr
+                    )
+                )
         iface.down()
 
 
@@ -541,7 +578,6 @@ class Main:
                 self.datastore.insert('network.interfaces', {
                     'enabled': False,
                     'id': i.name,
-                    'name': i.name,
                     'type': i.type.name
                 })
 
@@ -580,6 +616,23 @@ class Main:
         self.rtsock_thread = RoutingSocketEventSource(self)
         self.rtsock_thread.start()
 
+    def register_schemas(self):
+        self.client.register_schema('network-aggregation-protocols', {
+            'type': 'string',
+            'enum': netif.AggregationProtocol.__members__.keys()
+        })
+
+        self.client.register_schema('network-interface-type', {
+            'type': 'string',
+            'enum': [
+                'LOOPBACK',
+                'ETHER',
+                'VLAN',
+                'BRIDGE',
+                'LAGG'
+            ]
+        })
+
     def main(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
@@ -591,6 +644,7 @@ class Main:
         self.init_dispatcher()
         self.scan_interfaces()
         self.init_routing_socket()
+        self.register_schemas()
         self.client.register_service('networkd.configuration', ConfigurationService(self))
         self.logger.info('Started')
         self.client.wait_forever()
