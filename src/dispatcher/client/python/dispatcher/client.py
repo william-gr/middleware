@@ -315,17 +315,29 @@ class Client(object):
 
     def register_service(self, name, impl):
         if self.rpc is None:
-            pass
+            raise RuntimeError('Call enable_server() first')
 
         self.rpc.register_service_instance(name, impl)
         self.call_sync('plugin.register_service', name)
 
     def unregister_service(self, name):
         if self.rpc is None:
-            pass
+            raise RuntimeError('Call enable_server() first')
 
         self.rpc.unregister_service(name)
         self.call_sync('plugin.unregister_service', name)
+
+    def register_schema(self, name, schema):
+        if self.rpc is None:
+            raise RuntimeError('Call enable_server() first')
+
+        self.call_sync('plugin.register_schema', name, schema)
+
+    def unregister_schema(self, name):
+        if self.rpc is None:
+            raise RuntimeError('Call enable_server() first')
+
+        self.call_sync('plugin.unregister_schema', name)
 
     def call_async(self, name, callback, *args):
         call = self.PendingCall(uuid.uuid4(), name, args)

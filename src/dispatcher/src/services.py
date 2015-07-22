@@ -114,8 +114,13 @@ class PluginService(RpcService):
             if args['address'] == svc.connection.ws.handler.client_address:
                 self.unregister_service(name, svc.connection)
 
+        for name, svc in self.schemas.items():
+            if args['address'] == svc.connection.ws.handler.client_address:
+                self.unregister_schema(name, svc.connection)
+
     def initialize(self, context):
         self.services = {}
+        self.schemas = {}
         self.events = {}
         self.__dispatcher = context.dispatcher
         self.__dispatcher.register_event_handler(
@@ -153,6 +158,22 @@ class PluginService(RpcService):
         })
 
         del self.services[name]
+
+    @pass_sender
+    def register_schema(self, name, schema, sender):
+        self.schemas[name] = sender
+        self.__dispatcher.register_schema_definition(name, schema)
+
+    @pass_sender
+    def unregister_schema(self, name, sender):
+        if name not in self.schemas.keys():
+            raise RpcException(errno.ENOENT, 'Schema not found')
+
+        schema = self.schemas[name]
+        if schema.connection != sender:
+            raise RpcException(errno.EPERM, 'Permission denied')
+
+        self.__dispatcher.unregister_schema_definition(name)
 
     @pass_sender
     def register_event_type(self, service, event, sender):
