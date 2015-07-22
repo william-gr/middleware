@@ -829,18 +829,25 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         user = self.dispatcher.auth.get_user(username)
 
         if user is None:
-            self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
+            self.emit_rpc_error(id, errno.EACCES,
+                                "Incorrect username or password")
             return
 
         if client_addr == '127.0.0.1':
-            # If client is connecting from localhost, omit checking password and instead
-            # verify his username using sockstat(1)
-            if not user.check_local(client_addr, client_port, self.dispatcher.port):
-                self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
+            # If client is connecting from localhost, omit checking password
+            # and instead verify his username using sockstat(1). Also make
+            # token lifetime None for such users (as we do not want their
+            # sessions to timeout)
+            if not user.check_local(client_addr, client_port,
+                                    self.dispatcher.port):
+                self.emit_rpc_error(id, errno.EACCES,
+                                    "Incorrect username or password")
                 return
+            lifetime = None
         else:
             if not user.check_password(password):
-                self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
+                self.emit_rpc_error(id, errno.EACCES,
+                                    "Incorrect username or password")
                 return
 
         self.user = user
