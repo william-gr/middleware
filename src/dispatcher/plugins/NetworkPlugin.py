@@ -60,12 +60,11 @@ class NetworkProvider(Provider):
 class InterfaceProvider(Provider):
     @query('network-interface')
     def query(self, filter=None, params=None):
-        ifaces = self.dispatcher.call_sync(
-                     'networkd.configuration.query_interfaces')
+        ifaces = self.dispatcher.call_sync('networkd.configuration.query_interfaces')
 
         def extend(i):
             try:
-                i['status'] = ifaces[i['name']]
+                i['status'] = ifaces[i['id']]
             except KeyError:
                 # The given interface is either removed or disconnected
                 return None
