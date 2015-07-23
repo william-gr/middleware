@@ -25,7 +25,7 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}psycopg2:${PORTSDIR}/databases/py-psycopg2 \
 .endif
 
 .if ${PORT_OPTIONS:USE_MONGODB}
-RUN_DEPENDS=	pymongo:${PORTSDIR}/databases/pymongo \
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pymongo:${PORTSDIR}/databases/pymongo \
 		mongodb:${PORTSDIR}/databases/mongodb \
 		freenas-dispatcher:${PORTSDIR}/freenas/freenas-dispatcher
 .endif
