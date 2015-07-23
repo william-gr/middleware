@@ -18,16 +18,16 @@ USES=		python
 OPTIONS_SINGLE=	USE_POSTGRESQL USE_MONGODB
 
 .if ${PORT_OPTIONS:USE_POSTGRESQL}
-RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}psycopg2:${PORTSDIR}/databases/py-psycopg2 \
-		postgresql93-server:${PORTSDIR}/databases/postgresql93-server \
-		postgresql93-contrib:${PORTSDIR}/databases/postgresql93-contrib \
-		freenas-dispatcher:${PORTSDIR}/freenas/freenas-dispatcher
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}psycopg2>0:${PORTSDIR}/databases/py-psycopg2 \
+		postgresql93-server>0:${PORTSDIR}/databases/postgresql93-server \
+		postgresql93-contrib>0:${PORTSDIR}/databases/postgresql93-contrib \
+		freenas-dispatcher>0:${PORTSDIR}/freenas/freenas-dispatcher
 .endif
 
 .if ${PORT_OPTIONS:USE_MONGODB}
-RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pymongo:${PORTSDIR}/databases/pymongo \
-		mongodb:${PORTSDIR}/databases/mongodb \
-		freenas-dispatcher:${PORTSDIR}/freenas/freenas-dispatcher
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pymongo>0:${PORTSDIR}/databases/pymongo \
+		mongodb>0:${PORTSDIR}/databases/mongodb \
+		freenas-dispatcher>0:${PORTSDIR}/freenas/freenas-dispatcher
 .endif
 
 EXTRACT_ONLY=
