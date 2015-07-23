@@ -61,11 +61,16 @@ class SystemInfoProvider(Provider):
             return fd.read().strip()
 
     @accepts()
+    @returns(float, float, float)
+    def load_avg(self):
+        return os.getloadavg()
+
+    @accepts()
     @returns(h.object(properties={
-                'cpu_model': str,
-                'cpu_cores': int,
-                'memory_size': long,
-                }))
+        'cpu_model': str,
+        'cpu_cores': int,
+        'memory_size': long,
+    }))
     def hardware(self):
         return {
             'cpu_model': get_sysctl("hw.model"),
@@ -75,16 +80,17 @@ class SystemInfoProvider(Provider):
 
     @accepts()
     @returns(h.object(properties={
-            'system_time': str,
-            'boot_time': str,
-            'timezone': str,
-        }))
+        'system_time': str,
+        'boot_time': str,
+        'uptime': str,
+        'timezone': str,
+    }))
     def time(self):
+        boot_time = datetime.fromtimestamp(psutil.BOOT_TIME, tz=tz.tzlocal())
         return {
             'system_time': datetime.now(tz=tz.tzlocal()),
-            'boot_time': datetime.fromtimestamp(
-                psutil.BOOT_TIME, tz=tz.tzlocal()
-            ).isoformat(),
+            'boot_time': boot_time.isoformat(),
+            'uptime': (datetime.now(tz=tz.tzlocal()) - boot_time).isoformat(),
             'timezone': time.tzname[time.daylight],
         }
 
