@@ -14,7 +14,6 @@ MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS middleware daemon
 
 USES=		python
-RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}psycopg2:${PORTSDIR}/databases/py-psycopg2
 
 EXTRACT_ONLY=
 
