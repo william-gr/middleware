@@ -546,25 +546,24 @@ def _init(dispatcher, plugin):
             'check_auto': {'type': 'boolean'},
         },
     })
-    update_in_progress_schema = h.object(properties={
-            'operation': h.enum(str, ['Downloading', 'Installing']),
-            'details': str,
-            'indeterminate': bool,
-            'percent': int,
-            'reboot': bool,
-            'pkg_name': str,
-            'pkg_version': str,
-            'filename': str,
-            'filesize': int,
-            'num_files_done': int,
-            'num_files_total': int,
-            'error': bool,
-            'finished': bool,
-        })
-    plugin.register_schema_definition('update.in_progress',
-                                      update_in_progress_schema)
 
-    plugin.register_schema_definition('update.ops', {
+    plugin.register_schema_definition('update-progress', h.object(properties={
+        'operation': h.enum(str, ['DOWNLOADING', 'INSTALLING']),
+        'details': str,
+        'indeterminate': bool,
+        'percent': int,
+        'reboot': bool,
+        'pkg_name': str,
+        'pkg_version': str,
+        'filename': str,
+        'filesize': int,
+        'num_files_done': int,
+        'num_files_total': int,
+        'error': bool,
+        'finished': bool,
+    }))
+
+    plugin.register_schema_definition('update-ops', {
         'type': 'object',
         'properties': {
             'new_name': {'type': 'string'},
@@ -588,8 +587,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("update.update", UpdateApplyTask)
 
     # Register Event Types
-    plugin.register_event_type('update.in_progress', None,
-                               update_in_progress_schema)
+    plugin.register_event_type('update.in_progress', schema=h.ref('update-progress'))
     plugin.register_event_type('update.changed')
 
     # Register reources
