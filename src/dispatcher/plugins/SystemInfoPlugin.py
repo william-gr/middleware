@@ -49,10 +49,9 @@ ZONEINFO_DIR = "/usr/share/zoneinfo"
 class SystemInfoProvider(Provider):
 
     @accepts()
-    @returns(str)
+    @returns(h.array(str))
     def uname_full(self):
-        out, _ = system('uname', '-a')
-        return out
+        return os.uname()
 
     @accepts()
     @returns(str)
