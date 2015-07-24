@@ -114,9 +114,9 @@ class PluginService(RpcService):
             if args['address'] == svc.connection.ws.handler.client_address:
                 self.unregister_service(name, svc.connection)
 
-        for name, svc in self.schemas.items():
-            if args['address'] == svc.connection.ws.handler.client_address:
-                self.unregister_schema(name, svc.connection)
+        for name, conn in self.schemas.items():
+            if args['address'] == conn.ws.handler.client_address:
+                self.unregister_schema(name, conn)
 
     def initialize(self, context):
         self.services = {}
