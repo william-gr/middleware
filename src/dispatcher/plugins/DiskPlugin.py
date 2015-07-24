@@ -163,7 +163,7 @@ class DiskEraseTask(Task):
             system('/sbin/zpool', 'labelclear', '-f', disk)
             system('/sbin/gpart', 'destroy', '-F', disk)
         except SubprocessException, err:
-            pass
+            raise TaskException(errno.EFAULT, 'Cannot erase disk: {0}'.format(err.err))
 
         if erase_data:
             diskinfo = diskinfo_cache.get(disk)
