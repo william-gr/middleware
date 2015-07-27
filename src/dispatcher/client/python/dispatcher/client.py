@@ -371,6 +371,11 @@ class Client(object):
 
         return call.result
 
+    def call_task_sync(self, name, args):
+        tid = self.call_sync('task.submit', name, args)
+        self.call_sync('task.wait', tid)
+        return self.call_sync('task.status', tid)
+
     def emit_event(self, name, params):
         self.__send_event(name, params)
 
