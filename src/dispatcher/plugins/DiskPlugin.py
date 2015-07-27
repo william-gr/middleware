@@ -183,7 +183,7 @@ class DiskEraseTask(Task):
 
         generate_disk_cache(self.dispatcher, disk)
 
-    def get_status(self, disk):
+    def get_status(self):
         if not self.started:
             return TaskStatus(0, 'Erasing disk...')
 
