@@ -322,6 +322,11 @@ class ConfigurationService(RpcService):
             result[iface.name] = {
                 'name': iface.name,
                 'flags': [x.name for x in iface.flags],
+                'capabilities': [x.name for x in iface.capabilities],
+                'media-type': iface.media_type,
+                'media-subtype': iface.media_subtype,
+                'media-options': [x.name for x in iface.media_options],
+                'mtu': iface.mtu,
                 'link-state': iface.link_state.name,
                 'link-address': iface.link_address.address.address,
                 'aliases': [convert_alias(a) for a in iface.addresses]
