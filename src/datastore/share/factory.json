@@ -355,122 +355,152 @@
         "data": {
             "0": {
                 "name": "wheel",
+                "sudo": false,
                 "builtin": true
             },
             "1": {
                 "name": "daemon",
+                "sudo": false,
                 "builtin": true
             },
             "2": {
                 "name": "kmem",
+                "sudo": false,
                 "builtin": true
             },
             "3": {
                 "name": "sys",
+                "sudo": false,
                 "builtin": true
             },
             "4": {
                 "name": "tty",
+                "sudo": false,
                 "builtin": true
             },
             "5": {
                 "name": "operator",
+                "sudo": false,
                 "builtin": true
             },
             "6": {
                 "name": "mail",
+                "sudo": false,
                 "builtin": true
             },
             "7": {
                 "name": "bin",
+                "sudo": false,
                 "builtin": true
             },
             "8": {
                 "name": "news",
+                "sudo": false,
                 "builtin": true
             },
             "9": {
                 "name": "man",
+                "sudo": false,
                 "builtin": true
             },
             "13": {
                 "name": "games",
+                "sudo": false,
                 "builtin": true
             },
             "14": {
                 "name": "ftp",
+                "sudo": false,
                 "builtin": true
             },
             "20": {
                 "name": "staff",
+                "sudo": false,
                 "builtin": true
             },
             "22": {
                 "name": "sshd",
+                "sudo": false,
                 "builtin": true
             },
             "25": {
                 "name": "smmsp",
+                "sudo": false,
                 "builtin": true
             },
             "26": {
                 "name": "mailnull",
+                "sudo": false,
                 "builtin": true
             },
             "31": {
                 "name": "guest",
+                "sudo": false,
                 "builtin": true
             },
             "53": {
                 "name": "bind",
+                "sudo": false,
                 "builtin": true
             },
             "62": {
                 "name": "proxy",
+                "sudo": false,
                 "builtin": true
             },
             "63": {
                 "name": "authpf",
+                "sudo": false,
                 "builtin": true
             },
             "64": {
                 "name": "_pflogd",
+                "sudo": false,
                 "builtin": true
             },
             "65": {
                 "name": "_dhcp",
+                "sudo": false,
                 "builtin": true
             },
             "66": {
                 "name": "uucp",
+                "sudo": false,
                 "builtin": true
             },
             "68": {
                 "name": "dialer",
+                "sudo": false,
                 "builtin": true
             },
             "69": {
                 "name": "network",
+                "sudo": false,
                 "builtin": true
             },
             "77": {
                 "name": "audit",
+                "sudo": false,
                 "builtin": true
             },
             "80": {
                 "name": "www",
+                "sudo": false,
                 "builtin": true
             },
             "522": {
                 "name": "nullmail",
+                "sudo": false,
                 "builtin": true
             },
             "65533": {
                 "name": "nogroup",
+                "sudo": false,
                 "builtin": true
             },
             "65534": {
                 "name": "nobody",
+                "sudo": false,
                 "builtin": true
             }
         }

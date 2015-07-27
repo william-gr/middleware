@@ -369,7 +369,8 @@ def _init(dispatcher, plugin):
         'properties': {
             'id': {'type': 'integer'},
             'builtin': {'type': 'boolean', 'readOnly': True},
-            'name': {'type': 'string'}
+            'name': {'type': 'string'},
+            'sudo': {'type': 'boolean'}
         }
     })
 
