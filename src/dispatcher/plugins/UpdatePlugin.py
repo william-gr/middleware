@@ -299,7 +299,7 @@ class UpdateProvider(Provider):
                 ' might be underway. Try again in some time.')
 
     @accepts()
-    @returns(h.array(h.ref('update.ops')))
+    @returns(h.array(h.ref('update-ops')))
     def get_update_ops(self):
         temp_updateOperations = update_cache.get('updateOperations', timeout=1)
         if temp_updateOperations is not None:

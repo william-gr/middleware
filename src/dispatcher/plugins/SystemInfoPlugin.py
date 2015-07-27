@@ -24,6 +24,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
+
+import sys
 import errno
 import os
 import psutil
@@ -34,19 +36,28 @@ import netif
 from datetime import datetime
 from dateutil import tz
 from dispatcher.rpc import (
-    RpcException, SchemaHelper as h, accepts, description, returns
+    RpcException,
+    SchemaHelper as h,
+    accepts,
+    description,
+    returns
 )
 from lib.system import system, system_bg
 from lib.freebsd import get_sysctl
 from task import Provider, Task, TaskException
 
+sys.path.append('/usr/local/lib')
+from freenasOS import Configuration
 
 KEYMAPS_INDEX = "/usr/share/syscons/keymaps/INDEX.keymaps"
 ZONEINFO_DIR = "/usr/share/zoneinfo"
+VERSION_FILE = "/etc/version"
 
 
 @description("Provides informations about the running system")
 class SystemInfoProvider(Provider):
+    def __init__(self):
+        self.__version = None
 
     @accepts()
     @returns(h.array(str))
@@ -55,9 +66,19 @@ class SystemInfoProvider(Provider):
 
     @accepts()
     @returns(str)
+    @description("Return the full version string, e.g. FreeNAS-8.1-r7794-amd64.")
     def version(self):
-        with open('/etc/version') as fd:
-            return fd.read().strip()
+        if self.__version is None:
+            # See #9113
+            conf = Configuration.Configuration()
+            manifest = conf.SystemManifest()
+            if manifest:
+                self.__version = manifest.Version()
+            else:
+                with open(VERSION_FILE) as fd:
+                    self.__version = fd.read().strip()
+
+        return self.__version
 
     @accepts()
     @returns(float, float, float)
@@ -87,9 +108,9 @@ class SystemInfoProvider(Provider):
     def time(self):
         boot_time = datetime.fromtimestamp(psutil.BOOT_TIME, tz=tz.tzlocal())
         return {
-            'system_time': datetime.now(tz=tz.tzlocal()),
+            'system_time': datetime.now(tz=tz.tzlocal()).isoformat(),
             'boot_time': boot_time.isoformat(),
-            'uptime': (datetime.now(tz=tz.tzlocal()) - boot_time).isoformat(),
+            'uptime': (datetime.now(tz=tz.tzlocal()) - boot_time).total_seconds(),
             'timezone': time.tzname[time.daylight],
         }
 
