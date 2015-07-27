@@ -41,13 +41,15 @@ import dateutil.parser
 import dateutil.tz
 import tables
 import signal
+import socket
+import time
 import pandas as pd
 from datetime import datetime, timedelta
 import gevent
 import gevent.monkey
 import gevent.socket
 from gevent.server import StreamServer
-from dispatcher.client import Client, ClientType, thread_type
+from dispatcher.client import Client, ClientError, ClientType, thread_type
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
@@ -336,12 +338,29 @@ class Main(object):
 
         return self.data_sources[name]
 
+    def connect(self):
+        while True:
+            try:
+                self.client.connect('127.0.0.1')
+                self.client.login_service('statd')
+                self.client.enable_server()
+                self.client.enable_server()
+                self.client.register_service('statd.output', OutputService(self))
+                self.client.resume_service('statd.output')
+                return
+            except socket.error, err:
+                self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
+                time.sleep(1)
+
     def init_dispatcher(self):
+        def on_error(reason):
+            if reason in (ClientError.CONNECTION_CLOSED, ClientError.LOGOUT):
+                self.logger.warning('Connection to dispatcher lost')
+                self.connect()
+
         self.client = Client()
-        self.client.on_error(self.dispatcher_error)
-        self.client.connect('127.0.0.1')
-        self.client.login_service('statd')
-        self.client.enable_server()
+        self.client.on_error(on_error)
+        self.connect()
 
     def die(self):
         self.logger.warning('Exiting')
@@ -369,8 +388,6 @@ class Main(object):
         self.init_datastore()
         self.init_dispatcher()
         self.init_database()
-        self.client.enable_server()
-        self.client.register_service('statd.output', OutputService(self))
         self.server.start()
         self.logger.info('Started')
         self.client.wait_forever()

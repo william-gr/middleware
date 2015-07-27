@@ -28,17 +28,18 @@
 
 import os
 import sys
-import signal
+import socket
 import logging
 import argparse
 import json
 import errno
 import datastore
+import time
 import imp
 import setproctitle
 import renderers
 from datastore.config import ConfigStore
-from dispatcher.client import Client
+from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 
 
@@ -147,12 +148,29 @@ class Main:
         self.configstore = ConfigStore(self.datastore)
 
     def init_dispatcher(self):
+        def on_error(reason):
+            if reason in (ClientError.CONNECTION_CLOSED, ClientError.LOGOUT):
+                self.logger.warning('Connection to dispatcher lost')
+                self.connect()
+
         self.client = Client()
-        self.client.connect('127.0.0.1')
-        self.client.login_service('etcd')
-        self.client.enable_server()
-        self.client.register_service('etcd.generation', FileGenerationService(self))
-        self.client.register_service('etcd.management', ManagementService(self))
+        self.client.on_error(on_error)
+        self.connect()
+
+    def connect(self):
+        while True:
+            try:
+                self.client.connect('127.0.0.1')
+                self.client.login_service('etcd')
+                self.client.enable_server()
+                self.client.register_service('etcd.generation', FileGenerationService(self))
+                self.client.register_service('etcd.management', ManagementService(self))
+                self.client.resume_service('etcd.generation')
+                self.client.resume_service('etcd.management')
+                return
+            except socket.error, err:
+                self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
+                time.sleep(1)
 
     def init_renderers(self):
         for name, impl in TEMPLATE_RENDERERS.items():

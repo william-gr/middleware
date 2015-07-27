@@ -182,6 +182,13 @@ class Client(object):
     def __send_response(self, id, resp):
         self.ws.send(self.__pack('rpc', 'response', id=id, args=resp))
 
+    def __send(self, data):
+        try:
+            self.ws.send(data)
+        except OSError, err:
+            if err.errno == errno.EPIPE:
+                self.error_callback(ClientError.CONNECTION_CLOSED)
+
     def decode(self, msg):
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
@@ -326,6 +333,12 @@ class Client(object):
 
         self.rpc.unregister_service(name)
         self.call_sync('plugin.unregister_service', name)
+
+    def resume_service(self, name):
+        if self.rpc is None:
+            raise RuntimeError('Call enable_server() first')
+
+        self.call_sync('plugin.resume_service', name)
 
     def register_schema(self, name, schema):
         if self.rpc is None:

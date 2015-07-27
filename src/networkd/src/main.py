@@ -36,11 +36,13 @@ import subprocess
 import errno
 import threading
 import setproctitle
+import socket
 import netif
+import time
 import ipaddress
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
-from dispatcher.client import Client
+from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from fnutils.query import wrap
 
@@ -607,11 +609,31 @@ class Main:
 
         self.configstore = ConfigStore(self.datastore)
 
+    def connect(self, resume=False):
+        while True:
+            try:
+                self.client.connect('127.0.0.1')
+                self.client.login_service('networkd')
+                self.client.enable_server()
+                self.register_schemas()
+                self.client.register_service('networkd.configuration', ConfigurationService(self))
+                if resume:
+                    self.client.resume_service('networkd.configuration')
+
+                return
+            except socket.error, err:
+                self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
+                time.sleep(1)
+
     def init_dispatcher(self):
+        def on_error(reason):
+            if reason in (ClientError.CONNECTION_CLOSED, ClientError.LOGOUT):
+                self.logger.warning('Connection to dispatcher lost')
+                self.connect(resume=True)
+
         self.client = Client()
-        self.client.connect('127.0.0.1')
-        self.client.login_service('networkd')
-        self.client.enable_server()
+        self.client.on_error(on_error)
+        self.connect()
 
     def init_routing_socket(self):
         self.rtsock_thread = RoutingSocketEventSource(self)
@@ -645,8 +667,7 @@ class Main:
         self.init_dispatcher()
         self.scan_interfaces()
         self.init_routing_socket()
-        self.register_schemas()
-        self.client.register_service('networkd.configuration', ConfigurationService(self))
+        self.client.resume_service('networkd.configuration')
         self.logger.info('Started')
         self.client.wait_forever()
 

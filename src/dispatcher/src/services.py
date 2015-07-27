@@ -94,6 +94,7 @@ class PluginService(RpcService):
         def __init__(self, connection, name):
             self.connection = connection
             self.service_name = name
+            self.resumed = Event()
 
         def get_metadata(self):
             return self.connection.call_client_sync(self.service_name + '.get_metadata')
@@ -103,6 +104,7 @@ class PluginService(RpcService):
 
         def __getattr__(self, name):
             def call_wrapped(*args):
+                self.resumed.wait()
                 return self.connection.call_client_sync(
                     '.'.join([self.service_name, name]),
                     *args)
@@ -158,6 +160,17 @@ class PluginService(RpcService):
         })
 
         del self.services[name]
+
+    @pass_sender
+    def resume_service(self, name, sender):
+        if name not in self.services.keys():
+            raise RpcException(errno.ENOENT, 'Service not found')
+
+        svc = self.services[name]
+        if svc.connection != sender:
+            raise RpcException(errno.EPERM, 'Permission denied')
+
+        svc.resumed.set()
 
     @pass_sender
     def register_schema(self, name, schema, sender):
