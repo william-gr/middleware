@@ -27,8 +27,12 @@
 
 import imp
 import os
+import sys
+import json
+
 
 DRIVERS_LOCATION = '/usr/local/lib/datastore/drivers'
+DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
 
 class DatastoreException(Exception):
@@ -51,3 +55,20 @@ def get_datastore(type, dsn, database='freenas'):
     instance = cls()
     instance.connect(dsn, database)
     return instance
+
+
+def get_default_datastore():
+    def parse_config(filename):
+        try:
+            f = open(filename, 'r')
+            config = json.load(f)
+            f.close()
+        except IOError, err:
+            raise DatastoreException('Cannot read config file: {0}'.format(err.message))
+        except ValueError:
+            raise DatastoreException('Config file has unreadable format (not valid JSON)')
+
+        return config
+
+    conf = parse_config(DEFAULT_CONFIGFILE)
+    return get_datastore(conf['datastore']['driver'], conf['datastore']['dsn'])
