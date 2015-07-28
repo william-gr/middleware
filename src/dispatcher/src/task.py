@@ -97,6 +97,17 @@ class TaskAbortException(TaskException):
     pass
 
 
+class ValidationException(TaskException):
+
+    def __init__(self, errors):
+        extra = {'fields': {}}
+        for name, code, message in errors:
+            if name not in extra['fields']:
+                extra['fields'][name] = []
+            extra['fields'][name].append((code, message))
+        super(ValidationException, self).__init__(errno.EBADMSG, 'Validation Exception Errors', extra=extra)
+
+
 class VerifyException(TaskException):
     pass
 

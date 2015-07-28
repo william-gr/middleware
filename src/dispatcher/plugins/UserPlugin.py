@@ -27,7 +27,7 @@
 
 import os
 import errno
-from task import Provider, Task, TaskException, VerifyException, query
+from task import Provider, Task, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
@@ -218,11 +218,20 @@ class GroupCreateTask(Task):
         return "Adding group {0}".format(group['name'])
 
     def verify(self, group):
+        errors = []
+
         if self.datastore.exists('groups', ('name', '=', group['name'])):
-            raise VerifyException(errno.EEXIST, 'Group {0} already exists'.format(group['name']))
+            errors.append(
+                ("name", errno.EEXIST, 'Group {0} already exists'.format(group['name']))
+            )
 
         if 'id' in group and self.datastore.exists('groups', ('id', '=', group['id'])):
-            raise VerifyException(errno.EEXIST, 'Group with GID {0} already exists'.format(group['id']))
+            errors.append(
+                ("id", errno.EEXIST, 'Group with GID {0} already exists'.format(group['id']))
+            )
+
+        if errors:
+            raise ValidationException(errors)
 
         return ['system']
 
