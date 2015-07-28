@@ -301,38 +301,7 @@ class ConfigurationService(RpcService):
         return RpcException(errno.EBUSY, 'No free interfaces left')
 
     def query_interfaces(self):
-        result = {}
-
-        def convert_alias(alias):
-            ret = {
-                'family': alias.af.name,
-                'address': alias.address.address if type(alias.address) is netif.LinkAddress else str(alias.address)
-            }
-
-            if alias.netmask:
-                # XXX yuck!
-                ret['netmask'] = bin(int(alias.netmask)).count('1')
-
-            if alias.broadcast:
-                ret['broadcast'] = str(alias.broadcast)
-
-            return ret
-
-        for iface in netif.list_interfaces().values():
-            result[iface.name] = {
-                'name': iface.name,
-                'flags': [x.name for x in iface.flags],
-                'capabilities': [x.name for x in iface.capabilities],
-                'media-type': iface.media_type,
-                'media-subtype': iface.media_subtype,
-                'media-options': [x.name for x in iface.media_options],
-                'mtu': iface.mtu,
-                'link-state': iface.link_state.name,
-                'link-address': iface.link_address.address.address,
-                'aliases': [convert_alias(a) for a in iface.addresses]
-            }
-
-        return result
+        return netif.list_interfaces()
 
     def query_routes(self):
         rtable = netif.RoutingTable()
@@ -650,6 +619,22 @@ class Main:
             'enum': netif.AggregationProtocol.__members__.keys()
         })
 
+        self.client.register_schema('network-interface-flags', {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': netif.InterfaceFlags.__members__.keys()
+            }
+        })
+
+        self.client.register_schema('network-interface-capabilities', {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': netif.InterfaceCapability.__members__.keys()
+            }
+        })
+
         self.client.register_schema('network-interface-type', {
             'type': 'string',
             'enum': [
@@ -659,6 +644,25 @@ class Main:
                 'BRIDGE',
                 'LAGG'
             ]
+        })
+
+        self.client.register_schema('network-interface-status', {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'link_state': {'type': 'string'},
+                'link_address': {'type': 'string'},
+                'mtu': {'type': 'integer'},
+                'media_type': {'type': 'string'},
+                'media_subtype': {'type': 'string'},
+                'media_options': {'$ref': 'network-interface-media-options'},
+                'capabilities': {'$ref': 'network-interface-capabilities'},
+                'flags': {'$ref': 'network-interface-flags'},
+                'aliases': {
+                    'type': 'array',
+                    'items': {'$ref': 'network-interface-alias'}
+                }
+            }
         })
 
     def main(self):

@@ -391,28 +391,7 @@ def _init(dispatcher, plugin):
                     }
                 }
             },
-            'status': {
-                'type': 'object',
-                'properties': {
-                    'name': {'type': 'string'},
-                    'link-state': {'type': 'string'},
-                    'link-address': {'type': 'string'},
-                    'flags': {
-                        'type': 'string',
-                        'enum': [
-                            'DRV_RUNNING',
-                            'UP',
-                            'BROADCAST',
-                            'SIMPLEX',
-                            'MULTICAST'
-                        ]
-                    },
-                    'aliases': {
-                        'type': 'array',
-                        'items': {'$ref': 'network-interface-alias'}
-                    }
-                }
-            }
+            'status': {'$ref': 'network-interface-status'}
         }
     })
 
