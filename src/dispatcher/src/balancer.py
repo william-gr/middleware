@@ -98,10 +98,7 @@ class Task(object):
         try:
             result = self.instance.run(*(copy.deepcopy(self.args)))
         except TaskAbortException, e:
-            self.error = {
-               'type': type(e).__name__,
-               'message': str(e)
-            }
+            self.error = serialize_error(e)
 
             self.ended.set()
             self.progress = self.instance.get_status()
@@ -110,11 +107,7 @@ class Task(object):
             self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s aborted by user", self.id, self.name)
             return
         except BaseException, e:
-            self.error = {
-                'type': type(e).__name__,
-                'message': str(e),
-                'stacktrace': traceback.format_exc()
-            }
+            self.error = serialize_error(e)
 
             self.ended.set()
             self.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
@@ -139,8 +132,11 @@ class Task(object):
 
         return self.thread
 
-    def set_state(self, state, progress=None):
+    def set_state(self, state, progress=None, error=None):
         event = {'id': self.id, 'name': self.name, 'state': state}
+
+        if error:
+            self.error = error
 
         if state == TaskState.EXECUTING:
             self.started_at = time.time()
@@ -314,7 +310,7 @@ class Balancer(object):
 
             except Exception as err:
                 self.logger.warning("Cannot verify task %d: %s", task.id, err)
-                task.set_state(TaskState.FAILED, TaskStatus(0, str(err)))
+                task.set_state(TaskState.FAILED, TaskStatus(0), serialize_error(err))
                 continue
 
             task.set_state(TaskState.WAITING)
@@ -339,3 +335,20 @@ class Balancer(object):
         ret = filter(lambda x: x.id == id, self.task_list)
         if len(ret) > 0:
             return ret[0]
+
+
+def serialize_error(err):
+    ret = {
+        'type': type(err).__name__,
+        'message': err.message,
+        'stacktrace': traceback.format_exc()
+    }
+
+    if isinstance(err, RpcException):
+        ret['code'] = err.code
+        if err.extra:
+            ret['extra'] = err.extra
+    else:
+        ret['code'] = errno.EFAULT
+
+    return ret
