@@ -464,8 +464,21 @@ class ConfigurationService(RpcService):
             self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
             iface.add_address(i)
 
-        if 'mtu' in entity:
+        if entity.get('mtu'):
             iface.mtu = entity['mtu']
+
+        if entity.get('media'):
+            iface.media_subtype = entity['media']
+
+        if entity.get('capabilities'):
+            caps = iface.capabilities
+            for c in entity['capabilities'].get('add'):
+                caps.add(getattr(netif.InterfaceCapability, c))
+
+            for c in entity['capabilities'].get('del'):
+                caps.remove(getattr(netif.InterfaceCapability, c))
+
+            iface.capabilities = caps
 
         if netif.InterfaceFlags.UP not in iface.flags:
             self.logger.info('Bringing interface {0} up'.format(name))
@@ -632,6 +645,14 @@ class Main:
             'items': {
                 'type': 'string',
                 'enum': netif.InterfaceCapability.__members__.keys()
+            }
+        })
+
+        self.client.register_schema('network-interface-mediaopts', {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'enum': netif.InterfaceMediaOption.__members__.keys()
             }
         })
 

@@ -370,6 +370,15 @@ def _init(dispatcher, plugin):
             'enabled': {'type': 'boolean'},
             'dhcp': {'type': 'boolean'},
             'mtu': {'type': ['integer', 'null']},
+            'media': {'type': ['string', 'null']},
+            'mediaopts': {'$ref': 'network-interface-mediaopts'},
+            'capabilities': {
+                'type': 'object',
+                'properties': {
+                    'add': {'$ref': 'network-interface-capabilities'},
+                    'del': {'$ref': 'network-interface-capabilities'},
+                }
+            },
             'aliases': {
                 'type': 'array',
                 'items': {'$ref': 'network-interface-alias'}
