@@ -30,6 +30,8 @@ import re
 import inspect
 import dateutil.parser
 
+from six import string_types
+
 
 operators_table = {
     '=': lambda x, y: x == y,
@@ -155,7 +157,6 @@ class QueryList(list):
         offset = params.pop('offset', None)
         limit = params.pop('limit', None)
         sort = params.pop('sort', None)
-        dir = params.pop('dir', 'desc')
         result = []
 
         if len(rules) == 0:
@@ -166,7 +167,22 @@ class QueryList(list):
                     result.append(i)
 
         if sort:
-            result.sort(key=lambda x: x[sort], reverse=True if dir == 'desc' else False)
+            def sort_transform(result, key):
+                reverse = False
+                if key.startswith('-'):
+                    key = key[1:]
+                    reverse=True
+                _sort.append((key, reverse))
+
+            _sort = []
+            if isinstance(sort, string_types):
+                sort_transform(_sort, sort)
+            elif isinstance(sort, (tuple, list)):
+                for s in sort:
+                    sort_transform(_sort, s)
+            if _sort:
+                for key, reverse in reversed(_sort):
+                    result = sorted(result, key=lambda x: x[key], reverse=reverse)
 
         if offset:
             result = result[offset:]

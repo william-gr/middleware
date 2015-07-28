@@ -33,6 +33,7 @@ import dateutil.parser
 from pymongo import MongoClient
 import pymongo
 import pymongo.errors
+from six import string_types
 from datastore import DuplicateKeyException
 
 
@@ -153,7 +154,6 @@ class MongodbDatastore(object):
 
     def query(self, collection, *args, **kwargs):
         sort = kwargs.pop('sort', None)
-        dir = kwargs.pop('dir', None)
         limit = kwargs.pop('limit', None)
         offset = kwargs.pop('offset', None)
         single = kwargs.pop('single', False)
@@ -166,9 +166,23 @@ class MongodbDatastore(object):
             return cur.count()
 
         if sort:
-            sort = '_id' if sort == 'id' else sort
-            dir = 1 if dir == 'asc' else -1
-            cur = cur.sort(sort, dir)
+
+            def sort_transform(result, key):
+                direction = pymongo.ASCENDING
+                if key.startswith('-'):
+                    key = key[1:]
+                    direction = pymongo.DESCENDING
+                key = '_id' if key == 'id' else key
+                _sort.append((key, direction))
+
+            _sort = []
+            if isinstance(sort, string_types):
+                sort_transform(_sort, sort)
+            elif isinstance(sort, (tuple, list)):
+                for s in sort:
+                    sort_transform(_sort, s)
+            if _sort:
+                cur = cur.sort(_sort)
 
         if offset:
             cur = cur.skip(offset)
