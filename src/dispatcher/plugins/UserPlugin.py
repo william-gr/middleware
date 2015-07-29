@@ -314,6 +314,20 @@ class GroupUpdateTask(Task):
         if group is None:
             raise VerifyException(errno.ENOENT, 'Group with given ID does not exists')
 
+        errors = []
+
+        for code, message in check_unixname(group['name']):
+            errors.append(('name', code, message))
+
+        # Check if there is another group with same name being renamed to
+        if self.datastore.exists('groups', ('name', '=', group['name']), ('name', '!=', id)):
+            errors.append(
+                ("name", errno.EEXIST, 'Group {0} already exists'.format(group['name']))
+            )
+
+        if errors:
+            raise ValidationException(errors)
+
         return ['system']
 
     def run(self, gid, updated_fields):
