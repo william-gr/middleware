@@ -94,6 +94,21 @@ class UserProvider(Provider):
     def get_profile_picture(self, uid):
         pass
 
+    @description("Retrieve the next UID available")
+    @returns(int)
+    def next_uid(self):
+        start_uid, end_uid = self.dispatcher.configstore.get('accounts.local_uid_range')
+        uid = None
+        for i in range(start_uid, end_uid):
+            if not self.datastore.exists('users', ('id', '=', i)):
+                uid = i
+                break
+
+        if not uid:
+            raise RpcException(errno.ENOSPC, 'No free UIDs available')
+
+        return uid
+
 
 @description("Provides access to groups database")
 class GroupProvider(Provider):
@@ -105,10 +120,16 @@ class GroupProvider(Provider):
     @description("Retrieve the next GID available")
     @returns(int)
     def next_gid(self):
-        try:
-            gid = int(system('pw', 'groupnext')[0].strip())
-        except SubprocessException, err:
-            raise RpcException(errno.EFAULT, 'Cannot retrieve next GID: {0}'.format(str(err)))
+        start_gid, end_gid = self.dispatcher.configstore.get('accounts.local_gid_range')
+        gid = None
+        for i in range(start_gid, end_gid):
+            if not self.datastore.exists('groups', ('id', '=', i)):
+                gid = i
+                break
+
+        if not gid:
+            raise RpcException(errno.ENOSPC, 'No free GIDs available')
+
         return gid
 
 
@@ -138,15 +159,7 @@ class UserCreateTask(Task):
     def run(self, user):
         if 'id' not in user:
             # Need to get next free UID
-            start_uid, end_uid = self.dispatcher.configstore.get('accounts.local_uid_range')
-            uid = None
-            for i in range(start_uid, end_uid):
-                if not self.datastore.exists('users', ('id', '=', i)):
-                    uid = i
-                    break
-
-            if not uid:
-                raise TaskException(errno.ENOSPC, 'No free UIDs available')
+            uid = self.dispatcher.call_sync('users.next_uid')
         else:
             uid = user.pop('id')
 
@@ -279,15 +292,7 @@ class GroupCreateTask(Task):
     def run(self, group):
         if 'id' not in group:
             # Need to get next free GID
-            start_uid, end_uid = self.dispatcher.configstore.get('accounts.local_gid_range')
-            gid = None
-            for i in range(start_uid, end_uid):
-                if not self.datastore.exists('groups', ('id', '=', i)):
-                    gid = i
-                    break
-
-            if not gid:
-                raise TaskException(errno.ENOSPC, 'No free GIDs available')
+            gid = self.dispatcher.call_sync('groups.next_gid')
         else:
             gid = group.pop('id')
 
