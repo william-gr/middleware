@@ -336,7 +336,7 @@ class ConfigurationService(RpcService):
             self.configure_interface(i['id'])
 
         # Are there any orphaned interfaces?
-        for name, iface in netif.list_interfaces():
+        for name, iface in netif.list_interfaces().items():
             if not name.startswith(('vlan', 'lagg', 'bridge')):
                 continue
 
