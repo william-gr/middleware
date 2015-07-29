@@ -33,6 +33,34 @@ from dispatcher.rpc import SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
 
 
+def check_unixname(name):
+    """Helper method to check if a given name is a valid unix name
+        1. Cannot start with dashes
+        2. $ is only valid as a final character
+        3. Cannot contain any of the following:  ,\t:+&#%\^()!@~\*?<>=|\\/"
+
+    Returns: an array of errors [composed of a tuple (error code, error message)]
+    """
+
+    errors = []
+
+    if name.startswith('-'):
+        errors.append((errno.EINVAL, 'Your name cannot start with "-"'))
+
+    if name.find('$') not in (-1, len(name) - 1):
+        errors.append((errno.EINVAL, 'The character $ is only allowed as the final character'))
+
+    invalids = []
+    for char in name:
+        if char in ' ,\t:+&#%\^()!@~\*?<>=|\\/"' and char not in invalids:
+            invalids.append(char)
+    if invalids:
+        errors.append(
+            (errno.EINVAL, 'Your name contains invalid characters ({0}).'.format(''.join(invalids))))
+
+    return errors
+
+
 @description("Provides access to users database")
 class UserProvider(Provider):
     @description("Lists users present in the system")
@@ -219,6 +247,9 @@ class GroupCreateTask(Task):
 
     def verify(self, group):
         errors = []
+
+        for code, message in check_unixname(group['name']):
+            errors.append(('name', code, message))
 
         if self.datastore.exists('groups', ('name', '=', group['name'])):
             errors.append(
