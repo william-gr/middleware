@@ -31,6 +31,7 @@ from task import Provider, Task, TaskException, ValidationException, VerifyExcep
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
+from lib.system import SubprocessException, system
 
 
 def check_unixname(name):
@@ -100,6 +101,15 @@ class GroupProvider(Provider):
     @query('group')
     def query(self, filter=None, params=None):
         return self.datastore.query('groups', *(filter or []), **(params or {}))
+
+    @description("Retrieve the next GID available")
+    @returns(int)
+    def next_gid(self):
+        try:
+            gid = int(system('pw', 'groupnext')[0].strip())
+        except SubprocessException, err:
+            raise RpcException(errno.EFAULT, 'Cannot retrieve next GID: {0}'.format(str(err)))
+        return gid
 
 
 @description("Create an user in the system")
