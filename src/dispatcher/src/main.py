@@ -277,6 +277,7 @@ class Dispatcher(object):
         self.port = 0
 
     def init(self):
+        self.logger.info('Initializing')
         self.datastore = get_datastore(
             self.config['datastore']['driver'],
             self.config['datastore']['dsn']
