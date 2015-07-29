@@ -182,8 +182,8 @@ class PluginService(RpcService):
         if name not in self.schemas.keys():
             raise RpcException(errno.ENOENT, 'Schema not found')
 
-        schema = self.schemas[name]
-        if schema.connection != sender:
+        conn = self.schemas[name]
+        if conn != sender:
             raise RpcException(errno.EPERM, 'Permission denied')
 
         self.__dispatcher.unregister_schema_definition(name)
