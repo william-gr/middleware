@@ -373,6 +373,10 @@ class GroupDeleteTask(Task):
         if group is None:
             raise VerifyException(errno.ENOENT, 'Group with given ID does not exists')
 
+        if group['builtin'] is True:
+            raise VerifyException(
+                errno.EINVAL, 'Group {0} is built-in and can not be deleted'.format(group['name']))
+
         return ['system']
 
     def run(self, gid):
