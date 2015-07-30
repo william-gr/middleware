@@ -77,6 +77,7 @@ class Task(object):
             "session": self.session_id,
             "name": self.name,
             "args": self.args,
+            "result": self.result,
             "state": self.state,
             "error": self.error
         }
