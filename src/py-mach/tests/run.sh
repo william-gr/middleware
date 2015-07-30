@@ -2,6 +2,7 @@
 export ROOT=`pwd`
 export PYTHON=${PYTHON:-python2.7}
 export PYTHONPATH=${ROOT}/lib
+export LOGPATH=.
 
 total_tests=0
 total_success=0
