@@ -73,10 +73,6 @@ class UserProvider(Provider):
                 ('active', '=', True)
             ])
 
-            # Remove password hash fields, they're useless in a query
-            user.pop('unixhash', None)
-            user.pop('smbhash', None)
-
             # If there's no 'groups' property, put empty array in that place
             if 'groups' not in user:
                 user['groups'] = []
