@@ -101,26 +101,26 @@ class Task(object):
         except TaskAbortException, e:
             self.error = serialize_error(e)
 
-            self.ended.set()
             self.progress = self.instance.get_status()
             self.set_state(TaskState.ABORTED, TaskStatus(self.progress.percentage, "Aborted"))
+            self.ended.set()
             self.dispatcher.balancer.task_exited(self)
             self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s aborted by user", self.id, self.name)
             return
         except BaseException, e:
             self.error = serialize_error(e)
 
-            self.ended.set()
             self.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
                 "stacktrace": traceback.format_exc()
             }))
+            self.ended.set()
 
             self.dispatcher.balancer.task_exited(self)
             return
 
-        self.ended.set()
         self.result = result
         self.set_state(TaskState.FINISHED, TaskStatus(100, ''))
+        self.ended.set()
         self.dispatcher.balancer.task_exited(self)
 
     def start(self):
@@ -162,15 +162,15 @@ class Task(object):
                 return
             elif (hasattr(self.instance, 'suggested_timeout') and
                   time.time() - self.started_at > self.instance.suggested_timeout):
-                self.ended.set()
                 self.set_state(TaskState.FAILED, TaskStatus(0, "FAILED"))
+                self.ended.set()
                 self.error = {
                    'type': "ETIMEDOUT",
                    'message': "The task was killed due to a timeout",
                 }
-                self.ended.set()
                 self.progress = self.instance.get_status()
                 self.set_state(TaskState.FAILED, TaskStatus(self.progress.percentage, "TIMEDOUT"))
+                self.ended.set()
                 self.dispatcher.balancer.task_exited(self)
                 self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s was TIMEDOUT", self.id, self.name)
             else:

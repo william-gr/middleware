@@ -229,8 +229,8 @@ class TaskService(RpcService):
 
     def wait(self, id):
         task = self.__balancer.get_task(id)
-        if task and task.thread:
-            task.thread.join()
+        if task:
+            task.ended.wait()
 
     def abort(self, id):
         self.__balancer.abort(id)
