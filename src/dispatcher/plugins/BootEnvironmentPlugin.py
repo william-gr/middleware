@@ -26,12 +26,13 @@
 #####################################################################
 
 import sys
+import errno
 from fnutils.query import wrap
-from task import Provider, Task
+from task import Provider, Task, VerifyException, TaskException
 
 
 sys.path.append('/usr/local/lib')
-from freenasOS.Update import ListClones
+from freenasOS.Update import ListClones, FindClone, RenameClone, ActivateClone, DeleteClone
 
 
 class BootEnvironmentsProvider(Provider):
@@ -47,15 +48,49 @@ class BootEnvironmentsProvider(Provider):
 
 
 class BootEnvironmentCreate(Task):
-    pass
+    def verify(self, newname, source=None):
+        return ['system']
+
+    def run(self, name):
+        pass
 
 
 class BootEnvironmentActivate(Task):
-    pass
+    def verify(self, name):
+        be = FindClone(name)
+        if not be:
+            raise VerifyException(errno.ENOENT, 'Boot environment {0} not found'.format(oldname))
+
+        return ['system']
+
+    def run(self, name):
+        ActivateClone(name)
+
+
+class BootEnvironmentRename(Task):
+    def verify(self, oldname, newname):
+        be = FindClone(oldname)
+        if not be:
+            raise VerifyException(errno.ENOENT, 'Boot environment {0} not found'.format(oldname))
+
+        return ['system']
+
+    def run(self, oldname, newname):
+        RenameClone(oldname, newname)
 
 
 class BootEnvironmentsDelete(Task):
-    pass
+    def verify(self, names):
+        for n in names:
+            be = FindClone(n)
+            if not be:
+                raise VerifyException(errno.ENOENT, 'Boot environment {0} not found'.format(n))
+
+        return ['system']
+
+    def run(self, names):
+        for n in names:
+            DeleteClone(n)
 
 
 def _init(dispatcher, plugin):
@@ -73,3 +108,8 @@ def _init(dispatcher, plugin):
     })
 
     plugin.register_provider('boot_environments', BootEnvironmentsProvider)
+    plugin.register_task_handler('boot_environments.create', BootEnvironmentCreate)
+    plugin.register_task_handler('boot_environments.activate', BootEnvironmentActivate)
+    plugin.register_task_handler('boot_environments.rename', BootEnvironmentRename)
+    plugin.register_task_handler('boot_environments.delete', BootEnvironmentsDelete)
+
