@@ -31,7 +31,6 @@ from task import Provider, Task, TaskException, ValidationException, VerifyExcep
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
-from lib.system import SubprocessException, system
 
 
 def check_unixname(name):
@@ -144,11 +143,20 @@ class UserCreateTask(Task):
         return "Adding user {0}".format(user['username'])
 
     def verify(self, user):
+
+        errors = []
+
+        for code, message in check_unixname(user['username']):
+            errors.append(('name', code, message))
+
         if self.datastore.exists('users', ('username', '=', user['username'])):
             raise VerifyException(errno.EEXIST, 'User with given name already exists')
 
         if 'id' in user and self.datastore.exists('users', ('id', '=', user['id'])):
             raise VerifyException(errno.EEXIST, 'User with given UID already exists')
+
+        if errors:
+            raise ValidationException(errors)
 
         return ['system']
 
@@ -179,6 +187,7 @@ class UserCreateTask(Task):
         })
 
         return uid
+
 
 @description("Deletes an user from the system")
 @accepts(int)
