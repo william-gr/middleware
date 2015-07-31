@@ -157,6 +157,7 @@ class QueryList(list):
         offset = params.pop('offset', None)
         limit = params.pop('limit', None)
         sort = params.pop('sort', None)
+        postprocess = params.pop('callback', None)
         result = []
 
         if len(rules) == 0:
@@ -192,6 +193,9 @@ class QueryList(list):
 
         if not result and single:
             return None
+
+        if postprocess:
+            result = filter(postprocess, result)
 
         if single:
             return result[0]
