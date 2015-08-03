@@ -15,9 +15,16 @@
         nis = NIS.objects.order_by('-id')[0]
     except:
         nis = NIS.objects.create()
+
+    def get_name(id):
+        user = dispatcher.call_sync('users.query', [('id', '=', id)], {'single': True})
+        return user['name']
+
+    def members(group):
+        return ','.join([get_name(i) for i in group['members']])
 %>\
-% for group in ds.query("groups"):
-${group['name']}:*:${group['id']}:${",".join(group['members']) if 'members' in group else ""}
+% for group in dispatcher.call_sync("groups.query"):
+${group['name']}:*:${group['id']}:${members(group)}
 % endfor
 % if nis.nis_enable:
 +:*::
