@@ -276,7 +276,6 @@ class UserDeleteTask(Task):
         h.ref('user'),
         h.forbidden('builtin', 'logged-in', 'sessions'),
         h.object({'password': {'type': 'string'}}),
-        h.any_of(h.required('password'), h.required('unixhash', 'smbhash')),
     )
 )
 class UserUpdateTask(Task):
