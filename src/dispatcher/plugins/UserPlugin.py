@@ -110,7 +110,10 @@ class GroupProvider(Provider):
     @description("Lists groups present in the system")
     @query('group')
     def query(self, filter=None, params=None):
-        return self.datastore.query('groups', *(filter or []), **(params or {}))
+        def extend(group):
+            group['members'] = [x['id'] for x in self.datastore.query('users', ('groups', 'in', group['id']))]
+
+        return self.datastore.query('groups', *(filter or []), callback=extend, **(params or {}))
 
     @description("Retrieve the next GID available")
     @returns(int)
@@ -391,6 +394,11 @@ class GroupDeleteTask(Task):
 
     def run(self, gid):
         try:
+            # Remove group from users
+            for i in self.datastore.query('users', ('groups', 'in', gid)):
+                i['groups'].remove(gid)
+                self.datastore.update('users', i['id'], i)
+
             self.datastore.delete('groups', gid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
         except DatastoreException, e:
@@ -448,7 +456,12 @@ def _init(dispatcher, plugin):
             'id': {'type': 'integer'},
             'builtin': {'type': 'boolean', 'readOnly': True},
             'name': {'type': 'string'},
-            'sudo': {'type': 'boolean'}
+            'sudo': {'type': 'boolean'},
+            'members': {
+                'type': 'array',
+                'readOnly': True,
+                'items': {'type': 'integer'}
+            }
         }
     })
 
