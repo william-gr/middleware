@@ -25,12 +25,16 @@
 #
 #####################################################################
 
-import os
+import crypt
 import errno
+import os
+import random
+import string
 from task import Provider, Task, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
+from lib.system import SubprocessException, system
 
 
 def check_unixname(name):
@@ -59,6 +63,11 @@ def check_unixname(name):
             (errno.EINVAL, 'Your name contains invalid characters ({0}).'.format(''.join(invalids))))
 
     return errors
+
+
+def crypted_password(cleartext):
+    return crypt.crypt(cleartext, '$6$' + ''.join([
+        random.choice(string.ascii_letters + string.digits) for _ in range(16)]))
 
 
 @description("Provides access to users database")
@@ -142,7 +151,9 @@ class GroupProvider(Provider):
 @accepts(h.all_of(
     h.ref('user'),
     h.required('username', 'group'),
-    h.forbidden('builtin', 'logged-in', 'sessions')
+    h.forbidden('builtin', 'logged-in', 'sessions'),
+    h.object({'password': {'type': 'string'}}),
+    h.any_of(h.required('password'), h.required('unixhash', 'smbhash')),
 ))
 class UserCreateTask(Task):
     def __init__(self, dispatcher):
@@ -191,8 +202,25 @@ class UserCreateTask(Task):
             user['shell'] = user.get('shell', '/bin/sh')
             user['home'] = user.get('home', os.path.join('/home', user['username']))
             user.setdefault('groups', [])
+
+            password = user.pop('password', None)
+            if password:
+                user['unixhash'] = crypted_password(password)
+
             self.datastore.insert('users', user, pkey=uid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
+
+            if password:
+                system(
+                    'smbpasswd', '-D', '0', '-s', '-a', user['username'],
+                    stdin='{0}\n{1}\n'.format(password, password))
+                smbhash = system('pdbedit', '-d', '0', '-w', user['username'])[0]
+                self.datastore.update('users', uid, {'smbhash': smbhash})
+
+        except SubprocessException as e:
+            raise TaskException(
+                errno.ENXIO,
+                'Could not generate samba password. stdout: {0}\nstderr: {1}'.format(e.out, e.err))
         except DuplicateKeyException, e:
             raise TaskException(errno.EBADMSG, 'Cannot add user: {0}'.format(str(e)))
         except RpcException, e:
@@ -246,7 +274,9 @@ class UserDeleteTask(Task):
     int,
     h.all_of(
         h.ref('user'),
-        h.forbidden('builtin', 'logged-in', 'sessions')
+        h.forbidden('builtin', 'logged-in', 'sessions'),
+        h.object({'password': {'type': 'string'}}),
+        h.any_of(h.required('password'), h.required('unixhash', 'smbhash')),
     )
 )
 class UserUpdateTask(Task):
@@ -264,8 +294,25 @@ class UserUpdateTask(Task):
         try:
             user = self.datastore.get_by_id('users', uid)
             user.update(updated_fields)
+
+            password = user.pop('password', None)
+            if password:
+                user['unixhash'] = crypted_password(password)
+
             self.datastore.update('users', uid, user)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
+
+            if password:
+                system(
+                    'smbpasswd', '-D', '0', '-s', '-a', user['username'],
+                    stdin='{0}\n{1}\n'.format(password, password))
+                smbhash = system('pdbedit', '-d', '0', '-w', user['username'])[0]
+                self.datastore.update('users', uid, {'smbhash': smbhash})
+
+        except SubprocessException as e:
+            raise TaskException(
+                errno.ENXIO,
+                'Could not generate samba password. stdout: {0}\nstderr: {1}'.format(e.out, e.err))
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot update user: {0}'.format(str(e)))
         except RpcException, e:
