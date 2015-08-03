@@ -118,7 +118,7 @@ class GroupProvider(Provider):
                     ('group', '=', group['id'])
                 ))
             )]
-            return None
+            return group
 
         return self.datastore.query('groups', *(filter or []), callback=extend, **(params or {}))
 
