@@ -169,6 +169,9 @@ class UserCreateTask(Task):
             errors.append(
                 ('groups', errno.EINVAL, 'User cannot belong to more than 64 auxiliary groups'))
 
+        if 'full_name' in user and ':' in user['full_name']:
+            errors.append(('full_name', errno.EINVAL, 'The character ":" is not allowed'))
+
         if errors:
             raise ValidationException(errors)
 
