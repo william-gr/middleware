@@ -111,7 +111,14 @@ class GroupProvider(Provider):
     @query('group')
     def query(self, filter=None, params=None):
         def extend(group):
-            group['members'] = [x['id'] for x in self.datastore.query('users', ('groups', 'in', group['id']))]
+            group['members'] = [x['id'] for x in self.datastore.query(
+                'users',
+                ('or', (
+                    ('groups', 'in', group['id']),
+                    ('group', '=', group['id'])
+                ))
+            )]
+            return None
 
         return self.datastore.query('groups', *(filter or []), callback=extend, **(params or {}))
 
