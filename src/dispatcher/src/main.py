@@ -1286,7 +1286,9 @@ def main():
     parser.add_argument('-c', type=str, metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Configuration file path')
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.getLevelName(args.log_level))
+    logging.basicConfig(
+        level=logging.getLevelName(args.log_level),
+        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
 
     if args.log_file:
         handler = logging.handlers.RotatingFileHandler(args.log_file)
