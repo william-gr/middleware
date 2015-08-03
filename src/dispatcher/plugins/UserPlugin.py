@@ -165,6 +165,10 @@ class UserCreateTask(Task):
         if 'id' in user and self.datastore.exists('users', ('id', '=', user['id'])):
             raise VerifyException(errno.EEXIST, 'User with given UID already exists')
 
+        if 'groups' in user and len(user['groups']) > 64:
+            errors.append(
+                ('groups', errno.EINVAL, 'User cannot belong to more than 64 auxiliary groups'))
+
         if errors:
             raise ValidationException(errors)
 
