@@ -214,8 +214,8 @@ class UserCreateTask(Task):
                 system(
                     'smbpasswd', '-D', '0', '-s', '-a', user['username'],
                     stdin='{0}\n{1}\n'.format(password, password))
-                smbhash = system('pdbedit', '-d', '0', '-w', user['username'])[0]
-                self.datastore.update('users', uid, {'smbhash': smbhash})
+                user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
+                self.datastore.update('users', uid, user)
 
         except SubprocessException as e:
             raise TaskException(
@@ -306,8 +306,8 @@ class UserUpdateTask(Task):
                 system(
                     'smbpasswd', '-D', '0', '-s', '-a', user['username'],
                     stdin='{0}\n{1}\n'.format(password, password))
-                smbhash = system('pdbedit', '-d', '0', '-w', user['username'])[0]
-                self.datastore.update('users', uid, {'smbhash': smbhash})
+                user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
+                self.datastore.update('users', uid, user)
 
         except SubprocessException as e:
             raise TaskException(
