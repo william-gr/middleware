@@ -220,6 +220,11 @@ class UserCreateTask(Task):
                 user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
 
+            if user['home'].startswith('/mnt') and not os.path.exists(user['home']):
+                os.makedirs(user['home'])
+                os.chown(user['home'], user['id'], user['group'])
+                os.chmod(user['home'], 0755)
+
         except SubprocessException as e:
             raise TaskException(
                 errno.ENXIO,
