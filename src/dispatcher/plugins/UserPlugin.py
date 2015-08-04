@@ -530,7 +530,8 @@ def _init(dispatcher, plugin):
                 'readOnly': True,
                 'items': {'$ref': 'session'}
             }
-        }
+        },
+        'additionalProperties': False,
     })
 
     plugin.register_schema_definition('group', {
@@ -545,7 +546,8 @@ def _init(dispatcher, plugin):
                 'readOnly': True,
                 'items': {'type': 'integer'}
             }
-        }
+        },
+        'additionalProperties': False,
     })
 
     # Register provider for querying accounts and groups data
