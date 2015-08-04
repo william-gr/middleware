@@ -153,7 +153,10 @@ class GroupProvider(Provider):
     h.required('username', 'group'),
     h.forbidden('builtin', 'logged-in', 'sessions'),
     h.object({'password': {'type': 'string'}}),
-    h.any_of(h.required('password'), h.required('unixhash', 'smbhash')),
+    h.any_of(
+        h.required('password'),
+        h.required('unixhash', 'smbhash'),
+        h.required('password_disabled')),
 ))
 class UserCreateTask(Task):
     def __init__(self, dispatcher):
