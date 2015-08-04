@@ -64,6 +64,7 @@ class ResourceGraph(object):
         self.lock()
 
         if not resource:
+            self.unlock()
             raise ResourceError('Invalid resource')
 
         if self.get_resource(resource.name):
@@ -157,4 +158,5 @@ class ResourceGraph(object):
         for name in names:
             res = self.get_resource(name)
             res.busy = False
+
         self.unlock()
