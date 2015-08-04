@@ -295,6 +295,12 @@ class UserUpdateTask(Task):
     def run(self, uid, updated_fields):
         try:
             user = self.datastore.get_by_id('users', uid)
+
+            # Ignore home changes for builtin users
+            if 'home' in updated_fields and user.get('builtin'):
+                updated_fields.pop('home')
+
+            home_before = user.get('home')
             user.update(updated_fields)
 
             password = user.pop('password', None)
@@ -310,6 +316,15 @@ class UserUpdateTask(Task):
                     stdin='{0}\n{1}\n'.format(password, password))
                 user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
+
+            if user['home'].startswith('/mnt') and not os.path.exists(user['home']):
+                if (home_before != '/nonexistent' and home_before != user['home']
+                   and os.path.exists(home_before)):
+                    system('mv', home_before, user['home'])
+                else:
+                    os.makedirs(user['home'])
+                    os.chown(user['home'], user['id'], user['group'])
+                    os.chmod(user['home'], 0755)
 
         except SubprocessException as e:
             raise TaskException(
