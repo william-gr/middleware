@@ -519,6 +519,7 @@ def _init(dispatcher, plugin):
             'smbhash': {'type': ['string', 'null']},
             'sshpubkey': {'type': ['string', 'null']},
             'logged-in': {'type': 'boolean', 'readOnly': True},
+            'attributes': {'type': 'object'},
             'groups': {
                 'type': 'array',
                 'items': {
