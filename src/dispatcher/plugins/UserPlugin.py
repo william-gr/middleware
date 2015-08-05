@@ -515,6 +515,7 @@ def _init(dispatcher, plugin):
             'group': {'type': 'integer'},
             'shell': {'type': 'string'},
             'home': {'type': 'string'},
+            'password': {'type': ['string', 'null']},
             'unixhash': {'type': ['string', 'null']},
             'smbhash': {'type': ['string', 'null']},
             'sshpubkey': {'type': ['string', 'null']},
