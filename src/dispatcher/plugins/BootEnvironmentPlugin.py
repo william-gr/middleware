@@ -32,7 +32,7 @@ from task import Provider, Task, VerifyException, TaskException
 
 
 sys.path.append('/usr/local/lib')
-from freenasOS.Update import ListClones, FindClone, RenameClone, ActivateClone, DeleteClone
+from freenasOS.Update import ListClones, FindClone, RenameClone, ActivateClone, DeleteClone, CreateClone
 
 
 class BootEnvironmentsProvider(Provider):
@@ -51,8 +51,8 @@ class BootEnvironmentCreate(Task):
     def verify(self, newname, source=None):
         return ['system']
 
-    def run(self, name):
-        pass
+    def run(self, newname, source=None):
+        CreateClone(newname, bename=source)
 
 
 class BootEnvironmentActivate(Task):
