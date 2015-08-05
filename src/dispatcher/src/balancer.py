@@ -35,7 +35,8 @@ import threading
 from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
-from gevent.event import Event
+from gevent.lock import RLock
+from fnutils import first_or_default
 from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, TaskStatus, TaskState
 
@@ -190,6 +191,7 @@ class Balancer(object):
         self.logger = logging.getLogger('Balancer')
         self.dispatcher.require_collection('tasks', 'serial', 'log')
         self.create_initial_queues()
+        self.distribution_lock = RLock()
 
     def create_initial_queues(self):
         self.resource_graph.add_resource(Resource('system'))
@@ -299,6 +301,8 @@ class Balancer(object):
 
     def distribution_thread(self):
         while True:
+            self.task_queue.peek()
+            self.distribution_lock.acquire()
             task = self.task_queue.get()
 
             try:
@@ -316,6 +320,7 @@ class Balancer(object):
 
             task.set_state(TaskState.WAITING)
             self.task_list.append(task)
+            self.distribution_lock.release()
             self.schedule_tasks()
             self.logger.debug("Task %d assigned to resources %s", task.id, ','.join(task.resources))
 
@@ -333,9 +338,13 @@ class Balancer(object):
         return filter(lambda x: x.state == type, self.task_list)
 
     def get_task(self, id):
-        ret = filter(lambda x: x.id == id, self.task_list)
-        if len(ret) > 0:
-            return ret[0]
+        self.distribution_lock.acquire()
+        t = first_or_default(lambda x: x.id == id, self.task_list)
+        if not t:
+            t = first_or_default(lambda x: x.id == id, self.task_queue.queue)
+
+        self.distribution_lock.release()
+        return t
 
 
 def serialize_error(err):

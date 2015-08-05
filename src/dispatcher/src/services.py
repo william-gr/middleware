@@ -231,6 +231,9 @@ class TaskService(RpcService):
         task = self.__balancer.get_task(id)
         if task:
             task.ended.wait()
+            return
+
+        raise RpcException(errno.ENOENT, 'No such task')
 
     def abort(self, id):
         self.__balancer.abort(id)

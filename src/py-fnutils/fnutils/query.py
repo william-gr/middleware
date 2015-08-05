@@ -43,6 +43,7 @@ operators_table = {
     '~': lambda x, y: re.match(x, y)
 }
 
+
 conversions_table = {
     'timestamp': lambda v: dateutil.parser.parse(v)
 }
