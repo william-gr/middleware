@@ -590,6 +590,7 @@
                     "file:local/sudoers",
                     "plugin:pubkeys",
                     "plugin:pwd_database"
+                    "plugin:mail/aliases"
                 ]
             },
             "AB7F43FF-F122-4392-96A7-66791B334271": {
