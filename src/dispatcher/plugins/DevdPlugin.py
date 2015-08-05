@@ -174,7 +174,7 @@ class DevdEventSource(EventSource):
             "misc.fs.zfs.pool_destroy": ("fs.zfs.pool.destroyed", "Pool {0} destroyed"),
             "misc.fs.zfs.dataset_create": ("fs.zfs.dataset.created", "Dataset on pool {0} created"),
             "misc.fs.zfs.dataset_delete": ("fs.zfs.dataset.deleted", "Dataset on pool {0} deleted"),
-            "misc.fs.zfs.dataset_rename": ("fs.zfs.dataset.created", "Dataset on pool {0} renamed"),
+            "misc.fs.zfs.dataset_rename": ("fs.zfs.dataset.renamed", "Dataset on pool {0} renamed"),
         }
 
         if args["type"] not in event_mapping:
