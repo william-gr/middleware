@@ -332,6 +332,7 @@ def _init(dispatcher, plugin):
             'timezone': {'type': 'string'},
             'console_keymap': {'type': 'string'},
         },
+        'additionalProperties': False,
     })
 
     plugin.register_schema_definition('system-ui', {
@@ -348,9 +349,10 @@ def _init(dispatcher, plugin):
                 'type': ['array'],
                 'items': {'type': 'string'},
             },
-            'webui-http_port': {'type': 'integer'},
+            'webui_http_port': {'type': 'integer'},
             'webui_https_port': {'type': 'integer'},
         },
+        'additionalProperties': False,
     })
 
     # Register event handler
