@@ -81,7 +81,10 @@ class MongodbDatastore(object):
 
         if op in self.operators_table:
             if op in ('in', 'nin'):
-                return {name: {self.operators_table[op]: [value]}}
+                if isinstance(value, (list, tuple)):
+                    return {name: {self.operators_table[op]: value}}
+                else:
+                    return {name: {self.operators_table[op]: [value]}}
 
             return {name: {self.operators_table[op]: value}}
 
