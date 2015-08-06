@@ -364,7 +364,7 @@ class Client(object):
 
         if not call.completed.wait(timeout):
             if self.error_callback:
-                self.error_callback(ClientError.RPC_CALL_TIMEOUT, call.method, call.args)
+                self.error_callback(ClientError.RPC_CALL_TIMEOUT, method=call.method, args=call.args)
 
             raise rpc.RpcException(errno.ETIMEDOUT, 'Call timed out')
 
