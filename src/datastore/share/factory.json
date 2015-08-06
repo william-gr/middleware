@@ -589,7 +589,7 @@
 					"file:motd",
                     "file:local/sudoers",
                     "plugin:pubkeys",
-                    "plugin:pwd_database"
+                    "plugin:pwd_database",
                     "plugin:mail/aliases"
                 ]
             },
