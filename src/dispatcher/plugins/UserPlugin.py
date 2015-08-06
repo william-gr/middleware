@@ -295,6 +295,17 @@ class UserUpdateTask(Task):
         if not self.datastore.exists('users', ('id', '=', uid)):
             raise VerifyException(errno.ENOENT, 'User does not exists')
 
+        errors = []
+        if 'groups' in updated_fields and len(updated_fields['groups']) > 64:
+            errors.append(
+                ('groups', errno.EINVAL, 'User cannot belong to more than 64 auxiliary groups'))
+
+        if 'full_name' in updated_fields and ':' in updated_fields['full_name']:
+            errors.append(('full_name', errno.EINVAL, 'The character ":" is not allowed'))
+
+        if errors:
+            raise ValidationException(errors)
+
         return ['system']
 
     def run(self, uid, updated_fields):
