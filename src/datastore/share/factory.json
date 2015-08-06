@@ -523,7 +523,7 @@
 			"system.dataset.pool": "freenas-boot",
 			"system.dataset.id": null,
 			"system.dataset.services": ["syslog", "fnstatd"],
-			"system.language": "English",
+			"system.language": "en",
 			"system.timezone": "America/Los_Angeles",
 			"system.console.keymap": "us.iso",
 			"server.token_lifetime": 600,
