@@ -55,7 +55,9 @@ class MongodbDatastore(object):
         self.clauses_table = {
             'or': lambda v: {'$or': [self._predicate(*t) for t in v]},
             'nor': lambda v: {'$nor': [self._predicate(*t) for t in v]},
-            'and': lambda v: {'$and': [self._predicate(*t) for t in v]}
+            'and': lambda v: {'$and': [self._predicate(*t) for t in v]},
+            'where': lambda v: {'$where': v},
+            'text': lambda v: {'$text': {'$search': v, '$language': 'none'}}
         }
 
         self.conversions_table = {
@@ -116,7 +118,9 @@ class MongodbDatastore(object):
         })
 
         if ttl_index:
-            self.db[name].ensure_index(ttl_index, expireAfterSeconds=0)
+            self.db[name].create_index(ttl_index, expireAfterSeconds=0)
+
+        self.db[name].create_index([('$**', pymongo.TEXT)])
 
     def collection_exists(self, name):
         return self.db['collections'].find_one({"_id": name}) is not None
