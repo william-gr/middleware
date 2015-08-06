@@ -125,6 +125,7 @@ class SystemGeneralProvider(Provider):
             'hostname': self.dispatcher.configstore.get('system.hostname'),
             'language': self.dispatcher.configstore.get('system.language'),
             'timezone': self.dispatcher.configstore.get('system.timezone'),
+            'syslog_server': self.dispatcher.configstore.get('system.syslog_server'),
             'console_keymap': self.dispatcher.configstore.get('system.console.keymap')
         }
 
@@ -331,6 +332,7 @@ def _init(dispatcher, plugin):
             'language': {'type': 'string'},
             'timezone': {'type': 'string'},
             'console_keymap': {'type': 'string'},
+            'syslog_server': {'type': 'string'},
         },
         'additionalProperties': False,
     })

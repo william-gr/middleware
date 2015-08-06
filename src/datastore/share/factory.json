@@ -525,6 +525,7 @@
 			"system.dataset.services": ["syslog", "fnstatd"],
 			"system.language": "en",
 			"system.timezone": "America/Los_Angeles",
+			"system.syslog_server": null,
 			"system.console.keymap": "us.iso",
 			"server.token_lifetime": 600,
             "accounts.local_uid_range": [1000, 65000],
