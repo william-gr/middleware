@@ -550,6 +550,7 @@
             "service.nginx.listen": ["0.0.0.0", "[::]"],
             "service.nginx.http.enable": true,
             "service.nginx.http.port": 80,
+            "service.nginx.http.redirect_https": false,
             "service.sshd.enable": true,
             "service.sshd.port": 22,
             "service.sshd.sftp_log_level": "ERROR",

@@ -180,6 +180,9 @@ class SystemUIProvider(Provider):
             'webui_http_port': self.dispatcher.configstore.get(
                 'service.nginx.http.port',
             ),
+            'webui_http_redirect_https': self.dispatcher.configstore.get(
+                'service.nginx.http.redirect_https',
+            ),
             'webui_https_port': self.dispatcher.configstore.get(
                 'service.nginx.https.port',
             ),
@@ -351,6 +354,7 @@ def _init(dispatcher, plugin):
                 'type': ['array'],
                 'items': {'type': 'string'},
             },
+            'webui_http_redirect_https': {'type': 'boolean'},
             'webui_http_port': {'type': 'integer'},
             'webui_https_port': {'type': 'integer'},
         },
