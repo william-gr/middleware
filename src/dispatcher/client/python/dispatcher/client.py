@@ -361,7 +361,12 @@ class Client(object):
         call = self.PendingCall(uuid.uuid4(), name, args)
         self.pending_calls[str(call.id)] = call
         self.__call(call)
-        call.completed.wait(timeout)
+
+        if not call.completed.wait(timeout):
+            if self.error_callback:
+                self.error_callback(ClientError.RPC_CALL_TIMEOUT, call.method, call.args)
+
+            raise rpc.RpcException(errno.ETIMEDOUT, 'Call timed out')
 
         if call.result is None and call.error is not None:
             raise rpc.RpcException(
