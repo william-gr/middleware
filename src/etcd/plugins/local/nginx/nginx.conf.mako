@@ -1,3 +1,13 @@
+<%
+
+    import sys
+    if '/usr/local/www' not in sys.path:
+        sys.path.append('/usr/local/www')
+    from freenasUI import settings
+
+    dojo_version = settings.DOJANGO_DOJO_VERSION
+
+%>\
 user www;
 pid /var/run/nginx.pid;
 error_log /var/log/nginx-error.log debug;
@@ -10,9 +20,14 @@ http {
     include mime.types;
     default_type application/octet-stream;
 
+    # reserve 1MB under the name 'proxied' to track uploads
+    upload_progress proxied 1m;
+
     sendfile on;
     client_max_body_size 500m;
     keepalive_timeout 65;
+
+    client_body_temp_path /var/tmp/firmware;
 
     server {
 % if config.get("service.nginx.http.enable"):
@@ -38,19 +53,43 @@ http {
         server_name localhost;
 
         location / {
-            proxy_pass http://127.0.0.1:3000/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            include fastcgi_params;
+            fastcgi_pass 127.0.0.1:9042;
+            fastcgi_pass_header Authorization;
+            fastcgi_intercept_errors off;
+            fastcgi_read_timeout 600m;
+            #fastcgi_temp_path /var/tmp/firmware;
+            fastcgi_param HTTPS $https;
+
+            # track uploads in the 'proxied' zone
+            # remember connections for 30s after they finished
+            track_uploads proxied 30s;
         }
 
-        location /socket {
-            proxy_pass http://127.0.0.1:5000/socket;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
+        location /progress {
+            # report uploads tracked in the 'proxied' zone
+            report_uploads proxied;
         }
 
-    ## Rule to remove trailing slash from the URL.
-    rewrite ^/(.*)/$ /$1 permanent;
+        location /dojango {
+            alias /usr/local/www/freenasUI/dojango;
+        }
+
+        location /static {
+            alias /usr/local/www/freenasUI/static;
+        }
+
+        location /reporting/graphs {
+            alias /var/db/graphs;
+        }
+
+        location /dojango/dojo-media/release/${dojo_version} {
+            alias /usr/local/www/dojo;
+        }
+
+        location /docs {
+                alias /usr/local/www/data/docs;
+        }
+
     }
 }
