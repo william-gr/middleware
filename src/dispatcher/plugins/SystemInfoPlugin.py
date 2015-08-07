@@ -203,22 +203,19 @@ class SystemGeneralConfigureTask(Task):
             netif.set_hostname(props['hostname'])
 
         if 'language' in props:
-            self.dispatcher.configstore.set(
-                'system.language',
-                props['language'],
-            )
+            self.dispatcher.configstore.set('system.language', props['language'])
 
         if 'timezone' in props:
-            self.dispatcher.configstore.set(
-                'system.timezone',
-                props['timezone'],
-            )
+            self.dispatcher.configstore.set('system.timezone', props['timezone'])
 
         if 'console_keymap' in props:
             self.dispatcher.configstore.set(
                 'system.console.keymap',
                 props['console_keymap'],
             )
+
+        if 'syslog_server' in props:
+            self.dispatcher.configstore.set('system.syslog_server', props['syslog_server'])
 
         try:
             self.dispatcher.call_sync(
@@ -253,18 +250,11 @@ class SystemUIConfigureTask(Task):
             'service.nginx.https.enable',
             True if 'HTTPS' in props.get('webui_protocol') else False,
         )
+        self.dispatcher.configstore.set('service.nginx.listen', props.get('webui_listen'))
+        self.dispatcher.configstore.set('service.nginx.http.port', props.get('webui_http_port'))
         self.dispatcher.configstore.set(
-            'service.nginx.listen',
-            props.get('webui_listen'),
-        )
-        self.dispatcher.configstore.set(
-            'service.nginx.http.port',
-            props.get('webui_http_port'),
-        )
-        self.dispatcher.configstore.set(
-            'service.nginx.https.port',
-            props.get('webui_https_port'),
-        )
+            'service.nginx.http.redirect_https', props.get('webui_http_redirect_https'))
+        self.dispatcher.configstore.set('service.nginx.https.port', props.get('webui_https_port'))
 
         try:
             self.dispatcher.call_sync(
