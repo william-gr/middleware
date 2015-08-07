@@ -25,6 +25,8 @@
 #
 #####################################################################
 
+from __future__ import print_function
+import os
 import enum
 import uuid
 import errno
@@ -51,6 +53,21 @@ class ClientType(enum.Enum):
 
 
 thread_type = ClientType.THREADED
+debug_log_file = None
+
+
+def debug_log(message, *args):
+    global debug_log_file
+
+    if os.getenv('DISPATCHER_CLIENT_DEBUG'):
+        if not debug_log_file:
+            try:
+                debug_log_file = open('/var/tmp/dispatcherclient.{0}.log'.format(os.getpid()), 'w')
+            except OSError:
+                pass
+
+        print(message.format(*args), file=debug_log_file)
+        debug_log_file.flush()
 
 
 def spawn_thread(*args, **kwargs):
@@ -80,14 +97,17 @@ class Client(object):
             self.parent = parent
 
         def opened(self):
+            debug_log('Connection opened, local address {0}', self.local_address)
             self.parent.opened.set()
 
         def closed(self, code, reason=None):
+            debug_log('Connection closed, code {0}', code)
             self.parent.opened.clear()
             if self.parent.error_callback is not None:
                 self.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
+            debug_log('-> {0}', unicode(message))
             try:
                 msg = loads(unicode(message))
             except ValueError, err:
@@ -154,7 +174,7 @@ class Client(object):
         else:
             payload = custom_payload
 
-        self.ws.send(self.__pack(
+        self.__send(self.__pack(
             'rpc',
             call_type,
             payload,
@@ -162,7 +182,7 @@ class Client(object):
         ))
 
     def __send_event(self, name, params):
-        self.ws.send(self.__pack(
+        self.__send(self.__pack(
             'events',
             'event',
             {'name': name, 'args': params}
@@ -177,12 +197,13 @@ class Client(object):
         if extra is not None:
             payload.update(extra)
 
-        self.ws.send(self.__pack('rpc', 'error', id=id, args=payload))
+        self.__send(self.__pack('rpc', 'error', id=id, args=payload))
 
     def __send_response(self, id, resp):
-        self.ws.send(self.__pack('rpc', 'response', id=id, args=resp))
+        self.__send(self.__pack('rpc', 'response', id=id, args=resp))
 
     def __send(self, data):
+        debug_log('<- {0}', data)
         try:
             self.ws.send(data)
         except OSError, err:
@@ -315,10 +336,10 @@ class Client(object):
         self.error_callback = callback
 
     def subscribe_events(self, *masks):
-        self.ws.send(self.__pack('events', 'subscribe', masks))
+        self.__send(self.__pack('events', 'subscribe', masks))
 
     def unsubscribe_events(self, *masks):
-        self.ws.send(self.__pack('events', 'unsubscribe', masks))
+        self.__send(self.__pack('events', 'unsubscribe', masks))
 
     def register_service(self, name, impl):
         if self.rpc is None:

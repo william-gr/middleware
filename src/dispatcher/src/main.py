@@ -26,6 +26,7 @@
 #
 #####################################################################
 
+from __future__ import print_function
 import os
 import sys
 import fnmatch
@@ -69,6 +70,21 @@ from auth import PasswordAuthenticator, TokenStore, Token, TokenException
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
+trace_log_file = None
+
+
+def trace_log(message, *args):
+    global trace_log_file
+
+    if os.getenv('DISPATCHER_TRACE'):
+        if not trace_log_file:
+            try:
+                trace_log_file = open('/var/tmp/dispatcher-trace.{0}.log'.format(os.getpid()), 'w')
+            except OSError:
+                pass
+
+        print(message.format(*args), file=trace_log_file)
+        trace_log_file.flush()
 
 
 class Plugin(object):
@@ -666,6 +682,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.rlock = RLock()
 
     def on_open(self):
+        trace_log('Client {0} connected', self.ws.handler.client_address)
         self.server.connections.append(self)
         self.dispatcher.dispatch_event('server.client_connected', {
             'address': self.ws.handler.client_address,
@@ -673,6 +690,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_close(self, reason):
+        trace_log('Client {0} disconnected', self.ws.handler.client_address)
         self.server.connections.remove(self)
 
         if self.user:
@@ -689,6 +707,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_message(self, message, *args, **kwargs):
+        trace_log('{0} -> {1}', self.ws.handler.client_address, unicode(message))
+
         if not type(message) is str:
             return
 
@@ -1058,6 +1078,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.dispatcher.logger.error('Error encoding following payload to JSON:')
             self.dispatcher.logger.error(repr(obj))
             return
+
+        trace_log('{0} <- {1}', self.ws.handler.client_address, data)
 
         self.rlock.acquire()
         self.ws.send(data)
