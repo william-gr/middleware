@@ -613,7 +613,7 @@ class Main:
                 time.sleep(1)
 
     def init_dispatcher(self):
-        def on_error(reason):
+        def on_error(reason, **kwargs):
             if reason in (ClientError.CONNECTION_CLOSED, ClientError.LOGOUT):
                 self.logger.warning('Connection to dispatcher lost')
                 self.connect(resume=True)
