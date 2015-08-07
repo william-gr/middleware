@@ -91,5 +91,21 @@ http {
                 alias /usr/local/www/data/docs;
         }
 
+        location /socket {
+            proxy_pass http://127.0.0.1:5000/socket;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
     }
+% if config.get("service.nginx.https.enable") and config.get("service.nginx.http.redirect_https"):
+    server {
+    % for addr in config.get("service.nginx.listen"):
+        listen ${addr}:80;
+    % endfor
+        server_name localhost;
+        return 307 https://$host:${config.get("service.nginx.https.port")}$request_uri;
+    }
+% endif
 }
