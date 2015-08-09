@@ -9,6 +9,7 @@
 /usr/local/lib/etcd/plugins/local/afp.conf.mako
 /usr/local/lib/etcd/plugins/local/smbusers.mako
 /usr/local/lib/etcd/plugins/local/sudoers.mako
+/usr/local/lib/etcd/plugins/local/smb4.conf.py
 /usr/local/lib/etcd/plugins/mail/aliases.py
 /usr/local/lib/etcd/plugins/master.passwd.mako
 /usr/local/lib/etcd/plugins/motd.mako
