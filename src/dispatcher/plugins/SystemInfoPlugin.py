@@ -325,7 +325,7 @@ def _init(dispatcher, plugin):
             'language': {'type': 'string'},
             'timezone': {'type': 'string'},
             'console_keymap': {'type': 'string'},
-            'syslog_server': {'type': 'string'},
+            'syslog_server': {'type': ['string', 'null']},
         },
         'additionalProperties': False,
     })
