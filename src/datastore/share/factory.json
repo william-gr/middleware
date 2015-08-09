@@ -339,6 +339,36 @@
                 "group": 522,
                 "email": null,
                 "password_disabled": false
+            },
+            "556": {
+                "username": "messagebus",
+                "sshpubkey": null,
+                "shell": "/usr/sbin/nologin",
+                "locked": false,
+                "unixhash": "*",
+                "sudo": false,
+                "smbhash": "*",
+                "builtin": true,
+                "full_name": "D-BUS Daemon User",
+                "home": "/nonexistent",
+                "group": 556,
+                "email": null,
+                "password_disabled": false
+            },
+            "65534": {
+                "username": "nobody",
+                "sshpubkey": null,
+                "shell": "/usr/sbin/nologin",
+                "locked": false,
+                "unixhash": "*",
+                "sudo": false,
+                "smbhash": "*",
+                "builtin": true,
+                "full_name": "Unprivileged user",
+                "home": "/nonexistent",
+                "group": 65534,
+                "email": null,
+                "password_disabled": false
             }
         }
     }, 
@@ -490,6 +520,11 @@
             },
             "522": {
                 "name": "nullmail",
+                "sudo": false,
+                "builtin": true
+            },
+            "556": {
+                "name": "messagebus",
                 "sudo": false,
                 "builtin": true
             },
@@ -652,7 +687,14 @@
 				"dependencies": [
 					"file:local/afp.conf"
 				]
-			}
+			},
+            "0B8B01D5-91B4-4DEE-9720-4D65D56F513E": {
+                "name": "samba",
+                "dependencies": [
+                    "file:local/smbusers",
+                    "plugin:local/smb4.conf"
+                ]
+            }
         }
     },
     {
