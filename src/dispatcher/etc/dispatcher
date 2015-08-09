@@ -24,7 +24,7 @@ prestart()
 poststart()
 {
     # ensure that dispatcher is up and accepting connections.
-    if ! /usr/local/sbin/dispatcherctl wait-server --timeout 5; then
+    if ! /usr/local/sbin/dispatcherctl wait-server --timeout 10; then
         echo "ERROR: dispatcher failed to start"
         exit 1
     fi
