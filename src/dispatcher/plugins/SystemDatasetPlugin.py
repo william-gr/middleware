@@ -189,4 +189,5 @@ def _init(dispatcher, plugin):
     plugin.register_hook('system-dataset.pre-detach')
     plugin.register_hook('system-dataset.pre-attach')
 
-    dispatcher.call_sync('system-dataset.init')
+    # Disable until we switch to new system dataset logic
+    #dispatcher.call_sync('system-dataset.init')
