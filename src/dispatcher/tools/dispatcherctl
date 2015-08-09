@@ -33,6 +33,7 @@ import json
 import time
 import socket
 from dispatcher.client import Client, ClientError
+from dispatcher.rpc import RpcException
 from texttable import Texttable
 
 
@@ -54,7 +55,11 @@ def call(method, args, server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT, j=False):
         for idx, i in enumerate(args):
             args[idx] = json.loads(i)
 
-    result = c.call_sync(method, *args)
+    try:
+        result = c.call_sync(method, *args)
+    except RpcException, e:
+        print('ERROR: {0}'.format(str(e)), file=sys.stderr)
+        sys.exit(e.code)
 
     if result is not None:
         print(result)
