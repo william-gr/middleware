@@ -1277,7 +1277,7 @@ def run(d, args):
 
     d.ws_server = s
     d.port = args.p
-    serv_thread = gevent.spawn(s.serve_forever)
+    d.init()
 
     if args.s:
         # Debugging frontend server
@@ -1292,7 +1292,8 @@ def run(d, args):
         gevent.spawn(http_server.serve_forever)
         logging.info('Frontend server listening on port %d', args.s)
 
-    d.init()
+    serv_thread = gevent.spawn(s.serve_forever)
+
     d.discover_plugins()
     d.load_plugins()
     d.start()
