@@ -108,6 +108,48 @@ class CAInternalCreateTask(Task):
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 
+@accepts(str, h.all_of(
+    h.ref('crypto-certificate'),
+    h.required('certificate', 'privatekey'),
+))
+class CAUpdateTask(Task):
+    def verify(self, id, updated_fields):
+
+        certificate = self.datastore.get_by_id('crypto.certificates', id)
+        if certificate is None:
+            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exists'.format(id))
+
+        if 'name' in updated_fields and self.datastore.exists(
+            'crypto.certificates', ('name', '=', updated_fields['name']), ('id', '!=', id)
+        ):
+            raise VerifyException(errno.EEXIST, 'Certificate with given name already exists')
+
+        return ['system']
+
+    def run(self, id, updated_fields):
+
+        certificate = self.datastore.get_by_id('crypto.certificates', id)
+
+        if 'name' in updated_fields:
+            certificate['name'] = updated_fields['name']
+
+        if 'certificate' in updated_fields:
+            certificate['certificate'] = updated_fields['certificate']
+
+        if 'privatekey' in updated_fields:
+            certificate['privatekey'] = updated_fields['privatekey']
+
+        if 'serial' in updated_fields:
+            certificate['serial'] = updated_fields['serial']
+
+        self.datastore.update('crypto.certificates', id, certificate)
+        try:
+            pass
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('crypto-certificate', {
         'type': 'object',
@@ -150,3 +192,4 @@ def _init(dispatcher, plugin):
     plugin.register_provider('crypto.certificates', CertificateProvider)
 
     plugin.register_task_handler('crypto.certificates.ca_internal_create', CAInternalCreateTask)
+    plugin.register_task_handler('crypto.certificates.ca_update', CAUpdateTask)
