@@ -185,7 +185,7 @@ class CertificateInternalCreateTask(Task):
             signing_cert['serial'] += 1
             self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
 
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create internal cert: {0}'.format(str(e)))
         except RpcException, e:
@@ -229,7 +229,7 @@ class CertificateImportTask(Task):
 
         try:
             pkey = self.datastore.insert('crypto.certificates', certificate)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot import certificate: {0}'.format(str(e)))
         except RpcException, e:
@@ -274,7 +274,7 @@ class CSRCreateTask(Task):
             certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
 
             pkey = self.datastore.insert('crypto.certificates', certificate)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create CSR: {0}'.format(str(e)))
         except RpcException, e:
@@ -308,7 +308,7 @@ class CSRUpdateTask(Task):
             certificate['type'] = 'CERT_EXISTING'
 
             pkey = self.datastore.update('crypto.certificates', id, certificate)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot update CSR: {0}'.format(str(e)))
         except RpcException, e:
@@ -353,7 +353,7 @@ class CAInternalCreateTask(Task):
             certificate['serial'] = 1
 
             pkey = self.datastore.insert('crypto.certificates', certificate)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create internal CA: {0}'.format(str(e)))
         except RpcException, e:
@@ -407,7 +407,7 @@ class CAIntermediateCreateTask(Task):
 
             signing_cert['serial'] += 1
             self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create intermediate CA: {0}'.format(str(e)))
         except RpcException, e:
@@ -453,7 +453,7 @@ class CAImportTask(Task):
 
         try:
             pkey = self.datastore.insert('crypto.certificates', certificate)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot import CA: {0}'.format(str(e)))
         except RpcException, e:
@@ -499,7 +499,7 @@ class CAUpdateTask(Task):
         self.datastore.update('crypto.certificates', id, certificate)
         try:
             pass
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
@@ -519,7 +519,7 @@ class CertificateDeleteTask(Task):
                 self.datastore.delete('crypto.certificates', i['id'])
 
             self.datastore.delete('crypto.certificates', id)
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot delete certificate: {0}'.format(str(e)))
         except RpcException, e:
