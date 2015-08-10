@@ -312,32 +312,35 @@ class CAInternalCreateTask(Task):
 
     def run(self, certificate):
 
-        certificate['key_length'] = certificate.get('key_length', 2048)
-        certificate['digest_algorithm'] = certificate.get('digest_algorithm', 'SHA256')
-        certificate['lifetime'] = certificate.get('lifetime', 3650)
-
-        key = generate_key(certificate['key_length'])
-        cert = create_certificate(certificate)
-        cert.set_pubkey(key)
-        cert.add_extensions([
-            crypto.X509Extension("basicConstraints", True, "CA:TRUE, pathlen:0"),
-            crypto.X509Extension("keyUsage", True, "keyCertSign, cRLSign"),
-            crypto.X509Extension("subjectKeyIdentifier", False, "hash", subject=cert),
-        ])
-        cert.set_serial_number(1)
-        cert.sign(key, str(certificate['digest_algorithm']))
-
-        certificate['type'] = 'CA_INTERNAL'
-        certificate['certificate'] = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-        certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
-        certificate['serial'] = 1
-
-        self.datastore.insert('crypto.certificates', certificate)
         try:
-            pass
+            certificate['key_length'] = certificate.get('key_length', 2048)
+            certificate['digest_algorithm'] = certificate.get('digest_algorithm', 'SHA256')
+            certificate['lifetime'] = certificate.get('lifetime', 3650)
+
+            key = generate_key(certificate['key_length'])
+            cert = create_certificate(certificate)
+            cert.set_pubkey(key)
+            cert.add_extensions([
+                crypto.X509Extension("basicConstraints", True, "CA:TRUE, pathlen:0"),
+                crypto.X509Extension("keyUsage", True, "keyCertSign, cRLSign"),
+                crypto.X509Extension("subjectKeyIdentifier", False, "hash", subject=cert),
+            ])
+            cert.set_serial_number(1)
+            cert.sign(key, str(certificate['digest_algorithm']))
+
+            certificate['type'] = 'CA_INTERNAL'
+            certificate['certificate'] = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+            certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
+            certificate['serial'] = 1
+
+            pkey = self.datastore.insert('crypto.certificates', certificate)
             #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot create internal CA: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
 
 
 @accepts(h.all_of(
@@ -357,39 +360,41 @@ class CAIntermediateCreateTask(Task):
 
     def run(self, certificate):
 
-        certificate['key_length'] = certificate.get('key_length', 2048)
-        certificate['digest_algorithm'] = certificate.get('digest_algorithm', 'SHA256')
-        certificate['lifetime'] = certificate.get('lifetime', 3650)
-
-        signing_cert = self.datastore.get_by_id('crypto.certificates', certificate['signedby'])
-
-        publickey = generate_key(certificate['key_length'])
-        signkey = load_privatekey(signing_cert['privatekey'])
-
-        cert = create_certificate(certificate)
-        cert.set_pubkey(publickey)
-        cert.add_extensions([
-            crypto.X509Extension("basicConstraints", True, "CA:TRUE, pathlen:0"),
-            crypto.X509Extension("keyUsage", True, "keyCertSign, cRLSign"),
-            crypto.X509Extension("subjectKeyIdentifier", False, "hash", subject=cert),
-        ])
-        cert.set_serial_number(signing_cert['serial'])
-        cert.sign(signkey, str(certificate['digest_algorithm']))
-
-        certificate['type'] = 'CA_INTERMEDIATE'
-        certificate['certificate'] = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-        certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, publickey)
-
-        self.datastore.insert('crypto.certificates', certificate)
-
-        signing_cert['serial'] += 1
-        self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
-
         try:
-            pass
+            certificate['key_length'] = certificate.get('key_length', 2048)
+            certificate['digest_algorithm'] = certificate.get('digest_algorithm', 'SHA256')
+            certificate['lifetime'] = certificate.get('lifetime', 3650)
+
+            signing_cert = self.datastore.get_by_id('crypto.certificates', certificate['signedby'])
+
+            publickey = generate_key(certificate['key_length'])
+            signkey = load_privatekey(signing_cert['privatekey'])
+
+            cert = create_certificate(certificate)
+            cert.set_pubkey(publickey)
+            cert.add_extensions([
+                crypto.X509Extension("basicConstraints", True, "CA:TRUE, pathlen:0"),
+                crypto.X509Extension("keyUsage", True, "keyCertSign, cRLSign"),
+                crypto.X509Extension("subjectKeyIdentifier", False, "hash", subject=cert),
+            ])
+            cert.set_serial_number(signing_cert['serial'])
+            cert.sign(signkey, str(certificate['digest_algorithm']))
+
+            certificate['type'] = 'CA_INTERMEDIATE'
+            certificate['certificate'] = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+            certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, publickey)
+
+            pkey = self.datastore.insert('crypto.certificates', certificate)
+
+            signing_cert['serial'] += 1
+            self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
             #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot create intermediate CA: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
 
 
 @accepts(h.object({
@@ -427,12 +432,15 @@ class CAImportTask(Task):
 
         certificate['type'] = 'CA_EXISTING'
 
-        self.datastore.insert('crypto.certificates', certificate)
         try:
-            pass
+            pkey = self.datastore.insert('crypto.certificates', certificate)
             #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot import CA: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
 
 
 @accepts(str, h.all_of(
