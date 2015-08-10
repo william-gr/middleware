@@ -223,6 +223,52 @@ class CertificateImportTask(Task):
     h.ref('crypto-certificate'),
     h.required('name', 'country', 'state', 'city', 'organization', 'email', 'common'),
 ))
+class CSRCreateTask(Task):
+    def verify(self, certificate):
+
+        if self.datastore.exists('crypto.certificates', ('name', '=', certificate['name'])):
+            raise VerifyException(errno.EEXIST, 'Certificate with given name already exists')
+
+        return ['system']
+
+    def run(self, certificate):
+
+        try:
+            certificate['key_length'] = certificate.get('key_length', 2048)
+            certificate['digest_algorithm'] = certificate.get('digest_algorithm', 'SHA256')
+            certificate['lifetime'] = certificate.get('lifetime', 3650)
+
+            key = generate_key(certificate['key_length'])
+            req = crypto.X509Req()
+            req.get_subject().C = certificate['country']
+            req.get_subject().ST = certificate['state']
+            req.get_subject().L = certificate['city']
+            req.get_subject().O = certificate['organization']
+            req.get_subject().CN = certificate['common']
+            req.get_subject().emailAddress = certificate['email']
+
+
+            req.set_pubkey(key)
+            req.sign(key, str(certificate['digest_algorithm']))
+
+            certificate['type'] = 'CERT_CSR'
+            certificate['csr'] = crypto.dump_certificate_request(crypto.FILETYPE_PEM, req)
+            certificate['privatekey'] = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
+
+            pkey = self.datastore.insert('crypto.certificates', certificate)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot create CSR: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
+
+
+@accepts(h.all_of(
+    h.ref('crypto-certificate'),
+    h.required('name', 'country', 'state', 'city', 'organization', 'email', 'common'),
+))
 class CAInternalCreateTask(Task):
     def verify(self, certificate):
 
@@ -428,6 +474,7 @@ def _init(dispatcher, plugin):
                 'CA_EXISTING',
                 'CA_INTERMEDIATE',
                 'CA_INTERNAL',
+                'CERT_CSR',
                 'CERT_EXISTING',
                 'CERT_INTERMEDIATE',
                 'CERT_INTERNAL',
@@ -467,4 +514,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('crypto.certificates.ca_update', CAUpdateTask)
     plugin.register_task_handler('crypto.certificates.cert_internal_create', CertificateInternalCreateTask)
     plugin.register_task_handler('crypto.certificates.cert_import', CertificateImportTask)
+    plugin.register_task_handler('crypto.certificates.csr_create', CSRCreateTask)
     plugin.register_task_handler('crypto.certificates.delete', CertificateDeleteTask)
