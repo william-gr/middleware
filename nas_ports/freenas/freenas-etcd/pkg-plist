@@ -18,6 +18,7 @@
 /usr/local/lib/etcd/plugins/resolv.conf.mako
 /usr/local/lib/etcd/plugins/pwd_database.py
 /usr/local/lib/etcd/plugins/pubkeys.py
+/usr/local/lib/etcd/plugins/ssl_certificates.py
 /usr/local/lib/etcd/plugins/ssh/sshd_config.mako
 /usr/local/lib/etcd/plugins/ssh/sshd_keys.py
 /usr/local/lib/etcd/plugins/exports.mako

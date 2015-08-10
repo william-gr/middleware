@@ -649,6 +649,12 @@
                     "plugin:localtime"
                 ]
             },
+            "38FD1C8F-8765-4401-899D-8FFC150EC85D": {
+                "name": "crypto",
+                "dependencies": [
+                    "plugin:ssl_certificates"
+                ]
+            },
             "1E784623-8CB9-442E-9AC6-1125E2692A0C": {
                 "name": "nginx",
                 "dependencies": [

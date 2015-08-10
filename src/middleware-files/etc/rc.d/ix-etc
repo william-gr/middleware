@@ -18,6 +18,7 @@ etc_start()
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"accounts"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"localtime"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"nginx"'
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"crypto"'
 	#killall -ALRM sh
 }
 
