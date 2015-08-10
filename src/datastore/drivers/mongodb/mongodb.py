@@ -48,7 +48,7 @@ class MongodbDatastore(object):
             '<=': '$lte',
             '!=': '$ne',
             'in': '$in',
-            'nin': 'nin',
+            'nin': '$nin',
             '~': '$regex',
         }
 
