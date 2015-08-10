@@ -132,9 +132,18 @@ class CertificateProvider(Provider):
             if certificate.get('certificate'):
                 certificate['certificate_path'] = os.path.join(
                     cert_path, '{0}.crt'.format(certificate['name']))
+                # Load and dump private key to make sure its in desired format
+                # This is code ported from 9.3 and must be reviewed as it may very well be useless
+                cert = crypto.load_certificate(crypto.FILETYPE_PEM, certificate['certificate'])
+                certificate['certificate'] = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
+
             if certificate.get('privatekey'):
                 certificate['privatekey_path'] = os.path.join(
                     cert_path, '{0}.key'.format(certificate['name']))
+                # Load and dump private key to make sure its in desired format
+                # This is code ported from 9.3 and must be reviewed as it may very well be useless
+                certificate['privatekey'] = export_privatekey(certificate['privatekey'])
+
             if certificate.get('csr'):
                 certificate['csr_path'] = os.path.join(
                     cert_path, '{0}.csr'.format(certificate['name']))
