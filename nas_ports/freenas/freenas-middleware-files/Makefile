@@ -46,7 +46,7 @@ do-install:
 	cp -a ${WRKSRC}/middleware-files/ ${STAGEDIR}${PREFIX}/
 
 post-install:
-	cd ${WRKSRC}/middleware-files && ${FIND} . -type f | \
+	cd ${WRKSRC}/middleware-files && ${FIND} . \( -type f -o -type l \) | \
 		${SED} -e 's|^\./||' | ${SORT} >> ${TMPPLIST}
 
 
