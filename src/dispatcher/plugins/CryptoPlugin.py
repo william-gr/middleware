@@ -106,7 +106,19 @@ def load_privatekey(buf, passphrase=None):
 class CertificateProvider(Provider):
     @query('crypto-certificate')
     def query(self, filter=None, params=None):
-        return self.datastore.query('crypto.certificates', *(filter or []), **(params or {}))
+
+        def extend(certificate):
+
+            buf = certificate.get('csr' if certificate['type'] == 'CERT_CSR' else 'certificate')
+            if buf:
+                cert = crypto.load_certificate(crypto.FILETYPE_PEM, buf)
+                certificate['dn'] = '/{0}'.format('/'.join([
+                    '{0}={1}'.format(c[0], c[1]) for c in cert.get_subject().get_components()
+                ]))
+
+            return certificate
+
+        return self.datastore.query('crypto.certificates', *(filter or []), callback=extend, **(params or {}))
 
 
 @accepts(h.all_of(
@@ -541,6 +553,7 @@ def _init(dispatcher, plugin):
             'common': {'type': 'string'},
             'serial': {'type': 'integer'},
             'signedby': {'type': 'string'},
+            'dn': {'type': 'string', 'readOnly': True},
         },
         'additionalProperties': False,
     })
