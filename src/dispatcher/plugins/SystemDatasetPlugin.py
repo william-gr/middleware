@@ -181,13 +181,13 @@ def _init(dispatcher, plugin):
         logger.info('New system dataset ID: {0}'.format(dsid))
 
     plugin.register_event_handler('volumes.changed', on_volumes_changed)
-    plugin.attach_hook('volumes.pre-destroy', volume_pre_destroy)
-    plugin.attach_hook('volumes.pre-detach', volume_pre_destroy)
-    plugin.register_provider('system-dataset', SystemDatasetProvider)
-    plugin.register_task_handler('system-dataset.configure', SystemDatasetConfigure)
+    plugin.attach_hook('volumes.pre_destroy', volume_pre_destroy)
+    plugin.attach_hook('volumes.pre_detach', volume_pre_destroy)
+    plugin.register_provider('system_dataset', SystemDatasetProvider)
+    plugin.register_task_handler('system_dataset.configure', SystemDatasetConfigure)
 
-    plugin.register_hook('system-dataset.pre-detach')
-    plugin.register_hook('system-dataset.pre-attach')
+    plugin.register_hook('system_dataset.pre_detach')
+    plugin.register_hook('system_dataset.pre_attach')
 
     # Disable until we switch to new system dataset logic
-    #dispatcher.call_sync('system-dataset.init')
+    #dispatcher.call_sync('system_dataset.init')
