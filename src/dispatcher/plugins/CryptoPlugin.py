@@ -116,6 +116,13 @@ class CertificateProvider(Provider):
                     '{0}={1}'.format(c[0], c[1]) for c in cert.get_subject().get_components()
                 ]))
 
+                try:
+                    certificate['valid_from'] = cert.get_notBefore()
+                    certificate['valid_until'] = cert.get_notAfter()
+                except Exception:
+                    certificate['valid_from'] = None
+                    certificate['valid_until'] = None
+
             return certificate
 
         return self.datastore.query('crypto.certificates', *(filter or []), callback=extend, **(params or {}))
@@ -554,6 +561,8 @@ def _init(dispatcher, plugin):
             'serial': {'type': 'integer'},
             'signedby': {'type': 'string'},
             'dn': {'type': 'string', 'readOnly': True},
+            'valid_from': {'type': ['string', 'null'], 'readOnly': True},
+            'valid_until': {'type': ['string', 'null'], 'readOnly': True},
         },
         'additionalProperties': False,
     })
