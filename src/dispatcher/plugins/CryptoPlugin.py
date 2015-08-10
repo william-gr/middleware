@@ -287,6 +287,28 @@ class CAUpdateTask(Task):
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 
+@accepts(str)
+class CertificateDeleteTask(Task):
+    def verify(self, id):
+        certificate = self.datastore.get_by_id('crypto.certificates', id)
+        if certificate is None:
+            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exists'.format(id))
+
+        return ['system']
+
+    def run(self, id):
+        try:
+            for i in self.datastore.query('crypto.certificates', ('signedby', '=', id)):
+                self.datastore.delete('crypto.certificates', i['id'])
+
+            self.datastore.delete('crypto.certificates', id)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot delete certificate: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('crypto-certificate', {
         'type': 'object',
@@ -332,3 +354,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('crypto.certificates.ca_intermediate_create', CAIntermediateCreateTask)
     plugin.register_task_handler('crypto.certificates.ca_import', CAImportTask)
     plugin.register_task_handler('crypto.certificates.ca_update', CAUpdateTask)
+    plugin.register_task_handler('crypto.certificates.delete', CertificateDeleteTask)
