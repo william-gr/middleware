@@ -26,25 +26,12 @@
 #####################################################################
 
 import errno
+import re
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from task import Provider, Task, TaskException, VerifyException, query
 
 from OpenSSL import crypto
-
-
-def generate_key(key_length):
-    k = crypto.PKey()
-    k.generate_key(crypto.TYPE_RSA, key_length)
-    return k
-
-
-def load_privatekey(buf, passphrase=None):
-    return crypto.load_privatekey(
-        crypto.FILETYPE_PEM,
-        buf,
-        passphrase=lambda x: str(passphrase) if passphrase else ''
-    )
 
 
 def create_certificate(cert_info):
@@ -65,6 +52,53 @@ def create_certificate(cert_info):
 
     cert.set_issuer(cert.get_subject())
     return cert
+
+
+def export_privatekey(buf, passphrase=None):
+    key = crypto.load_privatekey(
+        crypto.FILETYPE_PEM,
+        buf,
+        passphrase=str(passphrase) if passphrase else None
+    )
+
+    return crypto.dump_privatekey(
+        crypto.FILETYPE_PEM,
+        key,
+        passphrase=str(passphrase) if passphrase else None
+    )
+
+
+def generate_key(key_length):
+    k = crypto.PKey()
+    k.generate_key(crypto.TYPE_RSA, key_length)
+    return k
+
+
+def load_certificate(buf):
+    cert = crypto.load_certificate(crypto.FILETYPE_PEM, buf)
+
+    cert_info = {}
+    cert_info['country'] = cert.get_subject().C
+    cert_info['state'] = cert.get_subject().ST
+    cert_info['city'] = cert.get_subject().L
+    cert_info['organization'] = cert.get_subject().O
+    cert_info['common'] = cert.get_subject().CN
+    cert_info['email'] = cert.get_subject().emailAddress
+
+    signature_algorithm = cert.get_signature_algorithm()
+    m = re.match('^(.+)[Ww]ith', signature_algorithm)
+    if m:
+        cert_info['digest_algorithm'] = m.group(1).upper()
+
+    return cert_info
+
+
+def load_privatekey(buf, passphrase=None):
+    return crypto.load_privatekey(
+        crypto.FILETYPE_PEM,
+        buf,
+        passphrase=lambda x: str(passphrase) if passphrase else ''
+    )
 
 
 @description("Provider for certificates")
@@ -168,6 +202,49 @@ class CAIntermediateCreateTask(Task):
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 
+@accepts(h.object({
+    'properties': {
+        'name': {'type': 'string'},
+        'certificate': {'type': 'string'},
+        'privatekey': {'type': 'string'},
+        'passphrase': {'type': 'string'},
+        'serial': {'type': 'integer'},
+    },
+    'additionalProperties': False,
+    'required': ['name', 'certificate'],
+}))
+class CAImportTask(Task):
+    def verify(self, certificate):
+
+        if self.datastore.exists('crypto.certificates', ('name', '=', certificate['name'])):
+            raise VerifyException(errno.EEXIST, 'Certificate with given name already exists')
+
+        if 'privatekey' in certificate:
+            try:
+                load_privatekey(certificate['privatekey'], certificate.get('passphrase'))
+            except Exception:
+                raise VerifyException(errno.EINVAL, 'Invalid passphrase')
+
+        return ['system']
+
+    def run(self, certificate):
+
+        certificate.update(load_certificate(certificate['certificate']))
+
+        if 'privatekey' in certificate:
+            certificate['privatekey'] = export_privatekey(
+                certificate['privatekey'], certificate['passphrase'])
+
+        certificate['type'] = 'CA_EXISTING'
+
+        self.datastore.insert('crypto.certificates', certificate)
+        try:
+            pass
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+
 @accepts(str, h.all_of(
     h.ref('crypto-certificate'),
     h.required('certificate', 'privatekey'),
@@ -253,4 +330,5 @@ def _init(dispatcher, plugin):
 
     plugin.register_task_handler('crypto.certificates.ca_internal_create', CAInternalCreateTask)
     plugin.register_task_handler('crypto.certificates.ca_intermediate_create', CAIntermediateCreateTask)
+    plugin.register_task_handler('crypto.certificates.ca_import', CAImportTask)
     plugin.register_task_handler('crypto.certificates.ca_update', CAUpdateTask)
