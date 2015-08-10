@@ -247,7 +247,6 @@ class CSRCreateTask(Task):
             req.get_subject().CN = certificate['common']
             req.get_subject().emailAddress = certificate['email']
 
-
             req.set_pubkey(key)
             req.sign(key, str(certificate['digest_algorithm']))
 
@@ -259,6 +258,40 @@ class CSRCreateTask(Task):
             #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create CSR: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
+
+
+@accepts(str, h.object({
+    'properties': {'certificate': {'type': 'string'}},
+}))
+class CSRUpdateTask(Task):
+    def verify(self, id, updated_fields):
+
+        if not self.datastore.exists('crypto.certificates', ('id', '=', id)):
+            raise VerifyException(errno.EEXIST, 'Certificate ID {0} does not exist'.format(id))
+
+        try:
+            load_certificate(updated_fields['certificate'])
+        except crypto.Error as e:
+            raise VerifyException(errno.EINVAL, 'Invalid certificate: {0}'.format(str(e)))
+
+        return ['system']
+
+    def run(self, id, updated_fields):
+
+        try:
+            certificate = self.datastore.get_by_id('crypto.certificates', id)
+
+            certificate['certificate'] = updated_fields['certificate']
+            certificate['type'] = 'CERT_EXISTING'
+
+            pkey = self.datastore.update('crypto.certificates', id, certificate)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot update CSR: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
@@ -515,4 +548,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('crypto.certificates.cert_internal_create', CertificateInternalCreateTask)
     plugin.register_task_handler('crypto.certificates.cert_import', CertificateImportTask)
     plugin.register_task_handler('crypto.certificates.csr_create', CSRCreateTask)
+    plugin.register_task_handler('crypto.certificates.csr_update', CSRUpdateTask)
     plugin.register_task_handler('crypto.certificates.delete', CertificateDeleteTask)
