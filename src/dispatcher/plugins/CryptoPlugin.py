@@ -26,6 +26,7 @@
 #####################################################################
 
 import errno
+import os
 import re
 from datastore import DatastoreException
 from dispatcher.rpc import RpcException, description, accepts, returns
@@ -122,6 +123,21 @@ class CertificateProvider(Provider):
                 except Exception:
                     certificate['valid_from'] = None
                     certificate['valid_until'] = None
+
+            if certificate['type'].startswith('CA_'):
+                cert_path = '/etc/certificates/CA'
+            else:
+                cert_path = '/etc/certificates'
+
+            if certificate.get('certificate'):
+                certificate['certificate_path'] = os.path.join(
+                    cert_path, '{0}.crt'.format(certificate['name']))
+            if certificate.get('privatekey'):
+                certificate['privatekey_path'] = os.path.join(
+                    cert_path, '{0}.key'.format(certificate['name']))
+            if certificate.get('csr'):
+                certificate['csr_path'] = os.path.join(
+                    cert_path, '{0}.csr'.format(certificate['name']))
 
             return certificate
 
@@ -563,6 +579,9 @@ def _init(dispatcher, plugin):
             'dn': {'type': 'string', 'readOnly': True},
             'valid_from': {'type': ['string', 'null'], 'readOnly': True},
             'valid_until': {'type': ['string', 'null'], 'readOnly': True},
+            'certificate_path': {'type': ['string', 'null'], 'readOnly': True},
+            'privatekey_path': {'type': ['string', 'null'], 'readOnly': True},
+            'csr_path': {'type': ['string', 'null'], 'readOnly': True},
         },
         'additionalProperties': False,
     })
