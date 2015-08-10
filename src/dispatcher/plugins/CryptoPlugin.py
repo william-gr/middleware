@@ -175,6 +175,50 @@ class CertificateInternalCreateTask(Task):
         return pkey
 
 
+@accepts(h.object({
+    'properties': {
+        'name': {'type': 'string'},
+        'certificate': {'type': 'string'},
+        'privatekey': {'type': 'string'},
+        'passphrase': {'type': 'string'},
+    },
+    'additionalProperties': False,
+    'required': ['name', 'certificate', 'privatekey', 'passphrase'],
+}))
+class CertificateImportTask(Task):
+    def verify(self, certificate):
+
+        if self.datastore.exists('crypto.certificates', ('name', '=', certificate['name'])):
+            raise VerifyException(errno.EEXIST, 'Certificate with given name already exists')
+
+        try:
+            load_privatekey(certificate['privatekey'], certificate.get('passphrase'))
+        except Exception:
+            raise VerifyException(errno.EINVAL, 'Invalid passphrase')
+
+        return ['system']
+
+    def run(self, certificate):
+
+        certificate.update(load_certificate(certificate['certificate']))
+
+        if 'privatekey' in certificate:
+            certificate['privatekey'] = export_privatekey(
+                certificate['privatekey'], certificate['passphrase'])
+
+        certificate['type'] = 'CERT_EXISTING'
+
+        try:
+            pkey = self.datastore.insert('crypto.certificates', certificate)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot import certificate: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        return pkey
+
+
 @accepts(h.all_of(
     h.ref('crypto-certificate'),
     h.required('name', 'country', 'state', 'city', 'organization', 'email', 'common'),
@@ -422,4 +466,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('crypto.certificates.ca_import', CAImportTask)
     plugin.register_task_handler('crypto.certificates.ca_update', CAUpdateTask)
     plugin.register_task_handler('crypto.certificates.cert_internal_create', CertificateInternalCreateTask)
+    plugin.register_task_handler('crypto.certificates.cert_import', CertificateImportTask)
     plugin.register_task_handler('crypto.certificates.delete', CertificateDeleteTask)
