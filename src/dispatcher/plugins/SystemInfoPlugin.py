@@ -183,6 +183,9 @@ class SystemUIProvider(Provider):
             'webui_http_redirect_https': self.dispatcher.configstore.get(
                 'service.nginx.http.redirect_https',
             ),
+            'webui_https_certificate': self.dispatcher.configstore.get(
+                'service.nginx.https.certificate',
+            ),
             'webui_https_port': self.dispatcher.configstore.get(
                 'service.nginx.https.port',
             ),
@@ -218,9 +221,7 @@ class SystemGeneralConfigureTask(Task):
             self.dispatcher.configstore.set('system.syslog_server', props['syslog_server'])
 
         try:
-            self.dispatcher.call_sync(
-                'etcd.generation.generate_group', 'localtime'
-            )
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
         except RpcException, e:
             raise TaskException(
                 errno.ENXIO,
@@ -254,6 +255,8 @@ class SystemUIConfigureTask(Task):
         self.dispatcher.configstore.set('service.nginx.http.port', props.get('webui_http_port'))
         self.dispatcher.configstore.set(
             'service.nginx.http.redirect_https', props.get('webui_http_redirect_https'))
+        self.dispatcher.configstore.set(
+            'service.nginx.https.certificate', props.get('webui_https_certificate'))
         self.dispatcher.configstore.set('service.nginx.https.port', props.get('webui_https_port'))
 
         try:
@@ -346,6 +349,7 @@ def _init(dispatcher, plugin):
             },
             'webui_http_redirect_https': {'type': 'boolean'},
             'webui_http_port': {'type': 'integer'},
+            'webui_https_certificate': {'type': ['integer', 'null']},
             'webui_https_port': {'type': 'integer'},
         },
         'additionalProperties': False,
