@@ -357,6 +357,36 @@ class ZpoolReplaceTask(ZpoolBaseTask):
             raise TaskException(errno.EFAULT, str(err))
 
 
+@accepts(str, str, bool)
+class ZpoolOfflineDiskTask(ZpoolBaseTask):
+    def run(self, pool, guid, temporary=False):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            vdev = pool.vdev_by_guid(long(guid))
+            if not vdev:
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(guid))
+
+            vdev.offline(temporary)
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
+@accepts(str, str)
+class ZpoolOnlineDiskTask(ZpoolBaseTask):
+    def run(self, pool, guid):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            vdev = pool.vdev_by_guid(long(guid))
+            if not vdev:
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(guid))
+
+            vdev.online()
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
 @accepts(str, str, h.object())
 class ZpoolImportTask(Task):
     def verify(self, guid, name=None, properties=None):
@@ -907,6 +937,8 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.pool.extend', ZpoolExtendTask)
     plugin.register_task_handler('zfs.pool.detach', ZpoolDetachTask)
     plugin.register_task_handler('zfs.pool.replace', ZpoolReplaceTask)
+    plugin.register_task_handler('zfs.pool.offline_disk', ZpoolOfflineDiskTask)
+    plugin.register_task_handler('zfs.pool.online_disk', ZpoolOnlineDiskTask)
 
     plugin.register_task_handler('zfs.pool.import', ZpoolImportTask)
     plugin.register_task_handler('zfs.pool.export', ZpoolExportTask)
