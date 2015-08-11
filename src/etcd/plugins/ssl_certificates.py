@@ -27,44 +27,30 @@
 import os
 
 
+def generate_file(context, path, content):
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path), 0755)
+
+    with open(path, 'w') as f:
+        f.write(content)
+
+    context.emit_event('etcd.file_generated', {
+        'filename': path
+    })
+
+
 def run(context):
 
     for cert in context.client.call_sync('crypto.certificates.query'):
 
-        if cert['type'].startswith('CA_'):
-            cert_root_path = '/etc/certificates/CA'
-        else:
-            cert_root_path = '/etc/certificates'
-
-        if not os.path.exists(cert_root_path):
-            os.makedirs(cert_root_path, 0755)
-
         certificate = cert.get('certificate')
         if certificate:
-            certificate_path = os.path.join(cert_root_path, '{0}.crt'.format(cert['name']))
-            with open(certificate_path, 'w') as f:
-                f.write(certificate)
-
-            context.emit_event('etcd.file_generated', {
-                'filename': certificate_path
-            })
+            generate_file(context, cert['certificate_path'], certificate)
 
         privatekey = cert.get('privatekey')
         if privatekey:
-            privatekey_path = os.path.join(cert_root_path, '{0}.key'.format(cert['name']))
-            with open(privatekey_path, 'w') as f:
-                f.write(privatekey)
-
-            context.emit_event('etcd.file_generated', {
-                'filename': privatekey_path
-            })
+            generate_file(context, cert['privatekey_path'], privatekey)
 
         csr = cert.get('csr')
         if csr and csr['type'] == 'CERT_CSR':
-            csr_path = os.path.join(cert_root_path, '{0}.csr'.format(cert['name']))
-            with open(csr_path, 'w') as f:
-                f.write(csr)
-
-            context.emit_event('etcd.file_generated', {
-                'filename': csr_path
-            })
+            generate_file(context, cert['csr_path'], csr)
