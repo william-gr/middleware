@@ -8,5 +8,5 @@ ALL ALL=(ALL) NOPASSWD: /etc/find_alias_for_smtplib.py
     ${user['username']} ALL=(ALL) ALL
 % endfor
 % for group in ds.query("groups", ("sudo", "=", True)):
-    %${group['name']} ALL=(ALL) ALL
+    %%${group['name']} ALL=(ALL) ALL
 % endfor
