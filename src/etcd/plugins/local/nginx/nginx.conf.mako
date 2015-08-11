@@ -35,16 +35,23 @@ http {
         listen ${addr}:${config.get("service.nginx.http.port")};
     % endfor
 % endif
-% if config.get("service.nginx.https.enable"):
+<%
+
+    cert_id = config.get('service.nginx.https.certificate')
+    certificate = dispatcher.call_sync(
+        'crypto.certificates.query', [('id', '=', cert_id)], {'single': True})
+
+%>\
+% if config.get("service.nginx.https.enable") and certificate:
     % for addr in config.get("service.nginx.listen"):
         listen ${addr}:${config.get("service.nginx.https.port")} default_server ssl spdy;
     % endfor
 
         ssl_session_timeout	120m;
-	    ssl_session_cache	shared:ssl:16m;
+        ssl_session_cache	shared:ssl:16m;
 
-        ssl_certificate ${config.get("service.nginx.https.ssl_cert")};
-        ssl_certificate_key ${config.get("service.nginx.https.ssl_key")}
+        ssl_certificate ${certificate.get("certificate_path")};
+        ssl_certificate_key ${certificate.get("privatekey_path")};
         ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
         ssl_prefer_server_ciphers on;
         ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA256:EECDH+aRSA+RC4:EDH+aRSA:EECDH:RC4:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
