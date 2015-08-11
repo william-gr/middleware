@@ -1,4 +1,4 @@
-@version:3.5
+@version:3.6
 
 #
 # This sample configuration file is essentially equilivent to the stock
@@ -10,14 +10,20 @@
 #
 # options
 #
-options { chain_hostnames(off); flush_lines(0); threaded(yes); };
+options {
+    chain_hostnames(off);
+    flush_lines(0);
+    threaded(yes);
+};
 
 #
 # sources
 #
-source src { unix-dgram("/var/run/log");
-             unix-dgram("/var/run/logpriv" perm(0600));
-	     udp(localport(1031)); internal(); file("/dev/klog"); };
+source src {
+    unix-dgram("/var/run/log");
+    unix-dgram("/var/run/logpriv" perm(0600));
+    udp(localport(1031)); internal(); file("/dev/klog");
+};
 
 #
 # destinations
