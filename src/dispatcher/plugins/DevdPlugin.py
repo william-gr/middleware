@@ -170,6 +170,8 @@ class DevdEventSource(EventSource):
             "misc.fs.zfs.scrub_start": ("fs.zfs.scrub.started", "Scrub on volume {0} started"),
             "misc.fs.zfs.scrub_finish": ("fs.zfs.scrub.finished", "Scrub on volume {0} finished"),
             "misc.fs.zfs.scrub_abort": ("fs.zfs.scrub.aborted", "Scrub on volume {0} aborted"),
+            "misc.fs.zfs.resilver_start": ("fs.zfs.resilver.started", "Resilver on volume {0} started"),
+            "misc.fs.zfs.resilver_finish": ("fs.zfs.resilver.finished", "Resilver on volume {0} finished"),
             "misc.fs.zfs.pool_create": ("fs.zfs.pool.created", "Pool {0} created"),
             "misc.fs.zfs.pool_destroy": ("fs.zfs.pool.destroyed", "Pool {0} destroyed"),
             "misc.fs.zfs.dataset_create": ("fs.zfs.dataset.created", "Dataset on pool {0} created"),
