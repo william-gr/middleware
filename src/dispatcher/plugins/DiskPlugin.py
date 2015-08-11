@@ -492,6 +492,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('disk.erase', DiskEraseTask)
     plugin.register_task_handler('disk.format.gpt', DiskGPTFormatTask)
     plugin.register_task_handler('disk.format.boot', DiskBootFormatTask)
+    plugin.register_task_handler('disk.install_bootloader', DiskInstallBootloaderTask)
     plugin.register_task_handler('disk.configure', DiskConfigureTask)
     plugin.register_task_handler('disk.delete', DiskDeleteTask)
 
