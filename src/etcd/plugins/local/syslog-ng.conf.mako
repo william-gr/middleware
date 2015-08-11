@@ -182,7 +182,7 @@ log { source(src); filter(f_ppp); destination(ppp); };
     <%
         server = config.get('system.syslog_server').split(':')
         host = server[0]
-        port = server[1] if len(server == 2) else '514'
+        port = server[1] if len(server) == 2 else '514'
     %>
     destination loghost { udp("${host}" port(${port}) localport(514)); };
     log { source(src); destination(loghost); };
