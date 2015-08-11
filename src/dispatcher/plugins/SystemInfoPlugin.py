@@ -349,7 +349,7 @@ def _init(dispatcher, plugin):
             },
             'webui_http_redirect_https': {'type': 'boolean'},
             'webui_http_port': {'type': 'integer'},
-            'webui_https_certificate': {'type': ['integer', 'null']},
+            'webui_https_certificate': {'type': ['string', 'null']},
             'webui_https_port': {'type': 'integer'},
         },
         'additionalProperties': False,
