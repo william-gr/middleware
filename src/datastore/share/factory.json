@@ -700,6 +700,12 @@
                     "file:local/smbusers",
                     "plugin:local/smb4.conf"
                 ]
+            },
+            "5973ED86-1BC4-41A6-A70E-530D6843BA5B": {
+                "name": "syslog",
+                "dependencies": [
+                    "file:local/syslog-ng.conf"
+                ]
             }
         }
     },
