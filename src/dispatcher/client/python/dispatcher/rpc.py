@@ -327,7 +327,7 @@ def convert_schema(sch):
     if isinstance(sch, dict):
         return sch
 
-    if isinstance(sch, type):
+    if isinstance(sch, (type, type(None))):
         return {'type': type_mapping[sch]}
 
     if isinstance(sch, tuple):
