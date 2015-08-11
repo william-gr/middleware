@@ -303,7 +303,7 @@ class ZpoolDestroyTask(ZpoolBaseTask):
         # self.dispatcher.unregister_resource('zpool:{0}'.format(name))
 
 
-@accepts(str, h.ref('zfs-topology'), h.object())
+@accepts(str, h.ref('zfs-topology'), h.array(h.ref('zfs-vdev-extension')))
 class ZpoolExtendTask(ZpoolBaseTask):
     def run(self, pool, new_vdevs, updated_vdevs):
         try:
@@ -311,6 +311,48 @@ class ZpoolExtendTask(ZpoolBaseTask):
             pool = zfs.get(pool)
             nvroot = convert_topology(zfs, new_vdevs)
             pool.attach_vdevs(nvroot)
+
+            for i in updated_vdevs:
+                vdev = pool.vdev_by_guid(long(i['target_guid']))
+                if not vdev:
+                    raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+
+                new_vdev = libzfs.ZFSVdev(i['vdev']['type'])
+                new_vdev.path = i['vdev']['path']
+                vdev.attach(new_vdev)
+
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
+@accepts(str, str)
+class ZpoolDetachTask(ZpoolBaseTask):
+    def run(self, pool, guid):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            vdev = pool.vdev_by_guid(long(guid))
+            if not vdev:
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+
+            vdev.detach()
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
+@accepts(str, str, h.ref('zfs-vdev'))
+class ZpoolReplaceTask(ZpoolBaseTask):
+    def run(self, pool, guid, vdev):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            ovdev = pool.vdev_by_guid(long(guid))
+            if not vdev:
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+
+            new_vdev = libzfs.ZFSVdev(vdev['type'])
+            new_vdev.path = vdev['path']
+            ovdev.replace(new_vdev)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
@@ -319,11 +361,9 @@ class ZpoolExtendTask(ZpoolBaseTask):
 class ZpoolImportTask(Task):
     def verify(self, guid, name=None, properties=None):
         zfs = libzfs.ZFS()
-        pool = first_or_default(
-                   lambda p: str(p.guid) == guid, zfs.find_import())
+        pool = first_or_default(lambda p: str(p.guid) == guid, zfs.find_import())
         if not pool:
-            raise VerifyException(errno.ENOENT,
-                                  'Pool with GUID {0} not found'.format(guid))
+            raise VerifyException(errno.ENOENT, 'Pool with GUID {0} not found'.format(guid))
 
         return get_disk_names(self.dispatcher, pool)
 
@@ -331,8 +371,7 @@ class ZpoolImportTask(Task):
         zfs = libzfs.ZFS()
         opts = properties or {}
         try:
-            pool = first_or_default(
-                       lambda p: str(p.guid) == guid, zfs.find_import())
+            pool = first_or_default(lambda p: str(p.guid) == guid, zfs.find_import())
             zfs.import_pool(pool, name, opts)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
@@ -638,10 +677,10 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'path': {'type': 'string'},
+            'guid': {'type': 'string'},
             'type': {
                 'type': 'string',
-                'enum': ['disk', 'file', 'mirror',
-                         'raidz1', 'raidz2', 'raidz3']
+                'enum': ['disk', 'file', 'mirror', 'raidz1', 'raidz2', 'raidz3']
             },
             'children': {
                 'type': 'array',
@@ -671,6 +710,14 @@ def _init(dispatcher, plugin):
                 'type': 'array',
                 'items': {'$ref': 'zfs-vdev'},
             },
+        }
+    })
+
+    plugin.register_schema_definition('zfs-vdev-extension', {
+        'type': 'object',
+        'properties': {
+            'target_guid': {'type': 'string'},
+            'vdev': {'$ref': 'zfs-vdev'}
         }
     })
 
@@ -810,8 +857,7 @@ def _init(dispatcher, plugin):
     for key, value in zfs_datasetprops_dict.iteritems():
         zfs_datasetproperty_schema['properties'][key] = zfsprop_schema_creator(**value)
 
-    plugin.register_schema_definition('zfs-datasetproperties',
-                                      zfs_datasetproperty_schema)
+    plugin.register_schema_definition('zfs-datasetproperties', zfs_datasetproperty_schema)
 
     plugin.register_schema_definition('zfs-dataset', {
         'type': 'object',
@@ -824,7 +870,7 @@ def _init(dispatcher, plugin):
             },
         }
     })
-    # TODO: Fix zfs-pools.groups.(cache and logs items' schema)
+
     plugin.register_schema_definition('zfs-pool', {
         'type': 'object',
         'properties': {
@@ -837,14 +883,7 @@ def _init(dispatcher, plugin):
             'scan': {'$ref': 'zfs-scan'},
             'hostname': {'type': 'string'},
             'root_dataset': {'$ref': 'zfs-dataset'},
-            'groups': {
-                'type': 'object',
-                'properties': {
-                    'cache': {'type': 'array'},
-                    'data': {'$ref': 'zfs-vdev'},
-                    'log': {'type': 'array'},
-                }
-            },
+            'groups': {'$ref': 'zfs-topology'},
             'guid': {'type': 'long'},
             'properties': {'$ref': 'zfs-properties'},
         }
@@ -866,6 +905,9 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.pool.create', ZpoolCreateTask)
     plugin.register_task_handler('zfs.pool.configure', ZpoolConfigureTask)
     plugin.register_task_handler('zfs.pool.extend', ZpoolExtendTask)
+    plugin.register_task_handler('zfs.pool.detach', ZpoolDetachTask)
+    plugin.register_task_handler('zfs.pool.replace', ZpoolReplaceTask)
+
     plugin.register_task_handler('zfs.pool.import', ZpoolImportTask)
     plugin.register_task_handler('zfs.pool.export', ZpoolExportTask)
     plugin.register_task_handler('zfs.pool.destroy', ZpoolDestroyTask)
