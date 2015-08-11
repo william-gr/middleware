@@ -333,7 +333,7 @@ class ZpoolDetachTask(ZpoolBaseTask):
             pool = zfs.get(pool)
             vdev = pool.vdev_by_guid(long(guid))
             if not vdev:
-                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(guid))
 
             vdev.detach()
         except libzfs.ZFSException, err:
@@ -348,7 +348,7 @@ class ZpoolReplaceTask(ZpoolBaseTask):
             pool = zfs.get(pool)
             ovdev = pool.vdev_by_guid(long(guid))
             if not vdev:
-                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+                raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(guid))
 
             new_vdev = libzfs.ZFSVdev(vdev['type'])
             new_vdev.path = vdev['path']
