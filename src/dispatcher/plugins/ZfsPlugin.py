@@ -122,7 +122,7 @@ class ZpoolProvider(Provider):
                     event.set()
 
             t = self.dispatcher.register_event_handler('fs.zfs.resilver.finished', on_resilver_finished)
-            if pool.scan.state == 'SCANNING' and pool.scan.function == 'RESILVER':
+            if pool.scan.state == libzfs.ScanState.SCANNING and pool.scan.function == libzfs.ScanFunction.RESILVER:
                 event.wait()
 
             self.dispatcher.unregister_event_handler('fs.zfs.resilver.finished', t)
