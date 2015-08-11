@@ -144,6 +144,50 @@ class DiskGPTFormatTask(Task):
         generate_disk_cache(self.dispatcher, disk)
 
 
+class DiskBootFormatTask(Task):
+    def describe(self, disk):
+        return "Formatting bootable disk {0}".format(disk)
+
+    def verify(self, disk):
+        if not diskinfo_cache.exists(disk):
+            raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
+
+        return ['disk:{0}'.format(disk)]
+
+    def run(self, disk):
+        try:
+            system('/sbin/gpart', 'destroy', '-F', disk)
+        except SubprocessException:
+            # ignore
+            pass
+
+        try:
+            system('/sbin/gpart', 'create', '-s', 'gpt', disk)
+            system('/sbin/gpart', 'add', '-t', 'bios-boot', '-i', '1', '-s', '512k', disk)
+            system('/sbin/gpart', 'add', '-t', 'freebsd-zfs', '-i', '2', '-a', '4k', disk)
+            system('/sbin/gpart', 'set', '-a', 'active', disk)
+        except SubprocessException, err:
+            raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
+
+
+class DiskInstallBootloaderTask(Task):
+    def describe(self, disk):
+        return "Installing bootloader on disk {0}".format(disk)
+
+    def verify(self, disk):
+        if not diskinfo_cache.exists(disk):
+            raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
+
+        return ['disk:{0}'.format(disk)]
+
+    def run(self, disk):
+        try:
+            disk = os.path.join('/dev', disk)
+            system('/usr/local/sbin/grub-install', "--modules='zfs part_gpt'", disk)
+        except SubprocessException, err:
+            raise TaskException(errno.EFAULT, 'Cannot install GRUB: {0}'.format(err.err))
+
+
 @accepts(str, bool)
 class DiskEraseTask(Task):
     def __init__(self, dispatcher):
@@ -447,6 +491,7 @@ def _init(dispatcher, plugin):
     plugin.register_event_handler('system.device.mediachange', on_device_mediachange)
     plugin.register_task_handler('disk.erase', DiskEraseTask)
     plugin.register_task_handler('disk.format.gpt', DiskGPTFormatTask)
+    plugin.register_task_handler('disk.format.boot', DiskBootFormatTask)
     plugin.register_task_handler('disk.configure', DiskConfigureTask)
     plugin.register_task_handler('disk.delete', DiskDeleteTask)
 
