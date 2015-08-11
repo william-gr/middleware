@@ -112,7 +112,10 @@ class CertificateProvider(Provider):
 
             buf = certificate.get('csr' if certificate['type'] == 'CERT_CSR' else 'certificate')
             if buf:
-                cert = crypto.load_certificate(crypto.FILETYPE_PEM, buf)
+                if certificate['type'] == 'CERT_CSR':
+                    cert = crypto.load_certificate_request(crypto.FILETYPE_PEM, buf)
+                else:
+                    cert = crypto.load_certificate(crypto.FILETYPE_PEM, buf)
                 certificate['dn'] = '/{0}'.format('/'.join([
                     '{0}={1}'.format(c[0], c[1]) for c in cert.get_subject().get_components()
                 ]))
