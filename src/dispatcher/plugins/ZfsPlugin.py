@@ -108,6 +108,28 @@ class ZpoolProvider(Provider):
             }
         }
 
+    @accepts(str)
+    @returns()
+    def ensure_resilvered(self, name):
+        event = Event()
+
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(name)
+
+            def on_resilver_finished(args):
+                if args['guid'] == pool.guid:
+                    event.set()
+
+            t = self.dispatcher.register_event_handler('fs.zfs.resilver.finished', on_resilver_finished)
+            if pool.scan.state == 'SCANNING' and pool.scan.function == 'RESILVER':
+                event.wait()
+
+            self.dispatcher.unregister_event_handler('fs.zfs.resilver.finished', t)
+
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
+
 
 class ZfsProvider(Provider):
     pass
@@ -303,23 +325,36 @@ class ZpoolDestroyTask(ZpoolBaseTask):
         # self.dispatcher.unregister_resource('zpool:{0}'.format(name))
 
 
-@accepts(str, h.ref('zfs-topology'), h.array(h.ref('zfs-vdev-extension')))
+@accepts(
+    str,
+    h.any_of(
+        h.ref('zfs-topology'),
+        None
+    ),
+    h.any_of(
+        h.array(h.ref('zfs-vdev-extension')),
+        None
+    )
+)
 class ZpoolExtendTask(ZpoolBaseTask):
     def run(self, pool, new_vdevs, updated_vdevs):
         try:
             zfs = libzfs.ZFS()
             pool = zfs.get(pool)
-            nvroot = convert_topology(zfs, new_vdevs)
-            pool.attach_vdevs(nvroot)
 
-            for i in updated_vdevs:
-                vdev = pool.vdev_by_guid(long(i['target_guid']))
-                if not vdev:
-                    raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+            if new_vdevs:
+                nvroot = convert_topology(zfs, new_vdevs)
+                pool.attach_vdevs(nvroot)
 
-                new_vdev = libzfs.ZFSVdev(i['vdev']['type'])
-                new_vdev.path = i['vdev']['path']
-                vdev.attach(new_vdev)
+            if updated_vdevs:
+                for i in updated_vdevs:
+                    vdev = pool.vdev_by_guid(long(i['target_guid']))
+                    if not vdev:
+                        raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(i['target_guid']))
+
+                    new_vdev = libzfs.ZFSVdev(zfs, i['vdev']['type'])
+                    new_vdev.path = i['vdev']['path']
+                    vdev.attach(new_vdev)
 
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
@@ -350,7 +385,7 @@ class ZpoolReplaceTask(ZpoolBaseTask):
             if not vdev:
                 raise TaskException(errno.ENOENT, 'Vdev with GUID {0} not found'.format(guid))
 
-            new_vdev = libzfs.ZFSVdev(vdev['type'])
+            new_vdev = libzfs.ZFSVdev(zfs, vdev['type'])
             new_vdev.path = vdev['path']
             ovdev.replace(new_vdev)
         except libzfs.ZFSException, err:
