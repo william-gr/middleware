@@ -131,7 +131,7 @@ class QueryList(list):
                 self[idx] = wrap(v)
 
     def __getitem__(self, item):
-        if type(item) is str:
+        if isinstance(item, basestring):
             if item.isdigit():
                 return super(QueryList, self).__getitem__(int(item))
 
@@ -143,7 +143,7 @@ class QueryList(list):
     def __setitem__(self, key, value):
         value = wrap(value)
 
-        if type(key) is str:
+        if isinstance(key, basestring):
             if key.isdigit():
                 super(QueryList, self).__setitem__(int(key), value)
 
@@ -151,6 +151,12 @@ class QueryList(list):
             self[left][right] = value
 
         super(QueryList, self).__setitem__(key, value)
+
+    def get(self, key, d=None):
+        if isinstance(key, basestring):
+            key = int(key)
+
+        return self[key] if len(self) > key else d
 
     def query(self, *rules, **params):
         single = params.pop('single', False)
@@ -214,7 +220,7 @@ class QueryDict(dict):
                 self[k] = wrap(v)
 
     def __getitem__(self, item):
-        if type(item) is not str:
+        if not isinstance(item, basestring):
             return super(QueryDict, self).__getitem__(item)
 
         if '.' not in item:
@@ -226,7 +232,7 @@ class QueryDict(dict):
     def __setitem__(self, key, value):
         value = wrap(value)
 
-        if type(key) is not str:
+        if not isinstance(key, basestring):
             return super(QueryDict, self).__setitem__(key, value)
 
         if '.' not in key:
@@ -236,7 +242,7 @@ class QueryDict(dict):
         self[left][right] = value
 
     def __contains__(self, item):
-        if type(item) is not str:
+        if not isinstance(item, basestring):
             return super(QueryDict, self).__contains__(item)
 
         if '.' not in item:
