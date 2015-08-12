@@ -24,13 +24,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-
-
 import errno
+import logging
 from datastore import DatastoreException
-from task import Task, Provider, TaskException, query
+from task import Task, Provider, TaskException, ValidationException, query
 from dispatcher.rpc import RpcException, accepts, description, returns
 from dispatcher.rpc import SchemaHelper as h
+from lib.system import system, SubprocessException
+
+logger = logging.getLogger('NTPPlugin')
 
 
 @description("Provides access to NTP Servers configuration")
@@ -41,15 +43,36 @@ class NTPServersProvider(Provider):
 
 
 @description("Adds new NTP Server")
-@accepts(h.ref('ntp-server'))
+@accepts(h.ref('ntp-server'), bool)
 class CreateNTPServerTask(Task):
     def describe(self, ntp):
         return "Creating NTP Server {0}".format(ntp['name'])
 
-    def verify(self, ntp):
+    def verify(self, ntp, force=False):
+
+        errors = []
+
+        try:
+            system('ntpdate', '-q', ntp['address'])
+        except SubprocessException:
+            if not force:
+                errors.append((
+                    'address',
+                    errno.EINVAL,
+                    'Server could not be reached. Check "Force" to continue regardless.'))
+
+        minpoll = ntp.get('minpoll', 6)
+        maxpoll = ntp.get('maxpoll', 10)
+
+        if not maxpoll > minpoll:
+            errors.append(('maxpoll', errno.EINVAL, 'Max Poll should be higher than Min Poll'))
+
+        if errors:
+            raise ValidationException(errors)
+
         return ['system']
 
-    def run(self, ntp):
+    def run(self, ntp, force=False):
         try:
             pkey = self.datastore.insert('ntpservers', ntp)
             #self.dispatcher.call_sync('etcd.generation.generate_group', 'ntp')
