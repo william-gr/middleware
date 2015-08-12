@@ -249,7 +249,12 @@ class QueryDict(dict):
             return super(QueryDict, self).__contains__(item)
 
         left, sep, right = item.partition('.')
-        return right in self[left]
+        tmp = self.get(left)
+
+        if not tmp:
+            return False
+
+        return right in tmp
 
     def get(self, k, d=None):
         return self[k] if k in self else d
