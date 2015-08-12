@@ -24,15 +24,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
+import base64
 import errno
+import logging
+import os
+import smtplib
+import socket
+from datetime import datetime
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.Utils import formatdate
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import (
     RpcException, SchemaHelper as h, accepts, description, returns
 )
-from lib.system import SubprocessException, system
 from task import Provider, Task, TaskException
+
+logger = logging.getLogger('MailPlugin')
 
 
 @description("Provides Information about the mail configuration")
@@ -42,18 +51,80 @@ class MailProvider(Provider):
     def get_config(self):
         return ConfigNode('mail', self.configstore)
 
-    @accepts(h.ref('mail-message'))
-    def send(self, email):
-        msg = MIMEText(email.get('message'))
-        msg['From'] = email.get('from')
-        msg['To'] = ', '.join(email.get('to'))
-        msg['Subject'] = email.get('subject')
-        try:
-            system('sendmail', '-t', '-oi', stdin=msg.as_string())
-        except SubprocessException, err:
+    @accepts(h.ref('mail-message'), h.ref('mail'))
+    def send(self, mailmessage, mail=None):
+
+        if mail is None:
+            mail = ConfigNode('mail', self.configstore).__getstate__()
+        if not mail.get('server') or not mail.get('port'):
             raise RpcException(
-                errno.EFAULT, 'Cannot send mail: {0}'.format(err.err)
+                errno.EINVAL,
+                'You must provide an outgoing server and port when sending mail',
             )
+
+        to = mailmessage.get('to')
+        attachments = mailmessage.get('attachments')
+        subject = mailmessage.get('subject')
+        extra_headers = mailmessage.get('extra_headers')
+
+        if not to:
+            to = self.dispatcher.call_sync(
+                'users.query', [('username', '=', 'root')], {'single': True})
+            if to and to.get('email'):
+                to = [to['email']]
+
+        if attachments:
+            msg = MIMEMultipart()
+            msg.preamble = mailmessage['message']
+            map(lambda attachment: msg.attach(attachment), attachments)
+        else:
+            msg = MIMEText(mailmessage['message'], _charset='utf-8')
+        if subject:
+            msg['Subject'] = subject
+
+        msg['From'] = mailmessage['from'] if mailmessage.get('from') else mail['from']
+        msg['To'] = ', '.join(to)
+        msg['Date'] = formatdate()
+
+        local_hostname = socket.gethostname()
+        version = self.dispatcher.call_sync('system.info.version').split('-')[0].lower()
+
+        msg['Message-ID'] = "<{0}-{1}.{2}@{3}>".format(
+            version,
+            datetime.utcnow().strftime("%Y%m%d.%H%M%S.%f"),
+            base64.urlsafe_b64encode(os.urandom(3)),
+            local_hostname)
+
+        if not extra_headers:
+            extra_headers = {}
+        for key, val in extra_headers.items():
+            if key in msg:
+                msg.replace_header(key, val)
+            else:
+                msg[key] = val
+        msg = msg.as_string()
+
+        try:
+            if mail['encryption'] == 'SSL':
+                klass = smtplib.SMTP_SSL
+            else:
+                klass = smtplib.SMTP
+            server = klass(mail['server'], mail['port'], timeout=300, local_hostname=local_hostname)
+            if mail['encryption'] == 'TLS':
+                server.starttls()
+
+            if mail['auth']:
+                server.login(mail['user'], mail['pass'])
+            server.sendmail(mail['from'], to, msg)
+            server.quit()
+        except smtplib.SMTPAuthenticationError as e:
+            raise RpcException(errno.EACCES, 'Authentication error: {0} {1}'.format(
+                e.smtp_code, e.smtp_error))
+        except Exception as e:
+            logger.error('Failed to send email: {0}'.format(str(e)), exc_info=True)
+            raise RpcException(errno.EFAULT, 'Email send error: {0}'.format(str(e)))
+        except:
+            raise RpcException(errno.EFAULT, 'Unexpected error')
 
 
 @accepts(h.ref('mail'))
@@ -89,7 +160,9 @@ def _init(dispatcher, plugin):
             },
             'user': {'type': ['string', 'null']},
             'pass': {'type': ['string', 'null']},
-        }
+        },
+        'required': ['from', 'server', 'port', 'auth', 'encryption'],
+        'additionalProperties': False,
     })
 
     plugin.register_schema_definition('mail-message', {
@@ -102,7 +175,13 @@ def _init(dispatcher, plugin):
             },
             'subject': {'type': 'string'},
             'message': {'type': 'string'},
-        }
+            'attachments': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
+            'extra_headers': {'type': 'object'},
+        },
+        'additionalProperties': False,
     })
 
     # Register providers
