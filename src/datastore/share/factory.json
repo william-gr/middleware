@@ -567,6 +567,7 @@
             "accounts.local_gid_range": [1000, 65000],
             "update.train": "FreeNAS-10-Nightlies",
             "update.check_auto": true,
+	    "mail.from": "",
 	    "mail.server": "",
 	    "mail.port": 25,
 	    "mail.encryption": "PLAIN",

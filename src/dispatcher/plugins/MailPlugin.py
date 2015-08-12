@@ -79,6 +79,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('mail', {
         'type': 'object',
         'properties': {
+            'from': {'type': 'string'},
             'server': {'type': 'string'},
             'port': {'type': 'integer'},
             'auth': {'type': 'boolean'},
