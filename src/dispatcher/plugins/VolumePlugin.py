@@ -60,21 +60,22 @@ class VolumeProvider(Provider):
             else:
                 topology = config['groups']
                 for vdev, _ in iterate_vdevs(topology):
-                    vdev['path'] = self.dispatcher.call_sync(
-                        'disks.partition_to_disk', vdev['path'])
+                    try:
+                        vdev['path'] = self.dispatcher.call_sync(
+                            'disks.partition_to_disk', vdev['path'])
+                    except RpcException, err:
+                        if err.code == errno.ENOENT:
+                            pass
 
                 vol['topology'] = topology
                 vol['status'] = config['status']
                 vol['scan'] = config['scan']
                 vol['properties'] = config['properties']
-                vol['datasets'] = list(
-                    flatten_datasets(config['root_dataset']))
+                vol['datasets'] = list(flatten_datasets(config['root_dataset']))
 
             return vol
 
-        return self.datastore.query('volumes',
-                                    *(filter or []),
-                                    callback=extend, **(params or {}))
+        return self.datastore.query('volumes', *(filter or []), callback=extend, **(params or {}))
 
     @description("Finds volumes available for import")
     @accepts()
