@@ -110,6 +110,7 @@ class MongodbDatastore(object):
     def collection_create(self, name, pkey_type='uuid', attributes=None):
         attributes = attributes or {}
         ttl_index = attributes.get('ttl-index')
+        self.db.create_collection(name)
         self.db['collections'].insert({
             '_id': name,
             'pkey-type': pkey_type,
