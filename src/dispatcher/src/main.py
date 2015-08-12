@@ -279,6 +279,7 @@ class Dispatcher(object):
         self.resource_graph = ResourceGraph()
         self.logger = logging.getLogger('Main')
         self.token_store = TokenStore(self)
+        self.event_delivery_lock = RLock()
         self.rpc = None
         self.balancer = None
         self.datastore = None
@@ -405,7 +406,6 @@ class Dispatcher(object):
         self.discover_plugins()
 
     def unload_plugins(self):
-
         # Generate a list of inverse plugin dependency
         required_by = {}
         for name, plugin in self.plugins.items():
@@ -487,6 +487,8 @@ class Dispatcher(object):
         logging.root.addHandler(handler)
 
     def dispatch_event(self, name, args):
+        self.event_delivery_lock.acquire()
+
         if 'timestamp' not in args:
             # If there's no timestamp, assume event fired right now
             args['timestamp'] = time.time()
@@ -501,6 +503,7 @@ class Dispatcher(object):
                     self.logger.exception('Event handler for event %s failed', name)
 
         if 'nolog' in args and args['nolog']:
+            self.event_delivery_lock.release()
             return
 
         # Persist event
@@ -512,6 +515,8 @@ class Dispatcher(object):
             'timestamp': args['timestamp'],
             'args': event_data
         })
+
+        self.event_delivery_lock.release()
 
     def call_sync(self, name, *args):
         return self.rpc.call_sync(name, *args)
@@ -603,6 +608,25 @@ class Dispatcher(object):
                 return False
 
         return True
+
+    def test_or_wait_for_event(self, event, match_fn, initial_condition_fn, timeout=None):
+        done = Event()
+        self.event_delivery_lock.acquire()
+
+        if initial_condition_fn():
+            self.event_delivery_lock.release()
+            return
+
+        def handler(args):
+            if match_fn(args):
+                self.logger.debug("Test or wait condition satisfied for event {0}".format(event))
+                done.set()
+
+        self.register_event_handler(event, handler)
+        self.event_delivery_lock.release()
+        done.wait(timeout=timeout)
+        self.unregister_event_handler(event, handler)
+
 
     def die(self):
         self.logger.warning('Exiting from "die" command')
