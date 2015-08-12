@@ -111,21 +111,17 @@ class ZpoolProvider(Provider):
     @accepts(str)
     @returns()
     def ensure_resilvered(self, name):
-        event = Event()
-
         try:
             zfs = libzfs.ZFS()
             pool = zfs.get(name)
 
-            def on_resilver_finished(args):
-                if args['guid'] == pool.guid:
-                    event.set()
-
-            t = self.dispatcher.register_event_handler('fs.zfs.resilver.finished', on_resilver_finished)
-            if pool.scan.state == libzfs.ScanState.SCANNING and pool.scan.function == libzfs.ScanFunction.RESILVER:
-                event.wait()
-
-            self.dispatcher.unregister_event_handler('fs.zfs.resilver.finished', t)
+            self.dispatcher.test_or_wait_for_event(
+                'fs.zfs.resilver.finished',
+                lambda args: args['guid'] == str(pool.guid),
+                lambda:
+                    pool.scrub.state == libzfs.ScanState.SCANNING and
+                    pool.scrub.function == libzfs.ScanFunction.RESILVER
+                )
 
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
@@ -160,10 +156,8 @@ class ZpoolScrubTask(Task):
 
     def run(self, pool):
         self.pool = pool
-        self.dispatcher.register_event_handler("fs.zfs.scrub.finish",
-                                               self.__scrub_finished)
-        self.dispatcher.register_event_handler("fs.zfs.scrub.abort",
-                                               self.__scrub_aborted)
+        self.dispatcher.register_event_handler("fs.zfs.scrub.finish", self.__scrub_finished)
+        self.dispatcher.register_event_handler("fs.zfs.scrub.abort", self.__scrub_aborted)
         self.finish_event.clear()
 
         try:
@@ -176,8 +170,7 @@ class ZpoolScrubTask(Task):
 
         self.finish_event.wait()
         if self.abort_flag:
-            raise TaskAbortException(errno.EINTR,
-                                     str("User invoked Task.abort()"))
+            raise TaskAbortException(errno.EINTR, str("User invoked Task.abort()"))
 
     def abort(self):
         try:
@@ -245,8 +238,7 @@ class ZpoolCreateTask(Task):
     def verify(self, name, topology, params=None):
         zfs = libzfs.ZFS()
         if name in zfs.pools:
-            raise VerifyException(errno.EEXIST,
-                                  'Pool with same name already exists')
+            raise VerifyException(errno.EEXIST, 'Pool with same name already exists')
 
         return self.__get_disks(topology)
 
@@ -291,8 +283,7 @@ class ZpoolBaseTask(Task):
             zfs = libzfs.ZFS()
             pool = zfs.get(name)
         except libzfs.ZFSException:
-            raise VerifyException(errno.ENOENT,
-                                  "Pool {0} not found".format(name))
+            raise VerifyException(errno.ENOENT, "Pool {0} not found".format(name))
 
         return get_disk_names(self.dispatcher, pool)
 
@@ -337,8 +328,14 @@ class ZpoolDestroyTask(ZpoolBaseTask):
     )
 )
 class ZpoolExtendTask(ZpoolBaseTask):
+    def __init__(self, dispatcher):
+        super(ZpoolExtendTask, self).__init__(dispatcher)
+        self.pool = None
+        self.started = False
+
     def run(self, pool, new_vdevs, updated_vdevs):
         try:
+            self.pool = pool
             zfs = libzfs.ZFS()
             pool = zfs.get(pool)
 
@@ -356,8 +353,36 @@ class ZpoolExtendTask(ZpoolBaseTask):
                     new_vdev.path = i['vdev']['path']
                     vdev.attach(new_vdev)
 
+                # Wait for resilvering process to complete
+                self.started = True
+                self.dispatcher.test_or_wait_for_event(
+                    'fs.zfs.resilver.finished',
+                    lambda args: args['guid'] == str(pool.guid),
+                    lambda:
+                        pool.scrub.state == libzfs.ScanState.SCANNING and
+                        pool.scrub.function == libzfs.ScanFunction.RESILVER
+                )
+
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
+
+    def get_status(self):
+        if not self.started:
+            return TaskStatus(0, "Waiting to start...")
+
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(self.pool)
+            scrub = pool.scrub
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+        if scrub.state == libzfs.ScanState.SCANNING:
+            self.progress = scrub.percentage
+            return TaskStatus(self.progress, "Resilvering in progress...")
+
+        if scrub.state == libzfs.ScanState.FINISHED:
+            return TaskStatus(100, "Finished")
 
 
 @accepts(str, str)
