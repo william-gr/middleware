@@ -399,7 +399,7 @@ class Client(object):
 
     def call_task_sync(self, name, *args):
         tid = self.call_sync('task.submit', name, args)
-        self.call_sync('task.wait', tid)
+        self.call_sync('task.wait', tid, timeout=3600)
         return self.call_sync('task.status', tid)
 
     def submit_task(self, name, *args):
