@@ -316,6 +316,9 @@ class Balancer(object):
             except Exception as err:
                 self.logger.warning("Cannot verify task %d: %s", task.id, err)
                 task.set_state(TaskState.FAILED, TaskStatus(0), serialize_error(err))
+                self.task_list.append(task)
+                task.ended.set()
+                self.distribution_lock.release()
                 continue
 
             task.set_state(TaskState.WAITING)
