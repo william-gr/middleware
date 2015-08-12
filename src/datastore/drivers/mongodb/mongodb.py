@@ -35,6 +35,7 @@ import pymongo
 import pymongo.errors
 from six import string_types
 from datastore import DuplicateKeyException
+from fnutils.query import wrap
 
 
 class MongodbDatastore(object):
@@ -170,14 +171,28 @@ class MongodbDatastore(object):
         single = kwargs.pop('single', False)
         count = kwargs.pop('count', False)
         postprocess = kwargs.pop('callback', None)
+        select = kwargs.pop('select', None)
         result = []
 
         cur = self.db[collection].find(self._build_query(args))
         if count:
             return cur.count()
 
-        if sort:
+        if select:
+            def select_fn(fn, obj):
+                obj = fn(obj) if fn else obj
+                obj = wrap(obj)
 
+                if isinstance(select, (list, tuple)):
+                    return [obj.get(i) for i in select]
+
+                if isinstance(select, basestring):
+                    return obj.get(select)
+
+            old = postprocess
+            postprocess = lambda o: select_fn(old, o)
+
+        if sort:
             def sort_transform(result, key):
                 direction = pymongo.ASCENDING
                 if key.startswith('-'):
