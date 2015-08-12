@@ -52,7 +52,7 @@ class Task(object):
         return {
             'description': cls.description if hasattr(cls, 'description') else None,
             'schema': cls.params_schema if hasattr(cls, 'params_schema') else None,
-            'abortable': True if (hasattr(cls,'abort') and callable(cls.abort)) else False
+            'abortable': True if (hasattr(cls, 'abort') and callable(cls.abort)) else False
         }
 
     def get_status(self):

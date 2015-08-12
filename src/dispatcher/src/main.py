@@ -627,7 +627,6 @@ class Dispatcher(object):
         done.wait(timeout=timeout)
         self.unregister_event_handler(event, handler)
 
-
     def die(self):
         self.logger.warning('Exiting from "die" command')
 
