@@ -128,7 +128,14 @@ class ZpoolProvider(Provider):
 
 
 class ZfsProvider(Provider):
-    pass
+    @query('zfs-dataset')
+    def query(self, filter=None, params=None):
+        try:
+            zfs = libzfs.ZFS()
+            result = map(lambda o: o.__getstate__(recursive=False), list(zfs.datasets))
+            return wrap(result).query(*(filter or []), **(params or {}))
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
 
 
 @description("Scrubs ZFS pool")
@@ -953,6 +960,11 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
+            'pool': {'type': 'string'},
+            'type': {
+                'type': 'string',
+                'enum': ['filesystem', 'volume', 'snapshot']
+            },
             'properties': {'$ref': 'zfs-datasetproperties'},
             'children': {
                 'type': 'array',
@@ -990,6 +1002,7 @@ def _init(dispatcher, plugin):
 
     # Register Providers
     plugin.register_provider('zfs.pool', ZpoolProvider)
+    plugin.register_provider('zfs', ZfsProvider)
 
     # Register Task Handlers
     plugin.register_task_handler('zfs.pool.create', ZpoolCreateTask)
