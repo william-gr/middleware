@@ -31,11 +31,12 @@ import errno
 import logging
 import gevent
 import gevent.monkey
+import geom
 from collections import defaultdict
 from fnutils import first_or_default
 from cam import CamDevice
 from cache import CacheStore
-from lib import geom
+from lib.geom import confxml
 from lib.system import system, SubprocessException
 from task import Provider, Task, TaskStatus, TaskException, VerifyException, query
 from dispatcher.rpc import RpcException, accepts, returns, description
@@ -55,7 +56,7 @@ class DiskProvider(Provider):
     def query(self, filter=None, params=None):
         def extend(disk):
             disk['online'] = self.is_online(disk['path'])
-            disk['status'] = diskinfo_cache.get(disk['path'])
+            disk['status'] = diskinfo_cache.get(disk['id'])
 
             return disk
 
@@ -70,7 +71,8 @@ class DiskProvider(Provider):
     @returns(str)
     def partition_to_disk(self, part_name):
         # Is it disk name?
-        if diskinfo_cache.exists(part_name):
+        d = get_disk_by_path(part_name)
+        if d:
             return part_name
 
         part = self.get_partition_config(part_name)
@@ -80,14 +82,15 @@ class DiskProvider(Provider):
     @returns(str)
     def disk_to_data_partition(self, disk_name):
         disk = diskinfo_cache.get(disk_name)
-        return disk['data-partition-path']
+        return disk['data_partition_path']
 
     @accepts(str)
     def get_disk_config(self, name):
-        if not diskinfo_cache.exists(name):
+        disk = diskinfo_cache.get(name)
+        if not disk:
             raise RpcException(errno.ENOENT, "Disk {0} not found".format(name))
 
-        return diskinfo_cache.get(name)
+        return disk
 
     @accepts(str)
     def get_partition_config(self, part_name):
@@ -95,7 +98,7 @@ class DiskProvider(Provider):
             for part in disk['partitions']:
                 if part_name in part['paths']:
                     result = part.copy()
-                    result['disk'] = name
+                    result['disk'] = disk['path']
                     return result
 
         raise RpcException(errno.ENOENT, "Partition {0} not found".format(part_name))
@@ -292,44 +295,121 @@ def device_to_identifier(doc, name, serial=None):
 
 
 def info_from_device(devname):
-    disk_info = {'serial': '', 'max-rotation': None, 'smart-enabled': False,
-                 'smart-capable': False, 'smart-status': '', 'model': '',
-                 'is-ssd': False, 'interface': ''}
+    disk_info = {
+        'serial': None,
+        'max_rotation': None,
+        'smart_enabled': False,
+        'smart_capable': False,
+        'smart_status': None,
+        'model': None,
+        'is_ssd': False,
+        'interface': None}
+
     # TODO, fix this to deal with above generated args for interface
     dev_smart_info = Device(os.path.join('/dev/', devname))
-    disk_info['is-ssd'] = dev_smart_info.is_ssd
-    disk_info['smart-capable'] = dev_smart_info.smart_capable
+    disk_info['is_ssd'] = dev_smart_info.is_ssd
+    disk_info['smart_capable'] = dev_smart_info.smart_capable
     if dev_smart_info.smart_capable:
         disk_info['serial'] = dev_smart_info.serial
         disk_info['model'] = dev_smart_info.model
-        disk_info['max-rotation'] = dev_smart_info.rotation_rate
+        disk_info['max_rotation'] = dev_smart_info.rotation_rate
         disk_info['interface'] = dev_smart_info.interface
-        disk_info['smart-enabled'] = dev_smart_info.smart_enabled
+        disk_info['smart_enabled'] = dev_smart_info.smart_enabled
         if dev_smart_info.smart_enabled:
-            disk_info['smart-status'] = dev_smart_info.assessment
+            disk_info['smart_status'] = dev_smart_info.assessment
 
     return disk_info
 
 
+def get_disk_by_path(path):
+    for ident, disk in diskinfo_cache.itervalid():
+        if disk['path'] == path:
+            return disk
+
+        if disk['is_multipath']:
+            if path in disk['multipath_members']:
+                return disk
+
+    return None
+
+
+def clean_multipaths():
+    for i in geom.class_by_name('MULTIPATH').geoms:
+        logger.info('Destroying multipath device %s', i.name)
+        system('/sbin/gmultipath', 'destroy', i.name)
+
+
+def get_multipath_name():
+    return 'multipath{0}'.format(len(list(geom.class_by_name('MULTIPATH').geoms)))
+
+
+def attach_to_multipath(dispatcher, disk, path):
+    logger.info("Device node %s is another path to disk <%s> (%s)", path, disk['identifier'], disk['description'])
+
+    ds_disk = dispatcher.datastore.get_by_id('disks', disk['identifier'])
+
+    if disk['is_multipath']:
+        if path in disk['multipath_members']:
+            # Already added
+            return
+
+        # Attach new disk
+        system('/sbin/gmultipath', 'add', disk['multipath_node'], path)
+        disk['multipath_members'].append(path)
+    else:
+        # Create new multipath
+        logger.info('Creating new multipath device')
+
+        if ds_disk and ds_disk['is_multipath']:
+            logger.info('Reusing %s path', ds_disk['path'])
+            nodename = ds_disk['path']
+        else:
+            nodename = get_multipath_name()
+
+        system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
+        disk.update({
+            'is_multipath': True,
+            'multipath_node': nodename,
+            'multipath_members': [disk['path'], path],
+            'path': os.path.join('/dev', nodename)
+        })
+
+        ds_disk.update({
+            'path': disk['path'],
+            'is_multipath': True
+        })
+
+        dispatcher.datastore.update('disks', ds_disk['id'], ds_disk)
+
+    diskinfo_cache.put(disk['identifier'], disk)
+
+
 def generate_disk_cache(dispatcher, path):
-    confxml = geom.confxml()
     name = os.path.basename(path)
-    gdisk = confxml.xpath("/mesh/class[name='DISK']/geom[name='{0}']".format(name))
-    gpart = confxml.xpath("/mesh/class[name='PART']/geom[name='{0}']".format(name))
+    gdisk = geom.geom_by_name('DISK', name)
+    gpart = geom.geom_by_name('PART', name)
 
     if not gdisk:
         return
 
-    gdisk = gdisk.pop()
-    gpart = gpart.pop() if gpart else None
-    provider = gdisk.find('provider')
+    disk_info = info_from_device(path)
+    serial = disk_info['serial']
+
+    if serial:
+        # Check if device could be part of multipath configuration
+        d = diskinfo_cache.get('serial:{0}'.format(serial))
+        if d:
+            attach_to_multipath(dispatcher, d, path)
+            return
+
+    provider = gdisk.providers.next()
     partitions = []
 
     if gpart:
-        for p in gpart.findall('provider'):
-            paths = [os.path.join("/dev", p.find("name").text)]
-            label = p.find("config/label").text
-            uuid = p.find("config/rawuuid").text
+        for p in gpart.providers:
+            paths = [os.path.join("/dev", p.name)]
+            label = p.config['label']
+            uuid = p.config['rawuuid']
 
             if label:
                 paths.append(os.path.join("/dev/gpt", label))
@@ -338,17 +418,15 @@ def generate_disk_cache(dispatcher, path):
                 paths.append(os.path.join("/dev/gptid", uuid))
 
             partitions.append({
-                'name': p.find("name").text,
+                'name': p.name,
                 'paths': paths,
-                'mediasize': int(p.find("mediasize").text),
-                'uuid': p.find("config/rawuuid").text,
-                'type': p.find("config/type").text,
-                'label': p.find("config/label").text if p.find("config/label") else None
+                'mediasize': int(p.mediasize),
+                'uuid': uuid,
+                'type': p.config['type'],
+                'label': p.config.get('label')
             })
 
-    disk_info = info_from_device(path)
-    serial = disk_info['serial']
-    identifier = device_to_identifier(confxml, name, serial)
+    identifier = device_to_identifier(confxml(), name, serial)
     data_part = first_or_default(lambda x: x['type'] == 'freebsd-zfs', partitions)
     data_uuid = data_part["uuid"] if data_part else None
     swap_part = first_or_default(lambda x: x['type'] == 'freebsd-swap', partitions)
@@ -356,30 +434,32 @@ def generate_disk_cache(dispatcher, path):
     camdev = CamDevice(name)
 
     disk = {
-        'mediasize': int(provider.find("mediasize").text),
-        'sectorsize': int(provider.find("sectorsize").text),
-        'description': provider.find("config/descr").text,
+        'path': path,
+        'mediasize': provider.mediasize,
+        'sectorsize': provider.sectorsize,
+        'description': provider.config['descr'],
         'identifier': identifier,
         'serial': serial,
-        'max-rotation': disk_info['max-rotation'],
-        'smart-capable': disk_info['smart-capable'],
-        'smart-enabled': disk_info['smart-enabled'],
-        'smart-status': disk_info['smart-status'],
+        'max_rotation': disk_info['max_rotation'],
+        'smart_capable': disk_info['smart_capable'],
+        'smart_enabled': disk_info['smart_enabled'],
+        'smart_status': disk_info['smart_status'],
         'model': disk_info['model'],
         'interface': disk_info['interface'],
-        'is-ssd': disk_info['is-ssd'],
+        'is_ssd': disk_info['is_ssd'],
+        'is_multipath': False,
         'id': identifier,
-        'schema': gpart.find("config/scheme").text if gpart else None,
+        'schema': gpart.config.get('scheme') if gpart else None,
         'controller': camdev.__getstate__(),
         'partitions': partitions,
-        'data-partition-uuid': data_uuid,
-        'data-partition-path': os.path.join("/dev/gptid", data_uuid) if data_uuid else None,
-        'swap-partition-uuid': swap_uuid,
-        'swap-partition-path': os.path.join("/dev/gptid", swap_uuid) if swap_uuid else None
+        'data_partition_uuid': data_uuid,
+        'data_partition_path': os.path.join("/dev/gptid", data_uuid) if data_uuid else None,
+        'swap_partition_uuid': swap_uuid,
+        'swap_partition_path': os.path.join("/dev/gptid", swap_uuid) if swap_uuid else None
     }
 
-    diskinfo_cache.put(path, disk)
-    ds_disk = dispatcher.datastore.get_one('disks', ('path', '=', path))
+    diskinfo_cache.put(identifier, disk)
+    ds_disk = dispatcher.datastore.get_by_id('disks', identifier)
 
     if ds_disk is None:
         dispatcher.datastore.insert('disks', {
@@ -387,24 +467,26 @@ def generate_disk_cache(dispatcher, path):
             'path': path,
             'mediasize': disk['mediasize'],
             'serial': disk['serial'],
-            'data-partition-uuid': disk['data-partition-uuid']
+            'is_multipath': False,
+            'data_partition_uuid': disk['data_partition_uuid']
         })
     else:
-        if ds_disk['id'] != identifier or disk['data-partition-uuid'] != ds_disk['data-partition-uuid']:
+        if ds_disk['id'] != identifier or disk['data_partition_uuid'] != ds_disk['data_partition_uuid']:
             oldid = ds_disk['id']
             ds_disk.update({
                 'id': identifier,
                 'serial': disk['serial'],
-                'data-partition-uuid': disk['data-partition-uuid']
+                'data_partition_uuid': disk['data_partition_uuid']
             })
 
             dispatcher.datastore.update('disks', oldid, ds_disk)
 
-    logger.info('Added %s to disk cache', name)
+    logger.info('Added <%s> (%s) to disk cache', identifier, disk['description'])
 
 
 def purge_disk_cache(path):
-    diskinfo_cache.remove(path)
+    d = get_disk_by_path(path)
+    diskinfo_cache.remove(d['identifier'])
 
 
 def _depends():
@@ -418,10 +500,11 @@ def _init(dispatcher, plugin):
             return
 
         # Regenerate disk cache
+        logger.info("New disk attached: {0}".format(path))
         generate_disk_cache(dispatcher, path)
 
         # Push higher tier event
-        disk = diskinfo_cache.get(path)
+        disk = get_disk_by_path(path)
         dispatcher.dispatch_event('disks.changed', {
             'operation': 'created',
             'ids': [disk['id']]
@@ -447,7 +530,7 @@ def _init(dispatcher, plugin):
         generate_disk_cache(dispatcher, args['path'])
 
         # Disk may be detached in the meantime
-        disk = diskinfo_cache.get(args['path'])
+        disk = get_disk_by_path(args['path'])
         if not disk:
             return
 
@@ -462,25 +545,56 @@ def _init(dispatcher, plugin):
             'name': {'type': 'string'},
             'description': {'type': 'string'},
             'serial': {'type': 'string'},
-            'max-rotation': {'type': 'integer'},
-            'smart-capable': {'type': 'boolean'},
-            'smart-enabled': {'type': 'boolean'},
-            'interface': {'type': 'string'},
-            'is-ssd': {'type': 'boolean'},
-            'smart-status': {'type': 'string'},
-            'model': {'type': 'string'},
+            'smart_enabled': {'type': 'boolean'},
             'mediasize': {'type': 'integer'},
             'smart': {'type': 'boolean'},
-            'smart-options': {'type': 'string'},
-            'standby-mode': {
-                'type': 'string'
+            'smart_options': {'type': 'string'},
+            'standby_mode': {'type': 'string'},
+            'acoustic_level': {'type': 'string'},
+            'apm_mode': {'type': 'string'},
+            'status': {'$ref': 'disk-status'},
+        }
+    })
+
+    plugin.register_schema_definition('disk-status', {
+        'type': 'object',
+        'properties': {
+            'mediasize': {'type': 'integer'},
+            'sectorsize': {'type': 'integer'},
+            'description': {'type': 'string'},
+            'identifier': {'type': 'string'},
+            'serial': {'type': 'string'},
+            'max_rotation': {'type': 'integer'},
+            'smart_capable': {'type': 'boolean'},
+            'smart_enabled': {'type': 'boolean'},
+            'smart_status': {'type': 'string'},
+            'model': {'type': 'string'},
+            'interface': {'type': 'string'},
+            'is_ssd': {'type': 'boolean'},
+            'is_multipath': {'type': 'boolean'},
+            'id': {'type': 'string'},
+            'schema': {'type': ['string', 'null']},
+            'controller': {'type': 'object'},
+            'partitions': {
+                'type': 'array',
+                'items': {'$ref': 'disk-partition'}
             },
-            'acoustic-level': {
-                'type': 'string'
+            'multipath_node': {'type': 'string'},
+            'multipath_members': {
+                'type': 'aray',
+                'items': 'string'
             },
-            'apm-mode': {
-                'type': 'string'
-            }
+            'data_partition_uuid': {'type': 'string'},
+            'data_partition_path': {'type': 'string'},
+            'swap_partition_uuid': {'type': 'string'},
+            'swap_partition_path': {'type': 'string'},
+        }
+    })
+
+    plugin.register_schema_definition('disk-partition', {
+        'type': 'object',
+        'properties': {
+
         }
     })
 
@@ -497,6 +611,9 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('disk.delete', DiskDeleteTask)
 
     plugin.register_event_type('disks.changed')
+
+    # Destroy all existing multipaths
+    clean_multipaths()
 
     for i in dispatcher.rpc.call_sync('system.device.get_devices', 'disk'):
         on_device_attached({'path': i['path']})
