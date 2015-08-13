@@ -890,6 +890,42 @@
 				"schema": "default"
 			}
 		}
+	},
+	{
+		"metadata": {
+			"name": "ntpservers",
+			"pkey-type": "native",
+			"migration": "replace",
+			"attributes": {
+				"type": "persistent"
+			}
+		},
+		"data": {
+      "C436DAF5-A884-4689-BF85-009FB8CFD9D8": {
+        "maxpoll" : 10,
+        "iburst" : true,
+        "burst" : false,
+        "minpoll" : 6,
+        "address" : "0.freebsd.pool.ntp.org",
+        "prefer" : false
+      },
+      "5B5A6699-C88A-4E72-9AF8-6C6A1376200B": {
+        "maxpoll" : 10,
+        "iburst" : true,
+        "burst" : false,
+        "minpoll" : 6,
+        "address" : "1.freebsd.pool.ntp.org",
+        "prefer" : false
+      },
+      "7FE7115B-10EA-43AE-BE29-54549C15AFC0": {
+        "maxpoll" : 10,
+        "iburst" : true,
+        "burst" : false,
+        "minpoll" : 6,
+        "address" : "2.freebsd.pool.ntp.org",
+        "prefer" : false
+      }
+		}
 	}
 
 ]
