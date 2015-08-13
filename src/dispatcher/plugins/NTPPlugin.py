@@ -139,6 +139,31 @@ class UpdateNTPServerTask(Task):
         return id
 
 
+@description("Deletes NTP Server")
+@accepts(str)
+class DeleteNTPServerTask(Task):
+    def verify(self, id):
+        ntp = self.datastore.get_one('ntpservers', ('id', '=', id))
+        if ntp is None:
+            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exists')
+        return ['system']
+
+    def run(self, id):
+        try:
+            self.datastore.delete('ntpservers', id)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'ntp')
+            #self.dispatcher.call_sync('services.ensure_started', 'ntpd')
+            #self.dispatcher.call_sync('services.reload', 'ntpd')
+            self.dispatcher.dispatch_event('ntpservers.changed', {
+                'operation': 'delete',
+                'ids': [id]
+            })
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot delete NTP Server: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('ntp-server', {
         'type': 'object',
@@ -166,3 +191,4 @@ def _init(dispatcher, plugin):
     # Register tasks
     plugin.register_task_handler("ntpservers.create", CreateNTPServerTask)
     plugin.register_task_handler("ntpservers.update", UpdateNTPServerTask)
+    plugin.register_task_handler("ntpservers.delete", DeleteNTPServerTask)
