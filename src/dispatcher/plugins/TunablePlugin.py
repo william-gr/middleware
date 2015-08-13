@@ -26,6 +26,7 @@
 #####################################################################
 import errno
 import logging
+import re
 from datastore import DatastoreException
 from task import Task, Provider, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, accepts, description, returns
@@ -34,11 +35,70 @@ from dispatcher.rpc import SchemaHelper as h
 logger = logging.getLogger('TunablePlugin')
 
 
+VAR_SYSCTL_RE = re.compile('[a-z][a-z0-9_]+\.([a-z0-9_]+\.)*[a-z0-9_]+', re.I)
+VAR_LOADER_RC_RE = re.compile('[a-z][a-z0-9_]+', re.I)
+
+VAR_SYSCTL_FORMAT = '''Sysctl variable names must:
+1. Start with a letter.
+2. Contain at least one period.
+3. End with a letter or number.
+4. Can contain a combination of alphanumeric characters, numbers and/or underscores.'''
+
+VAR_LOADER_RC_FORMAT = '''Loader and RC variable names must:
+1. Start with a letter or underscore.
+2. Can contain a combination of alphanumeric characters, numbers and/or underscores.'''
+
+
 @description("Provides access to OS tunables")
 class TunablesProvider(Provider):
     @query('tunable')
     def query(self, filter=None, params=None):
         return self.datastore.query('tunables', *(filter or []), **(params or {}))
+
+
+@description("Adds Tunable")
+@accepts(h.all_of(
+    h.ref('tunable'),
+    h.required('var', 'value', 'type'),
+))
+class TunableCreateTask(Task):
+    def describe(self, tunable):
+        return "Creating Tunable {0}".format(tunable['var'])
+
+    def verify(self, tunable):
+
+        errors = []
+
+        if self.datastore.exists('tunables', [('var', '=', tunable['var'])]):
+            errors.append(('var', errno.EEXIST, 'This variable already exists.'))
+
+        if '"' in tunable['value'] or "'" in tunable['value']:
+            errors.append(('value', errno.EINVAL, 'Quotes are not allowed'))
+
+        if tunable['type'] in ('LOADER', 'RC') and not VAR_LOADER_RC_RE.match(tunable['var']):
+            errors.append(('var', errno.EINVAL, VAR_SYSCTL_FORMAT))
+        elif tunable['type'] == 'SYSCTL' and not VAR_SYSCTL_RE.match(tunable['var']):
+            errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+
+        if errors:
+            raise ValidationException(errors)
+
+        return ['system']
+
+    def run(self, tunable):
+        try:
+            if 'enabled' not in tunable:
+                tunable['enabled'] = True
+            pkey = self.datastore.insert('tunables', tunable)
+            self.dispatcher.dispatch_event('tunables.changed', {
+                'operation': 'create',
+                'ids': [pkey]
+            })
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot create Tunable: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
+        return pkey
 
 
 def _init(dispatcher, plugin):
@@ -64,6 +124,7 @@ def _init(dispatcher, plugin):
     plugin.register_event_type('tunables.changed')
 
     # Register provider
-    plugin.register_provider("tunables", TunablesProvider)
+    plugin.register_provider('tunables', TunablesProvider)
 
     # Register tasks
+    plugin.register_task_handler('tunables.create', TunableCreateTask)
