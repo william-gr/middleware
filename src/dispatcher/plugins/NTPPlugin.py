@@ -47,7 +47,7 @@ class NTPServersProvider(Provider):
     h.ref('ntp-server'),
     h.required('address'),
 ), bool)
-class CreateNTPServerTask(Task):
+class NTPServerCreateTask(Task):
     def describe(self, ntp):
         return "Creating NTP Server {0}".format(ntp['address'])
 
@@ -94,7 +94,7 @@ class CreateNTPServerTask(Task):
 
 @description("Updates NTP Server")
 @accepts(str, h.ref('ntp-server'), bool)
-class UpdateNTPServerTask(Task):
+class NTPServerUpdateTask(Task):
     def verify(self, id, updated_fields, force=False):
 
         errors = []
@@ -141,7 +141,7 @@ class UpdateNTPServerTask(Task):
 
 @description("Deletes NTP Server")
 @accepts(str)
-class DeleteNTPServerTask(Task):
+class NTPServerDeleteTask(Task):
     def verify(self, id):
         ntp = self.datastore.get_one('ntpservers', ('id', '=', id))
         if ntp is None:
@@ -189,6 +189,6 @@ def _init(dispatcher, plugin):
     plugin.register_provider("ntpservers", NTPServersProvider)
 
     # Register tasks
-    plugin.register_task_handler("ntpservers.create", CreateNTPServerTask)
-    plugin.register_task_handler("ntpservers.update", UpdateNTPServerTask)
-    plugin.register_task_handler("ntpservers.delete", DeleteNTPServerTask)
+    plugin.register_task_handler("ntpservers.create", NTPServerCreateTask)
+    plugin.register_task_handler("ntpservers.update", NTPServerUpdateTask)
+    plugin.register_task_handler("ntpservers.delete", NTPServerDeleteTask)
