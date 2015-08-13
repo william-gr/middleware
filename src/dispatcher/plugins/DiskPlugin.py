@@ -357,7 +357,9 @@ def attach_to_multipath(dispatcher, disk, path):
 
         # Attach new disk
         system('/sbin/gmultipath', 'add', disk['multipath_node'], path)
-        disk['multipath_members'].append(path)
+        ret = {
+            'multipath_members': disk['multipath_members'] + [path]
+        }
     else:
         # Create new multipath
         logger.info('Creating new multipath device')
@@ -372,21 +374,14 @@ def attach_to_multipath(dispatcher, disk, path):
             logger.info('Using new %s path', nodename)
 
         system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
-        disk.update({
+        ret = {
             'is_multipath': True,
             'multipath_node': nodename,
             'multipath_members': [disk['path'], path],
             'path': os.path.join('/dev', nodename)
-        })
+        }
 
-        ds_disk.update({
-            'path': disk['path'],
-            'is_multipath': True
-        })
-
-        dispatcher.datastore.update('disks', ds_disk['id'], ds_disk)
-
-    diskinfo_cache.put(disk['identifier'], disk)
+    return ret
 
 
 def generate_disk_cache(dispatcher, path):
@@ -395,6 +390,7 @@ def generate_disk_cache(dispatcher, path):
     gdisk = geom.geom_by_name('DISK', name)
     gpart = geom.geom_by_name('PART', name)
     gmultipath = geom.geom_by_name('MULTIPATH', path.split('/')[-1])
+    multipath_info = None
 
     if gmultipath:
         # MEDIACHANGE event on /dev/multipath/multipath%d
@@ -413,7 +409,7 @@ def generate_disk_cache(dispatcher, path):
         # Check if device could be part of multipath configuration
         d = diskinfo_cache.get('serial:{0}'.format(serial))
         if d and d['path'] != path:
-            attach_to_multipath(dispatcher, d, path)
+            multipath_info = attach_to_multipath(dispatcher, d, path)
 
     provider = gdisk.providers.next()
     partitions = []
@@ -471,6 +467,9 @@ def generate_disk_cache(dispatcher, path):
         'swap_partition_path': os.path.join("/dev/gptid", swap_uuid) if swap_uuid else None
     }
 
+    if multipath_info:
+        disk.update(multipath_info)
+
     diskinfo_cache.put(identifier, disk)
     ds_disk = dispatcher.datastore.get_by_id('disks', identifier)
 
@@ -480,8 +479,13 @@ def generate_disk_cache(dispatcher, path):
             'path': path,
             'mediasize': disk['mediasize'],
             'serial': disk['serial'],
-            'is_multipath': False,
+            'is_multipath': disk['is_multipath'],
             'data_partition_uuid': disk['data_partition_uuid']
+        })
+
+        dispatcher.dispatch_event('disks.changed', {
+            'operation': 'created',
+            'ids': [identifier]
         })
     else:
         if ds_disk['id'] != identifier or disk['data_partition_uuid'] != ds_disk['data_partition_uuid']:
@@ -489,18 +493,43 @@ def generate_disk_cache(dispatcher, path):
             ds_disk.update({
                 'id': identifier,
                 'serial': disk['serial'],
-                'data_partition_uuid': disk['data_partition_uuid']
+                'data_partition_uuid': disk['data_partition_uuid'],
+                'is_multipath': disk['is_multipath']
             })
 
             dispatcher.datastore.update('disks', oldid, ds_disk)
 
+            dispatcher.dispatch_event('disks.changed', {
+                'operation': 'update',
+                'ids': [identifier]
+            })
+
     logger.info('Added <%s> (%s) to disk cache', identifier, disk['description'])
 
 
-def purge_disk_cache(path):
-    d = get_disk_by_path(path)
-    if d:
-        diskinfo_cache.remove(d['identifier'])
+def purge_disk_cache(dispatcher, path):
+    geom.scan()
+    disk = get_disk_by_path(path)
+
+    if not disk:
+        return
+
+    if disk['is_multipath']:
+        # Looks like one path was removed
+        logger.info('Path %s to disk <%s> (%s) was removed', path, disk['identifier'], disk['description'])
+        disk['multipath_members'].remove(path)
+
+        # Was this last path?
+        if len(disk['multipath_members']) == 0:
+            logger.info('Disk %s <%s> (%s) was removed (last path is gone)', path, disk['identifier'], disk['description'])
+            diskinfo_cache.remove(disk['identifier'])
+        else:
+            diskinfo_cache.put(disk['identifier'], disk)
+
+    else:
+        logger.info('Disk %s <%s> (%s) was removed', path, disk['identifier'], disk['description'])
+        diskinfo_cache.remove(disk['identifier'])
+        dispatcher.datastore.delete('disks', disk['identifier'])
 
 
 def _depends():
@@ -510,50 +539,22 @@ def _depends():
 def _init(dispatcher, plugin):
     def on_device_attached(args):
         path = args['path']
-        if not re.match(r'^/dev/(da|ada)[0-9]+$', path):
-            return
-
-        # Regenerate disk cache
-        logger.info("New disk attached: {0}".format(path))
-        generate_disk_cache(dispatcher, path)
-
-        # Push higher tier event
-        disk = get_disk_by_path(path)
-        dispatcher.dispatch_event('disks.changed', {
-            'operation': 'created',
-            'ids': [disk['id']]
-        })
+        if re.match(r'^/dev/(da|ada)[0-9]+$', path):
+            # Regenerate disk cache
+            logger.info("New disk attached: {0}".format(path))
+            generate_disk_cache(dispatcher, path)
 
     def on_device_detached(args):
         path = args['path']
-
         if re.match(r'^/dev/(da|ada)[0-9]+$', path):
             logger.info("Disk %s detached", path)
-            purge_disk_cache(path)
-            disk = dispatcher.datastore.get_one('disks', ('path', '=', path))
-            dispatcher.datastore.delete('disks', disk['id'])
-            dispatcher.dispatch_event('disks.changed', {
-                'operation': 'delete',
-                'ids': [disk['id']]
-            })
+            purge_disk_cache(dispatcher, path)
 
-        if re.match(r'^/dev/gptid/[a-f0-9-]+$', path):
-            pass
 
     def on_device_mediachange(args):
         # Regenerate caches
         logger.info('Updating disk cache for device %s', args['path'])
         generate_disk_cache(dispatcher, args['path'])
-
-        # Disk may be detached in the meantime
-        disk = get_disk_by_path(args['path'])
-        if not disk:
-            return
-
-        dispatcher.dispatch_event('disks.changed', {
-            'operation': 'update',
-            'ids': [disk['id']]
-        })
 
     plugin.register_schema_definition('disk', {
         'type': 'object',
