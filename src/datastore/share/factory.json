@@ -656,6 +656,12 @@
                     "plugin:ssl_certificates"
                 ]
             },
+            "2E2EFB31-29D5-4C54-B46C-D3214D0E3325": {
+                "name": "crypto",
+                "dependencies": [
+                    "plugin:ssl_certificates"
+                ]
+            },
             "1E784623-8CB9-442E-9AC6-1125E2692A0C": {
                 "name": "nginx",
                 "dependencies": [
