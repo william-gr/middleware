@@ -478,36 +478,19 @@ def generate_disk_cache(dispatcher, path):
     diskinfo_cache.put(identifier, disk)
     ds_disk = dispatcher.datastore.get_by_id('disks', identifier)
 
-    if ds_disk is None:
-        dispatcher.datastore.insert('disks', {
-            'id': identifier,
-            'path': path,
-            'mediasize': disk['mediasize'],
-            'serial': disk['serial'],
-            'is_multipath': disk['is_multipath'],
-            'data_partition_uuid': disk['data_partition_uuid']
-        })
+    dispatcher.datastore.upsert('disks', identifier, {
+        'id': identifier,
+        'path': disk['path'],
+        'mediasize': disk['mediasize'],
+        'serial': disk['serial'],
+        'is_multipath': disk['is_multipath'],
+        'data_partition_uuid': disk['data_partition_uuid']
+    })
 
-        dispatcher.dispatch_event('disks.changed', {
-            'operation': 'created',
-            'ids': [identifier]
-        })
-    else:
-        if ds_disk['id'] != identifier or disk['data_partition_uuid'] != ds_disk['data_partition_uuid']:
-            oldid = ds_disk['id']
-            ds_disk.update({
-                'id': identifier,
-                'serial': disk['serial'],
-                'data_partition_uuid': disk['data_partition_uuid'],
-                'is_multipath': disk['is_multipath']
-            })
-
-            dispatcher.datastore.update('disks', oldid, ds_disk)
-
-            dispatcher.dispatch_event('disks.changed', {
-                'operation': 'update',
-                'ids': [identifier]
-            })
+    dispatcher.dispatch_event('disks.changed', {
+        'operation': 'create' if not ds_disk else 'update',
+        'ids': [identifier]
+    })
 
     # Purge old cache entry if identifier has changed
     if old and old['identifier'] != identifier:
