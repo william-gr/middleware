@@ -155,6 +155,20 @@ class VolumeProvider(Provider):
 
         return result
 
+    @description("Returns dataset tree for given pool")
+    @accepts(str)
+    @returns(h.ref('zfs-dataset'))
+    def get_dataset_tree(self, name):
+        pool = self.dispatcher.call_sync(
+            'zfs.pool.query',
+            [('name', '=', name)],
+            {"single": True})
+
+        if not pool:
+            return None
+
+        return pool['root_dataset']
+
     @description("Returns the list of disks currently not used by any Volume")
     @accepts()
     @returns(h.array(str))
