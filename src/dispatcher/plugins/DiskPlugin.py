@@ -453,6 +453,7 @@ def generate_disk_cache(dispatcher, path):
         'description': provider.config['descr'],
         'identifier': identifier,
         'serial': serial,
+        'lunid': provider.config.get('lunid'),
         'max_rotation': disk_info['max_rotation'],
         'smart_capable': disk_info['smart_capable'],
         'smart_enabled': disk_info['smart_enabled'],
@@ -559,7 +560,6 @@ def _init(dispatcher, plugin):
             logger.info("Disk %s detached", path)
             purge_disk_cache(dispatcher, path)
 
-
     def on_device_mediachange(args):
         # Regenerate caches
         logger.info('Updating disk cache for device %s', args['path'])
@@ -590,6 +590,7 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'identifier': {'type': 'string'},
             'serial': {'type': 'string'},
+            'lunid': {'type': 'string'},
             'max_rotation': {'type': 'integer'},
             'smart_capable': {'type': 'boolean'},
             'smart_enabled': {'type': 'boolean'},
