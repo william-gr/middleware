@@ -800,7 +800,7 @@
       },
       "77C31BDA-A90A-495A-8D58-0063981EEC67": {
         "rcng": {
-          "rc-scripts": "syslogd"
+          "rc-scripts": "syslog-ng"
         },
         "builtin": true,
         "pidfile": "/var/run/syslog.pid",
