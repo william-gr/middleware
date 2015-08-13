@@ -56,7 +56,7 @@ def call(method, args, server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT, j=False):
             args[idx] = json.loads(i)
 
     try:
-        result = c.call_sync(method, *args)
+        result = c.call_sync(method, *args, timeout=timeout)
     except RpcException, e:
         print('ERROR: {0}'.format(str(e)), file=sys.stderr)
         sys.exit(e.code)
