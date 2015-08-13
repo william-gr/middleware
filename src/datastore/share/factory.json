@@ -812,6 +812,15 @@
 					"rc-scripts": "collectd"
 				}
 			},
+			"FFD1EA3F-36E3-4CFA-8A1E-9BADA0DEFB76": {
+				"name": "ntpd",
+				"etcd-group": "ntpd",
+				"builtin": true,
+				"pidfile": "/var/run/ntpd.pid",
+				"rcng": {
+					"rc-scripts": "ntpd"
+				}
+			},
 			"858EFB54-F5DC-4207-ACB6-8BA793984794": {
 				"name": "afp",
 				"etcd-group": "afp",
