@@ -114,7 +114,7 @@ class Plugin(object):
 
     def assign_module(self, module):
         if not hasattr(module, '_init'):
-            raise Exception('Invalid plugin module')
+            raise Exception('Invalid plugin module, _init method not found')
 
         if hasattr(module, '_depends'):
             self.dependencies = set(module._depends())
