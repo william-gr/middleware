@@ -150,7 +150,5 @@ class UploadFileTask(Task):
 
 def _init(dispatcher, plugin):
     plugin.register_provider('filesystem', FilesystemProvider)
-
-    plugin.register_provider('filesystem', FilesystemProvider)
     plugin.register_task_handler('file.download', DownloadFileTask)
     plugin.register_task_handler('file.upload', UploadFileTask)
