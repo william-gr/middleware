@@ -217,11 +217,16 @@ class SystemGeneralConfigureTask(Task):
                 props['console_keymap'],
             )
 
+        syslog_changed = False
         if 'syslog_server' in props:
             self.dispatcher.configstore.set('system.syslog_server', props['syslog_server'])
+            syslog_changed = True
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
+            if syslog_changed:
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'syslog')
+                self.dispatcher.call_sync('services.reload', 'syslog')
         except RpcException, e:
             raise TaskException(
                 errno.ENXIO,
