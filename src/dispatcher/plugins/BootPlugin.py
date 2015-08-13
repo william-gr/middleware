@@ -57,7 +57,8 @@ class BootEnvironmentCreate(Task):
         return ['system']
 
     def run(self, newname, source=None):
-        CreateClone(newname, bename=source)
+        if not CreateClone(newname, bename=source):
+            raise TaskException(errno.EFAULT, 'Cannot Create the {0} Boot Environment'.format(newname))
 
 
 class BootEnvironmentActivate(Task):
@@ -69,7 +70,8 @@ class BootEnvironmentActivate(Task):
         return ['system']
 
     def run(self, name):
-        ActivateClone(name)
+        if not ActivateClone(name):
+            raise TaskException(errno.EFAULT, 'Cannot Rename the {0} Boot Environment'.format(newname))
 
 
 class BootEnvironmentRename(Task):
@@ -81,7 +83,9 @@ class BootEnvironmentRename(Task):
         return ['system']
 
     def run(self, oldname, newname):
-        RenameClone(oldname, newname)
+        if not RenameClone(oldname, newname):
+            raise TaskException(errno.EFAULT, 'Cannot Activate the {0} Boot Environment'.format(newname))
+
 
 
 class BootEnvironmentsDelete(Task):
@@ -95,7 +99,9 @@ class BootEnvironmentsDelete(Task):
 
     def run(self, names):
         for n in names:
-            DeleteClone(n)
+            if not DeleteClone(n):
+                raise TaskException(errno.EFAULT, 'Cannot Delete the {0} Boot Environment'.format(newname))
+
 
 
 class BootAttachDisk(ProgressTask):
