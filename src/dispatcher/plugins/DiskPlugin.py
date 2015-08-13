@@ -360,11 +360,14 @@ def attach_to_multipath(dispatcher, disk, path):
         # Create new multipath
         logger.info('Creating new multipath device')
 
+        # If disk was previously tied to specific cdev path (/dev/multipath[0-9]+)
+        # reuse that path. Otherwise pick up first multipath device name available
         if ds_disk and ds_disk['is_multipath']:
-            logger.info('Reusing %s path', ds_disk['path'])
             nodename = ds_disk['path']
+            logger.info('Reusing %s path', nodename)
         else:
             nodename = get_multipath_name()
+            logger.info('Using new %s path', nodename)
 
         system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
         disk.update({
