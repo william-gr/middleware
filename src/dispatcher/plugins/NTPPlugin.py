@@ -43,10 +43,13 @@ class NTPServersProvider(Provider):
 
 
 @description("Adds new NTP Server")
-@accepts(h.ref('ntp-server'), bool)
+@accepts(h.all_of(
+    h.ref('ntp-server'),
+    h.required('address'),
+), bool)
 class CreateNTPServerTask(Task):
     def describe(self, ntp):
-        return "Creating NTP Server {0}".format(ntp['name'])
+        return "Creating NTP Server {0}".format(ntp['address'])
 
     def verify(self, ntp, force=False):
 
@@ -89,6 +92,53 @@ class CreateNTPServerTask(Task):
         return pkey
 
 
+@description("Updates NTP Server")
+@accepts(str, h.ref('ntp-server'), bool)
+class UpdateNTPServerTask(Task):
+    def verify(self, id, updated_fields, force=False):
+
+        errors = []
+
+        try:
+            if 'address' in updated_fields:
+                system('ntpdate', '-q', updated_fields['address'])
+        except SubprocessException:
+            if not force:
+                errors.append((
+                    'address',
+                    errno.EINVAL,
+                    'Server could not be reached. Check "Force" to continue regardless.'))
+
+        minpoll = updated_fields.get('minpoll', 6)
+        maxpoll = updated_fields.get('maxpoll', 10)
+
+        if not maxpoll > minpoll:
+            errors.append(('maxpoll', errno.EINVAL, 'Max Poll should be higher than Min Poll'))
+
+        if errors:
+            raise ValidationException(errors)
+
+        return ['system']
+
+    def run(self, id, updated_fields, force=False):
+        try:
+            ntp = self.datastore.get_by_id('ntpservers', id)
+            ntp.update(updated_fields)
+            self.datastore.update('ntpservers', id, ntp)
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'ntp')
+            #self.dispatcher.call_sync('services.ensure_started', 'ntpd')
+            #self.dispatcher.call_sync('services.reload', 'ntpd')
+            self.dispatcher.dispatch_event('ntpservers.changed', {
+                'operation': 'update',
+                'ids': [id]
+            })
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot update NTP Server: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+        return id
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('ntp-server', {
         'type': 'object',
@@ -101,7 +151,6 @@ def _init(dispatcher, plugin):
             'minpoll': {'type': 'integer'},
             'maxpoll': {'type': 'integer'},
         },
-        'required': ['address'],
         'additionalProperties': False,
     })
 
@@ -116,3 +165,4 @@ def _init(dispatcher, plugin):
 
     # Register tasks
     plugin.register_task_handler("ntpservers.create", CreateNTPServerTask)
+    plugin.register_task_handler("ntpservers.update", UpdateNTPServerTask)
