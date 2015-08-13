@@ -384,12 +384,38 @@ def attach_to_multipath(dispatcher, disk, path):
     return ret
 
 
+def generate_partitions_list(gpart):
+    if not gpart:
+        return
+
+    for p in gpart.providers:
+        paths = [os.path.join("/dev", p.name)]
+        label = p.config['label']
+        uuid = p.config['rawuuid']
+
+        if label:
+            paths.append(os.path.join("/dev/gpt", label))
+
+        if uuid:
+            paths.append(os.path.join("/dev/gptid", uuid))
+
+        yield {
+            'name': p.name,
+            'paths': paths,
+            'mediasize': int(p.mediasize),
+            'uuid': uuid,
+            'type': p.config['type'],
+            'label': p.config.get('label')
+        }
+
+
 def generate_disk_cache(dispatcher, path):
     geom.scan()
     name = os.path.basename(path)
     gdisk = geom.geom_by_name('DISK', name)
     gpart = geom.geom_by_name('PART', name)
     gmultipath = geom.geom_by_name('MULTIPATH', path.split('/')[-1])
+    old = get_disk_by_path(path)
     multipath_info = None
 
     if gmultipath:
@@ -407,33 +433,11 @@ def generate_disk_cache(dispatcher, path):
     # Path repesents disk device (not multipath device) and has serial number attached
     if serial and not gmultipath:
         # Check if device could be part of multipath configuration
-        d = diskinfo_cache.get('serial:{0}'.format(serial))
-        if d and d['path'] != path:
-            multipath_info = attach_to_multipath(dispatcher, d, path)
+        if old and old['path'] != path:
+            multipath_info = attach_to_multipath(dispatcher, old, path)
 
     provider = gdisk.providers.next()
-    partitions = []
-
-    if gpart:
-        for p in gpart.providers:
-            paths = [os.path.join("/dev", p.name)]
-            label = p.config['label']
-            uuid = p.config['rawuuid']
-
-            if label:
-                paths.append(os.path.join("/dev/gpt", label))
-
-            if uuid:
-                paths.append(os.path.join("/dev/gptid", uuid))
-
-            partitions.append({
-                'name': p.name,
-                'paths': paths,
-                'mediasize': int(p.mediasize),
-                'uuid': uuid,
-                'type': p.config['type'],
-                'label': p.config.get('label')
-            })
+    partitions = list(generate_partitions_list(gpart))
 
     identifier = device_to_identifier(confxml(), name, serial)
     data_part = first_or_default(lambda x: x['type'] == 'freebsd-zfs', partitions)
@@ -503,6 +507,11 @@ def generate_disk_cache(dispatcher, path):
                 'operation': 'update',
                 'ids': [identifier]
             })
+
+    # Purge old cache entry if identifier has changed
+    if old and old['identifier'] != identifier:
+        logger.debug('Removing disk cache entry for <%s> because identifier changed', old['identifier'])
+        diskinfo_cache.remove(old['identifier'])
 
     logger.info('Added <%s> (%s) to disk cache', identifier, disk['description'])
 
