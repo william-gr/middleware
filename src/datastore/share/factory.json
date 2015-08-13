@@ -1,931 +1,947 @@
 [
-    {
-        "metadata": {
-            "last-id": 78,
-            "pkey-type": "integer",
-            "name": "users",
-			"migration": "merge-preserve",
-            "attributes": {
-                "type": "config"
-            }
-        },
-        "data": {
-            "0": {
-                "username": "root", 
-                "sshpubkey": null, 
-                "shell": "/bin/csh", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": null, 
-                "builtin": true, 
-                "full_name": "root", 
-                "home": "/root", 
-                "group": 0, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "1": {
-                "username": "daemon", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Owner of many system processes", 
-                "home": "/root", 
-                "group": 1, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "2": {
-                "username": "operator", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "System &", 
-                "home": "/", 
-                "group": 5, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "3": {
-                "username": "bin", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Binaries Commands and Source", 
-                "home": "/", 
-                "group": 7, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "4": {
-                "username": "tty", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Tty Sandbox", 
-                "home": "/", 
-                "group": 65533, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "5": {
-                "username": "kmem", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "KMem Sandbox", 
-                "home": "/", 
-                "group": 2, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "65": {
-                "username": "_dhcp", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "dhcp programs", 
-                "home": "/var/empty", 
-                "group": 65, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "7": {
-                "username": "games", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Games pseudo-user", 
-                "home": "/", 
-                "group": 13, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "8": {
-                "username": "news", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "News Subsystem", 
-                "home": "/", 
-                "group": 8, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "9": {
-                "username": "man", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Mister Man Pages", 
-                "home": "/usr/share/man", 
-                "group": 9, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "64": {
-                "username": "_pflogd", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "pflogd privsep user", 
-                "home": "/var/empty", 
-                "group": 64, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "78": {
-                "username": "auditdistd", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Auditdistd unprivileged user", 
-                "home": "/var/empty", 
-                "group": 77, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "66": {
-                "username": "uucp", 
-                "sshpubkey": null, 
-                "shell": "/usr/local/libexec/uucp/uucico", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "UUCP pseudo-user", 
-                "home": "/var/spool/uucppublic", 
-                "group": 66, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "14": {
-                "username": "ftp", 
-                "sshpubkey": null, 
-                "shell": "/bin/csh", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "", 
-                "home": "/nonexistent", 
-                "group": 14, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "53": {
-                "username": "bind", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Bind Sandbox", 
-                "home": "/", 
-                "group": 53, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "22": {
-                "username": "sshd", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Secure Shell Daemon", 
-                "home": "/var/empty", 
-                "group": 22, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "25": {
-                "username": "smmsp", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Sendmail Submission User", 
-                "home": "/var/spool/clientmqueue", 
-                "group": 25, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "26": {
-                "username": "mailnull", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Sendmail Default User", 
-                "home": "/var/spool/mqueue", 
-                "group": 26, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "62": {
-                "username": "proxy", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Packet Filter pseudo-user", 
-                "home": "/nonexistent", 
-                "group": 62, 
-                "email": null, 
-                "password_disabled": false
-            }, 
-            "68": {
-                "username": "pop", 
-                "sshpubkey": null, 
-                "shell": "/usr/sbin/nologin", 
-                "locked": false, 
-                "unixhash": "*", 
-                "sudo": false, 
-                "smbhash": "*", 
-                "builtin": true, 
-                "full_name": "Post Office Owner", 
-                "home": "/nonexistent", 
-                "group": 6, 
-                "email": null, 
-                "password_disabled": false
-            },
-            "80": {
-                "username": "www",
-                "sshpubkey": null,
-                "shell": "/usr/sbin/nologin",
-                "locked": false,
-                "unixhash": "*",
-                "sudo": false,
-                "smbhash": "*",
-                "builtin": true,
-                "full_name": "World Wide Web Owner",
-                "home": "/nonexistent",
-                "group": 80,
-                "email": null,
-                "password_disabled": false
-            },
-            "522": {
-                "username": "nullmail",
-                "sshpubkey": null,
-                "shell": "/bin/sh",
-                "locked": false,
-                "unixhash": "*",
-                "sudo": false,
-                "smbhash": "*",
-                "builtin": true,
-                "full_name": "Nullmailer Mail System",
-                "home": "/var/spool/nullmailer",
-                "group": 522,
-                "email": null,
-                "password_disabled": false
-            },
-            "556": {
-                "username": "messagebus",
-                "sshpubkey": null,
-                "shell": "/usr/sbin/nologin",
-                "locked": false,
-                "unixhash": "*",
-                "sudo": false,
-                "smbhash": "*",
-                "builtin": true,
-                "full_name": "D-BUS Daemon User",
-                "home": "/nonexistent",
-                "group": 556,
-                "email": null,
-                "password_disabled": false
-            },
-            "65534": {
-                "username": "nobody",
-                "sshpubkey": null,
-                "shell": "/usr/sbin/nologin",
-                "locked": false,
-                "unixhash": "*",
-                "sudo": false,
-                "smbhash": "*",
-                "builtin": true,
-                "full_name": "Unprivileged user",
-                "home": "/nonexistent",
-                "group": 65534,
-                "email": null,
-                "password_disabled": false
-            }
-        }
-    }, 
-    {
-        "metadata": {
-            "last-id": null, 
-            "pkey-type": "integer", 
-            "name": "groups",
-			"migration": "merge-preserve",
-            "attributes": {
-                "type": "config"
-            }
-        },
-        "data": {
-            "0": {
-                "name": "wheel",
-                "sudo": false,
-                "builtin": true
-            },
-            "1": {
-                "name": "daemon",
-                "sudo": false,
-                "builtin": true
-            },
-            "2": {
-                "name": "kmem",
-                "sudo": false,
-                "builtin": true
-            },
-            "3": {
-                "name": "sys",
-                "sudo": false,
-                "builtin": true
-            },
-            "4": {
-                "name": "tty",
-                "sudo": false,
-                "builtin": true
-            },
-            "5": {
-                "name": "operator",
-                "sudo": false,
-                "builtin": true
-            },
-            "6": {
-                "name": "mail",
-                "sudo": false,
-                "builtin": true
-            },
-            "7": {
-                "name": "bin",
-                "sudo": false,
-                "builtin": true
-            },
-            "8": {
-                "name": "news",
-                "sudo": false,
-                "builtin": true
-            },
-            "9": {
-                "name": "man",
-                "sudo": false,
-                "builtin": true
-            },
-            "13": {
-                "name": "games",
-                "sudo": false,
-                "builtin": true
-            },
-            "14": {
-                "name": "ftp",
-                "sudo": false,
-                "builtin": true
-            },
-            "20": {
-                "name": "staff",
-                "sudo": false,
-                "builtin": true
-            },
-            "22": {
-                "name": "sshd",
-                "sudo": false,
-                "builtin": true
-            },
-            "25": {
-                "name": "smmsp",
-                "sudo": false,
-                "builtin": true
-            },
-            "26": {
-                "name": "mailnull",
-                "sudo": false,
-                "builtin": true
-            },
-            "31": {
-                "name": "guest",
-                "sudo": false,
-                "builtin": true
-            },
-            "53": {
-                "name": "bind",
-                "sudo": false,
-                "builtin": true
-            },
-            "62": {
-                "name": "proxy",
-                "sudo": false,
-                "builtin": true
-            },
-            "63": {
-                "name": "authpf",
-                "sudo": false,
-                "builtin": true
-            },
-            "64": {
-                "name": "_pflogd",
-                "sudo": false,
-                "builtin": true
-            },
-            "65": {
-                "name": "_dhcp",
-                "sudo": false,
-                "builtin": true
-            },
-            "66": {
-                "name": "uucp",
-                "sudo": false,
-                "builtin": true
-            },
-            "68": {
-                "name": "dialer",
-                "sudo": false,
-                "builtin": true
-            },
-            "69": {
-                "name": "network",
-                "sudo": false,
-                "builtin": true
-            },
-            "77": {
-                "name": "audit",
-                "sudo": false,
-                "builtin": true
-            },
-            "80": {
-                "name": "www",
-                "sudo": false,
-                "builtin": true
-            },
-            "522": {
-                "name": "nullmail",
-                "sudo": false,
-                "builtin": true
-            },
-            "556": {
-                "name": "messagebus",
-                "sudo": false,
-                "builtin": true
-            },
-            "65533": {
-                "name": "nogroup",
-                "sudo": false,
-                "builtin": true
-            },
-            "65534": {
-                "name": "nobody",
-                "sudo": false,
-                "builtin": true
-            }
-        }
-    },
-    {
-        "metadata": {
-            "last-id": null,
-            "pkey-type": "ltree",
-            "name": "config",
-			"migration": "merge-preserve",
-            "attributes": {
-                "type": "config"
-            }
-        },
-        "data": {
-            "system.hostname": "freenas.local",
-            "system.motd": "FreeBSD ?.?.?  (UNKNOWN)\n\nFreeNAS (c) 2009-2014, The FreeNAS Development Team\nAll rights reserved.\nFreeNAS is released under the modified BSD license.\nFor more information, documentation, help or support, go here:\nhttp://freenas.org\n",
-            "system.shells": ["/bin/sh", "/bin/csh", "/usr/local/bin/zsh", "/usr/local/bin/bash", "/usr/local/bin/cli"],
-			"system.boot_pool_name": "freenas-boot",
-			"system.dataset.pool": "freenas-boot",
-			"system.dataset.id": null,
-			"system.dataset.services": ["syslog", "fnstatd"],
-			"system.language": "en",
-			"system.timezone": "America/Los_Angeles",
-			"system.syslog_server": null,
-			"system.console.keymap": "us.iso",
-			"server.token_lifetime": 600,
-            "accounts.local_uid_range": [1000, 65000],
-            "accounts.local_gid_range": [1000, 65000],
-            "update.train": "FreeNAS-10-Nightlies",
-            "update.check_auto": true,
-	    "mail.from": "",
-	    "mail.server": "",
-	    "mail.port": 25,
-	    "mail.encryption": "PLAIN",
-	    "mail.auth": false,
-	    "mail.user": "",
-	    "mail.pass": "",
-            "network.autoconfigure": true,
-            "network.gateway.ipv4": null,
-            "network.gateway.ipv6": null,
-            "network.dns.addresses": [],
-			"network.dns.search": [],
-            "network.http_proxy": null,
-			"network.dhcp.assign_gateway": true,
-			"network.dhcp.assign_dns": true,
-            "service.nginx.enable": true,
-            "service.nginx.listen": ["0.0.0.0", "[::]"],
-            "service.nginx.http.enable": true,
-            "service.nginx.http.port": 80,
-            "service.nginx.http.redirect_https": false,
-            "service.sshd.enable": true,
-            "service.sshd.port": 22,
-            "service.sshd.sftp_log_level": "ERROR",
-            "service.sshd.sftp_log_facility": "AUTH",
-            "service.sshd.permit_root_login": true,
-            "service.sshd.allow_port_forwarding": false,
-            "service.sshd.compression": false,
-            "service.sshd.allow_password_auth": true,
-            "service.sshd.allow_pubkey_auth": true,
-            "service.ftp.enable": true,
-            "service.ftp.port": 21,
-			"service.snmp.enable": true,
-            "service.collectd.enable": true,
-            "service.syslog.enable": true,
-            "service.devd.enable": true,
-            "service.nfs.enable": false,
-            "service.afp.enable": false,
-            "service.nullmailer.enable": false
-        }
-    },
-    {
-        "metadata": {
-            "last-id": null,
-            "pkey-type": "uuid",
-            "name": "etcd.groups",
-			"migration": "replace",
-            "attributes": {
-                "type": "persistent"
-            }
-        },
-        "data": {
-            "FDF68C06-1F3F-47F8-AF28-2402F3D45424": {
-                "name": "accounts",
-                "dependencies": [
-                    "file:passwd",
-                    "file:group",
-                    "file:master.passwd",
-					"file:motd",
-                    "file:local/sudoers",
-                    "plugin:pubkeys",
-                    "plugin:pwd_database",
-                    "plugin:mail/aliases"
-                ]
-            },
-            "AB7F43FF-F122-4392-96A7-66791B334271": {
-                "name": "services",
-                "dependencies": [
-                ]
-            },
-            "B5EF4F4C-6E9C-45E7-B5B6-73A8CD7F7199": {
-                "name": "sshd",
-                "dependencies": [
-                    "group:services",
-                    "file:ssh/sshd_config",
-                    "plugin:ssh/sshd_keys"
-                ]
-            },
-            "3C42EFC3-9C17-4CAF-8DFB-931711EB2D7A": {
-                "name": "localtime",
-                "dependencies": [
-                    "plugin:localtime"
-                ]
-            },
-            "38FD1C8F-8765-4401-899D-8FFC150EC85D": {
-                "name": "crypto",
-                "dependencies": [
-                    "plugin:ssl_certificates"
-                ]
-            },
-            "2E2EFB31-29D5-4C54-B46C-D3214D0E3325": {
-                "name": "crypto",
-                "dependencies": [
-                    "plugin:ssl_certificates"
-                ]
-            },
-            "1E784623-8CB9-442E-9AC6-1125E2692A0C": {
-                "name": "nginx",
-                "dependencies": [
-                    "group:services",
-                    "file:local/nginx/nginx.conf"
-                ]
-            },
-			"11BB3D33-A56B-4B2A-AE2D-76B77E5A9895": {
-				"name": "network",
-				"dependencies": [
-					"file:resolv.conf",
-					"file:hosts"
-				]
-			},
-      "5A35508B-AE0F-4C1A-B728-482956D1C12E": {
-              "name": "mail",
-              "dependencies": [
-                      "file:local/nullmailer/remotes"
-              ]
+  {
+    "data": {
+      "65534": {
+        "password_disabled": false,
+        "email": null,
+        "group": 65534,
+        "home": "/nonexistent",
+        "full_name": "Unprivileged user",
+        "username": "nobody",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
       },
-			"52B83614-F3DD-47EC-A41B-39D297FE2ED8": {
-				"name": "collectd",
-				"dependencies": [
-					"group:services",
-					"file:local/collectd.conf"
-				]
-			},
-			"D6144740-E879-4031-B343-84205D6A5DD4": {
-				"name": "nfs",
-				"dependencies": [
-					"file:exports"
-				]
-			},
-			"9199AEF2-590B-4145-99A4-CABB7D00FFA5": {
-				"name": "afp",
-				"dependencies": [
-					"file:local/afp.conf"
-				]
-			},
-            "0B8B01D5-91B4-4DEE-9720-4D65D56F513E": {
-                "name": "samba",
-                "dependencies": [
-                    "file:local/smbusers",
-                    "plugin:local/smb4.conf"
-                ]
-            },
-            "5973ED86-1BC4-41A6-A70E-530D6843BA5B": {
-                "name": "syslog",
-                "dependencies": [
-                    "file:local/syslog-ng.conf"
-                ]
-            }
-        }
+      "556": {
+        "password_disabled": false,
+        "email": null,
+        "group": 556,
+        "home": "/nonexistent",
+        "full_name": "D-BUS Daemon User",
+        "username": "messagebus",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "522": {
+        "password_disabled": false,
+        "email": null,
+        "group": 522,
+        "home": "/var/spool/nullmailer",
+        "full_name": "Nullmailer Mail System",
+        "username": "nullmail",
+        "sshpubkey": null,
+        "shell": "/bin/sh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "80": {
+        "password_disabled": false,
+        "email": null,
+        "group": 80,
+        "home": "/nonexistent",
+        "full_name": "World Wide Web Owner",
+        "username": "www",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "78": {
+        "password_disabled": false,
+        "email": null,
+        "group": 77,
+        "home": "/var/empty",
+        "full_name": "Auditdistd unprivileged user",
+        "username": "auditdistd",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "68": {
+        "password_disabled": false,
+        "email": null,
+        "group": 6,
+        "home": "/nonexistent",
+        "full_name": "Post Office Owner",
+        "username": "pop",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "66": {
+        "password_disabled": false,
+        "email": null,
+        "group": 66,
+        "home": "/var/spool/uucppublic",
+        "full_name": "UUCP pseudo-user",
+        "username": "uucp",
+        "sshpubkey": null,
+        "shell": "/usr/local/libexec/uucp/uucico",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "65": {
+        "password_disabled": false,
+        "email": null,
+        "group": 65,
+        "home": "/var/empty",
+        "full_name": "dhcp programs",
+        "username": "_dhcp",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "8": {
+        "password_disabled": false,
+        "email": null,
+        "group": 8,
+        "home": "/",
+        "full_name": "News Subsystem",
+        "username": "news",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "7": {
+        "password_disabled": false,
+        "email": null,
+        "group": 13,
+        "home": "/",
+        "full_name": "Games pseudo-user",
+        "username": "games",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "5": {
+        "password_disabled": false,
+        "email": null,
+        "group": 2,
+        "home": "/",
+        "full_name": "KMem Sandbox",
+        "username": "kmem",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "4": {
+        "password_disabled": false,
+        "email": null,
+        "group": 65533,
+        "home": "/",
+        "full_name": "Tty Sandbox",
+        "username": "tty",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "3": {
+        "password_disabled": false,
+        "email": null,
+        "group": 7,
+        "home": "/",
+        "full_name": "Binaries Commands and Source",
+        "username": "bin",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "2": {
+        "password_disabled": false,
+        "email": null,
+        "group": 5,
+        "home": "/",
+        "full_name": "System &",
+        "username": "operator",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "1": {
+        "password_disabled": false,
+        "email": null,
+        "group": 1,
+        "home": "/root",
+        "full_name": "Owner of many system processes",
+        "username": "daemon",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "0": {
+        "password_disabled": false,
+        "email": null,
+        "group": 0,
+        "home": "/root",
+        "full_name": "root",
+        "username": "root",
+        "sshpubkey": null,
+        "shell": "/bin/csh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": null,
+        "builtin": true
+      },
+      "9": {
+        "password_disabled": false,
+        "email": null,
+        "group": 9,
+        "home": "/usr/share/man",
+        "full_name": "Mister Man Pages",
+        "username": "man",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "14": {
+        "password_disabled": false,
+        "email": null,
+        "group": 14,
+        "home": "/nonexistent",
+        "full_name": "",
+        "username": "ftp",
+        "sshpubkey": null,
+        "shell": "/bin/csh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "22": {
+        "password_disabled": false,
+        "email": null,
+        "group": 22,
+        "home": "/var/empty",
+        "full_name": "Secure Shell Daemon",
+        "username": "sshd",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "25": {
+        "password_disabled": false,
+        "email": null,
+        "group": 25,
+        "home": "/var/spool/clientmqueue",
+        "full_name": "Sendmail Submission User",
+        "username": "smmsp",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "26": {
+        "password_disabled": false,
+        "email": null,
+        "group": 26,
+        "home": "/var/spool/mqueue",
+        "full_name": "Sendmail Default User",
+        "username": "mailnull",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "53": {
+        "password_disabled": false,
+        "email": null,
+        "group": 53,
+        "home": "/",
+        "full_name": "Bind Sandbox",
+        "username": "bind",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "62": {
+        "password_disabled": false,
+        "email": null,
+        "group": 62,
+        "home": "/nonexistent",
+        "full_name": "Packet Filter pseudo-user",
+        "username": "proxy",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      },
+      "64": {
+        "password_disabled": false,
+        "email": null,
+        "group": 64,
+        "home": "/var/empty",
+        "full_name": "pflogd privsep user",
+        "username": "_pflogd",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "builtin": true
+      }
     },
-    {
-        "metadata": {
-            "last-id": null,
-            "pkey-type": "uuid",
-            "name": "service_definitions",
-			"migration": "replace",
-            "attributes": {
-                "type": "persistent"
-            }
+    "metadata": {
+      "attributes": {
+        "type": "config"
+      },
+      "migration": "merge-preserve",
+      "name": "users",
+      "pkey-type": "integer",
+      "last-id": 78
+    }
+  },
+  {
+    "data": {
+      "65534": {
+        "builtin": true,
+        "sudo": false,
+        "name": "nobody"
+      },
+      "65533": {
+        "builtin": true,
+        "sudo": false,
+        "name": "nogroup"
+      },
+      "556": {
+        "builtin": true,
+        "sudo": false,
+        "name": "messagebus"
+      },
+      "522": {
+        "builtin": true,
+        "sudo": false,
+        "name": "nullmail"
+      },
+      "80": {
+        "builtin": true,
+        "sudo": false,
+        "name": "www"
+      },
+      "77": {
+        "builtin": true,
+        "sudo": false,
+        "name": "audit"
+      },
+      "69": {
+        "builtin": true,
+        "sudo": false,
+        "name": "network"
+      },
+      "68": {
+        "builtin": true,
+        "sudo": false,
+        "name": "dialer"
+      },
+      "66": {
+        "builtin": true,
+        "sudo": false,
+        "name": "uucp"
+      },
+      "65": {
+        "builtin": true,
+        "sudo": false,
+        "name": "_dhcp"
+      },
+      "64": {
+        "builtin": true,
+        "sudo": false,
+        "name": "_pflogd"
+      },
+      "63": {
+        "builtin": true,
+        "sudo": false,
+        "name": "authpf"
+      },
+      "62": {
+        "builtin": true,
+        "sudo": false,
+        "name": "proxy"
+      },
+      "53": {
+        "builtin": true,
+        "sudo": false,
+        "name": "bind"
+      },
+      "31": {
+        "builtin": true,
+        "sudo": false,
+        "name": "guest"
+      },
+      "7": {
+        "builtin": true,
+        "sudo": false,
+        "name": "bin"
+      },
+      "6": {
+        "builtin": true,
+        "sudo": false,
+        "name": "mail"
+      },
+      "5": {
+        "builtin": true,
+        "sudo": false,
+        "name": "operator"
+      },
+      "4": {
+        "builtin": true,
+        "sudo": false,
+        "name": "tty"
+      },
+      "3": {
+        "builtin": true,
+        "sudo": false,
+        "name": "sys"
+      },
+      "2": {
+        "builtin": true,
+        "sudo": false,
+        "name": "kmem"
+      },
+      "1": {
+        "builtin": true,
+        "sudo": false,
+        "name": "daemon"
+      },
+      "0": {
+        "builtin": true,
+        "sudo": false,
+        "name": "wheel"
+      },
+      "8": {
+        "builtin": true,
+        "sudo": false,
+        "name": "news"
+      },
+      "9": {
+        "builtin": true,
+        "sudo": false,
+        "name": "man"
+      },
+      "13": {
+        "builtin": true,
+        "sudo": false,
+        "name": "games"
+      },
+      "14": {
+        "builtin": true,
+        "sudo": false,
+        "name": "ftp"
+      },
+      "20": {
+        "builtin": true,
+        "sudo": false,
+        "name": "staff"
+      },
+      "22": {
+        "builtin": true,
+        "sudo": false,
+        "name": "sshd"
+      },
+      "25": {
+        "builtin": true,
+        "sudo": false,
+        "name": "smmsp"
+      },
+      "26": {
+        "builtin": true,
+        "sudo": false,
+        "name": "mailnull"
+      }
+    },
+    "metadata": {
+      "attributes": {
+        "type": "config"
+      },
+      "migration": "merge-preserve",
+      "name": "groups",
+      "pkey-type": "integer",
+      "last-id": null
+    }
+  },
+  {
+    "data": {
+      "service.nullmailer.enable": false,
+      "service.afp.enable": false,
+      "service.nfs.enable": false,
+      "service.devd.enable": true,
+      "service.syslog.enable": true,
+      "service.collectd.enable": true,
+      "service.snmp.enable": true,
+      "service.ftp.port": 21,
+      "service.ftp.enable": true,
+      "service.sshd.allow_pubkey_auth": true,
+      "service.sshd.allow_password_auth": true,
+      "service.sshd.compression": false,
+      "service.sshd.allow_port_forwarding": false,
+      "service.sshd.permit_root_login": true,
+      "service.sshd.sftp_log_facility": "AUTH",
+      "service.sshd.sftp_log_level": "ERROR",
+      "service.sshd.port": 22,
+      "service.sshd.enable": true,
+      "service.nginx.http.redirect_https": false,
+      "service.nginx.http.port": 80,
+      "service.nginx.http.enable": true,
+      "service.nginx.listen": [
+        "0.0.0.0",
+        "[::]"
+      ],
+      "update.check_auto": true,
+      "update.train": "FreeNAS-10-Nightlies",
+      "accounts.local_gid_range": [
+        1000,
+        65000
+      ],
+      "accounts.local_uid_range": [
+        1000,
+        65000
+      ],
+      "server.token_lifetime": 600,
+      "system.console.keymap": "us.iso",
+      "system.syslog_server": null,
+      "system.timezone": "America/Los_Angeles",
+      "system.hostname": "freenas.local",
+      "system.motd": "FreeBSD ?.?.?  (UNKNOWN)\n\nFreeNAS (c) 2009-2014, The FreeNAS Development Team\nAll rights reserved.\nFreeNAS is released under the modified BSD license.\nFor more information, documentation, help or support, go here:\nhttp://freenas.org\n",
+      "system.shells": [
+        "/bin/sh",
+        "/bin/csh",
+        "/usr/local/bin/zsh",
+        "/usr/local/bin/bash",
+        "/usr/local/bin/cli"
+      ],
+      "system.boot_pool_name": "freenas-boot",
+      "system.dataset.pool": "freenas-boot",
+      "system.dataset.id": null,
+      "system.dataset.services": [
+        "syslog",
+        "fnstatd"
+      ],
+      "system.language": "en",
+      "mail.from": "",
+      "mail.server": "",
+      "mail.port": 25,
+      "mail.encryption": "PLAIN",
+      "mail.auth": false,
+      "mail.user": "",
+      "mail.pass": "",
+      "network.autoconfigure": true,
+      "network.gateway.ipv4": null,
+      "network.gateway.ipv6": null,
+      "network.dns.addresses": [],
+      "network.dns.search": [],
+      "network.http_proxy": null,
+      "network.dhcp.assign_gateway": true,
+      "network.dhcp.assign_dns": true,
+      "service.nginx.enable": true
+    },
+    "metadata": {
+      "attributes": {
+        "type": "config"
+      },
+      "migration": "merge-preserve",
+      "name": "config",
+      "pkey-type": "ltree",
+      "last-id": null
+    }
+  },
+  {
+    "data": {
+      "5973ED86-1BC4-41A6-A70E-530D6843BA5B": {
+        "dependencies": [
+          "file:local/syslog-ng.conf"
+        ],
+        "name": "syslog"
+      },
+      "0B8B01D5-91B4-4DEE-9720-4D65D56F513E": {
+        "dependencies": [
+          "file:local/smbusers",
+          "plugin:local/smb4.conf"
+        ],
+        "name": "samba"
+      },
+      "9199AEF2-590B-4145-99A4-CABB7D00FFA5": {
+        "dependencies": [
+          "file:local/afp.conf"
+        ],
+        "name": "afp"
+      },
+      "D6144740-E879-4031-B343-84205D6A5DD4": {
+        "dependencies": [
+          "file:exports"
+        ],
+        "name": "nfs"
+      },
+      "52B83614-F3DD-47EC-A41B-39D297FE2ED8": {
+        "dependencies": [
+          "group:services",
+          "file:local/collectd.conf"
+        ],
+        "name": "collectd"
+      },
+      "5A35508B-AE0F-4C1A-B728-482956D1C12E": {
+        "dependencies": [
+          "file:local/nullmailer/remotes"
+        ],
+        "name": "mail"
+      },
+      "FDF68C06-1F3F-47F8-AF28-2402F3D45424": {
+        "dependencies": [
+          "file:passwd",
+          "file:group",
+          "file:master.passwd",
+          "file:motd",
+          "file:local/sudoers",
+          "plugin:pubkeys",
+          "plugin:pwd_database",
+          "plugin:mail/aliases"
+        ],
+        "name": "accounts"
+      },
+      "AB7F43FF-F122-4392-96A7-66791B334271": {
+        "dependencies": [],
+        "name": "services"
+      },
+      "B5EF4F4C-6E9C-45E7-B5B6-73A8CD7F7199": {
+        "dependencies": [
+          "group:services",
+          "file:ssh/sshd_config",
+          "plugin:ssh/sshd_keys"
+        ],
+        "name": "sshd"
+      },
+      "3C42EFC3-9C17-4CAF-8DFB-931711EB2D7A": {
+        "dependencies": [
+          "plugin:localtime"
+        ],
+        "name": "localtime"
+      },
+      "38FD1C8F-8765-4401-899D-8FFC150EC85D": {
+        "dependencies": [
+          "plugin:ssl_certificates"
+        ],
+        "name": "crypto"
+      },
+      "2E2EFB31-29D5-4C54-B46C-D3214D0E3325": {
+        "dependencies": [
+          "plugin:ssl_certificates"
+        ],
+        "name": "crypto"
+      },
+      "1E784623-8CB9-442E-9AC6-1125E2692A0C": {
+        "dependencies": [
+          "group:services",
+          "file:local/nginx/nginx.conf"
+        ],
+        "name": "nginx"
+      },
+      "11BB3D33-A56B-4B2A-AE2D-76B77E5A9895": {
+        "dependencies": [
+          "file:resolv.conf",
+          "file:hosts"
+        ],
+        "name": "network"
+      }
+    },
+    "metadata": {
+      "attributes": {
+        "type": "persistent"
+      },
+      "migration": "replace",
+      "name": "etcd.groups",
+      "pkey-type": "uuid",
+      "last-id": null
+    }
+  },
+  {
+    "data": {
+      "8117202A-ED32-430E-A6AF-88B168B1601A": {
+        "rcng": {
+          "rc-scripts": "nullmailer"
         },
-        "data": {
-            "721F2D5E-8395-4477-A01A-D23330A37752": {
-                "name": "devd",
-                "pidfile": "/var/run/devd.pid",
-                "builtin": true,
-				"rcng": {
-					"rc-scripts": "devd"
-				},
-				"launchd": {
-					"Label": "org.freebsd.devd",
-					"ProgramArguments": [
-						"/usr/sbin/devd",
-						"-d"
-					],
-					"RunAtLoad": true
-				}
-            },
-			"F742ECCC-F912-4B9C-8ED5-90F6AA1ED74E": {
-				"name": "sshd",
-				"builtin": false,
-				"rcng": {
-					"rc-scripts": "sshd"
-				},
-				"launchd": {
-					"Label": "com.openssh.sshd",
-					"ProgramArguments": [
-						"/usr/sbin/sshd",
-						"-D"
-					],
-					"RunAtLoad": true
-				}
-			},
-            "77C31BDA-A90A-495A-8D58-0063981EEC67": {
-                "name": "syslog",
-                "pidfile": "/var/run/syslog.pid",
-                "builtin": true,
-				"rcng": {
-					"rc-scripts": "syslogd"
-				}
-            },
-            "DFC8C5C9-6825-43B3-BDFA-45466D0F77D1": {
-                "name": "nginx",
-                "pidfile": "/var/run/nginx.pid",
-                "builtin": true,
-				"rcng": {
-					"rc-scripts": "nginx"
-				}
-            },
-            "77C47B78-9BF3-4BA7-AA76-8CB99A8DA4A3": {
-                "name": "nfs",
-                "etcd-group": "nfs",
-                "builtin": false,
-                "rcng": {
-                    "rc-scripts": [
-                        "nfsd",
-						"mountd"
-                    ]
-                }
-            },
-            "0A7FF372-9808-411B-B3AA-59A6F3F9A7B2": {
-                "name": "ftp",
-                "etcd-group": "ftpd",
-                "pidfile": "/var/run/proftpd.pid",
-                "builtin": false,
-				"rcng": {
-					"rc-scripts": "proftpd"
-				}
-            },
-            "702DD24D-BF1A-4D36-B69B-C96971B37A9D": {
-                "name": "snmp",
-                "etcd-group": "snmpd",
-                "pidfile": "/var/run/net_snmpd.pid",
-                "builtin": false,
-				"rcng": {
-					"rc-scripts": "snmpd"
-				}
-            },
-			"7498B5D8-457F-442B-BF48-ED29D8DB5FC5": {
-				"name": "collectd",
-				"etcd-group": "collectd",
-				"pidfile": "/var/run/collectd.pid",
-				"builtin": true,
-				"rcng": {
-					"rc-scripts": "collectd"
-				}
-			},
-			"FFD1EA3F-36E3-4CFA-8A1E-9BADA0DEFB76": {
-				"name": "ntpd",
-				"etcd-group": "ntpd",
-				"builtin": true,
-				"pidfile": "/var/run/ntpd.pid",
-				"rcng": {
-					"rc-scripts": "ntpd"
-				}
-			},
-			"858EFB54-F5DC-4207-ACB6-8BA793984794": {
-				"name": "afp",
-				"etcd-group": "afp",
-				"builtin": false,
-				"rcng": {
-					"rc-scripts": "netatalk"
-				}
-			},
-			"8117202A-ED32-430E-A6AF-88B168B1601A": {
-				"name": "nullmailer",
-				"etcd-group": "mail",
-				"builtin": false,
-				"launchd": {
-					"Label": "org.untroubled.nullmailer",
-					"ProgramArguments": [
-						"/usr/local/sbin/nullmailer-send"
-					],
-					"RunAtLoad": true
-				},
-				"rcng": {
-					"rc-scripts": "nullmailer"
-				}
-			}
-        }
+        "launchd": {
+          "RunAtLoad": true,
+          "ProgramArguments": [
+            "/usr/local/sbin/nullmailer-send"
+          ],
+          "Label": "org.untroubled.nullmailer"
+        },
+        "builtin": false,
+        "etcd-group": "mail",
+        "name": "nullmailer"
+      },
+      "858EFB54-F5DC-4207-ACB6-8BA793984794": {
+        "rcng": {
+          "rc-scripts": "netatalk"
+        },
+        "builtin": false,
+        "etcd-group": "afp",
+        "name": "afp"
+      },
+      "FFD1EA3F-36E3-4CFA-8A1E-9BADA0DEFB76": {
+        "rcng": {
+          "rc-scripts": "ntpd"
+        },
+        "pidfile": "/var/run/ntpd.pid",
+        "builtin": true,
+        "etcd-group": "ntpd",
+        "name": "ntpd"
+      },
+      "721F2D5E-8395-4477-A01A-D23330A37752": {
+        "launchd": {
+          "RunAtLoad": true,
+          "ProgramArguments": [
+            "/usr/sbin/devd",
+            "-d"
+          ],
+          "Label": "org.freebsd.devd"
+        },
+        "rcng": {
+          "rc-scripts": "devd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/devd.pid",
+        "name": "devd"
+      },
+      "F742ECCC-F912-4B9C-8ED5-90F6AA1ED74E": {
+        "launchd": {
+          "RunAtLoad": true,
+          "ProgramArguments": [
+            "/usr/sbin/sshd",
+            "-D"
+          ],
+          "Label": "com.openssh.sshd"
+        },
+        "rcng": {
+          "rc-scripts": "sshd"
+        },
+        "builtin": false,
+        "name": "sshd"
+      },
+      "77C31BDA-A90A-495A-8D58-0063981EEC67": {
+        "rcng": {
+          "rc-scripts": "syslogd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/syslog.pid",
+        "name": "syslog"
+      },
+      "DFC8C5C9-6825-43B3-BDFA-45466D0F77D1": {
+        "rcng": {
+          "rc-scripts": "nginx"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/nginx.pid",
+        "name": "nginx"
+      },
+      "77C47B78-9BF3-4BA7-AA76-8CB99A8DA4A3": {
+        "rcng": {
+          "rc-scripts": [
+            "nfsd",
+            "mountd"
+          ]
+        },
+        "builtin": false,
+        "etcd-group": "nfs",
+        "name": "nfs"
+      },
+      "0A7FF372-9808-411B-B3AA-59A6F3F9A7B2": {
+        "rcng": {
+          "rc-scripts": "proftpd"
+        },
+        "builtin": false,
+        "pidfile": "/var/run/proftpd.pid",
+        "etcd-group": "ftpd",
+        "name": "ftp"
+      },
+      "702DD24D-BF1A-4D36-B69B-C96971B37A9D": {
+        "rcng": {
+          "rc-scripts": "snmpd"
+        },
+        "builtin": false,
+        "pidfile": "/var/run/net_snmpd.pid",
+        "etcd-group": "snmpd",
+        "name": "snmp"
+      },
+      "7498B5D8-457F-442B-BF48-ED29D8DB5FC5": {
+        "rcng": {
+          "rc-scripts": "collectd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/collectd.pid",
+        "etcd-group": "collectd",
+        "name": "collectd"
+      }
     },
-	{
-		"metadata": {
-			"name": "statd.schemas",
-			"pkey-type": "native",
-			"migration": "replace",
-			"attributes": {
-				"type": "persistent"
-			}
-		},
-		"data": {
-			"default": {
-				"buckets": [
-					{
-						"interval": "10s",
-						"retention": "8h"
-					},
-					{
-						"interval": "60s",
-						"retention": "1d",
-						"consolidation": "avg"
-					},
-					{
-						"interval": "5m",
-						"retention": "2y",
-						"consolidation": "avg"
-					}
-				]
-			}
-		}
-	},
-	{
-		"metadata": {
-			"name": "statd.sources",
-			"pkey-type": "native",
-			"migration": "replace",
-			"attributes": {
-				"type": "persistent"
-			}
-		},
-		"data": {
-			"default": {
-				"schema": "default"
-			}
-		}
-	},
-	{
-		"metadata": {
-			"name": "ntpservers",
-			"pkey-type": "native",
-			"migration": "keep",
-			"attributes": {
-				"type": "persistent"
-			}
-		},
-		"data": {
-      "C436DAF5-A884-4689-BF85-009FB8CFD9D8": {
-        "maxpoll" : 10,
-        "iburst" : true,
-        "burst" : false,
-        "minpoll" : 6,
-        "address" : "0.freebsd.pool.ntp.org",
-        "prefer" : false
+    "metadata": {
+      "attributes": {
+        "type": "persistent"
+      },
+      "migration": "replace",
+      "name": "service_definitions",
+      "pkey-type": "uuid",
+      "last-id": null
+    }
+  },
+  {
+    "data": {
+      "default": {
+        "buckets": [
+          {
+            "retention": "8h",
+            "interval": "10s"
+          },
+          {
+            "consolidation": "avg",
+            "retention": "1d",
+            "interval": "60s"
+          },
+          {
+            "consolidation": "avg",
+            "retention": "2y",
+            "interval": "5m"
+          }
+        ]
+      }
+    },
+    "metadata": {
+      "attributes": {
+        "type": "persistent"
+      },
+      "migration": "replace",
+      "pkey-type": "native",
+      "name": "statd.schemas"
+    }
+  },
+  {
+    "data": {
+      "default": {
+        "schema": "default"
+      }
+    },
+    "metadata": {
+      "attributes": {
+        "type": "persistent"
+      },
+      "migration": "replace",
+      "pkey-type": "native",
+      "name": "statd.sources"
+    }
+  },
+  {
+    "data": {
+      "7FE7115B-10EA-43AE-BE29-54549C15AFC0": {
+        "prefer": false,
+        "address": "2.freebsd.pool.ntp.org",
+        "minpoll": 6,
+        "burst": false,
+        "iburst": true,
+        "maxpoll": 10
       },
       "5B5A6699-C88A-4E72-9AF8-6C6A1376200B": {
-        "maxpoll" : 10,
-        "iburst" : true,
-        "burst" : false,
-        "minpoll" : 6,
-        "address" : "1.freebsd.pool.ntp.org",
-        "prefer" : false
+        "prefer": false,
+        "address": "1.freebsd.pool.ntp.org",
+        "minpoll": 6,
+        "burst": false,
+        "iburst": true,
+        "maxpoll": 10
       },
-      "7FE7115B-10EA-43AE-BE29-54549C15AFC0": {
-        "maxpoll" : 10,
-        "iburst" : true,
-        "burst" : false,
-        "minpoll" : 6,
-        "address" : "2.freebsd.pool.ntp.org",
-        "prefer" : false
+      "C436DAF5-A884-4689-BF85-009FB8CFD9D8": {
+        "prefer": false,
+        "address": "0.freebsd.pool.ntp.org",
+        "minpoll": 6,
+        "burst": false,
+        "iburst": true,
+        "maxpoll": 10
       }
-		}
-	}
-
+    },
+    "metadata": {
+      "attributes": {
+        "type": "persistent"
+      },
+      "migration": "keep",
+      "pkey-type": "native",
+      "name": "ntpservers"
+    }
+  }
 ]
