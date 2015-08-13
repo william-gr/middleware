@@ -334,12 +334,14 @@ def get_disk_by_path(path):
 
 
 def clean_multipaths():
+    geom.scan()
     for i in geom.class_by_name('MULTIPATH').geoms:
         logger.info('Destroying multipath device %s', i.name)
         system('/sbin/gmultipath', 'destroy', i.name)
 
 
 def get_multipath_name():
+    geom.scan()
     return 'multipath{0}'.format(len(list(geom.class_by_name('MULTIPATH').geoms)))
 
 
@@ -363,7 +365,7 @@ def attach_to_multipath(dispatcher, disk, path):
         # If disk was previously tied to specific cdev path (/dev/multipath[0-9]+)
         # reuse that path. Otherwise pick up first multipath device name available
         if ds_disk and ds_disk['is_multipath']:
-            nodename = ds_disk['path']
+            nodename = os.path.basename(ds_disk['path'])
             logger.info('Reusing %s path', nodename)
         else:
             nodename = get_multipath_name()
@@ -388,22 +390,30 @@ def attach_to_multipath(dispatcher, disk, path):
 
 
 def generate_disk_cache(dispatcher, path):
+    geom.scan()
     name = os.path.basename(path)
     gdisk = geom.geom_by_name('DISK', name)
     gpart = geom.geom_by_name('PART', name)
+    gmultipath = geom.geom_by_name('MULTIPATH', path.split('/')[-1])
+
+    if gmultipath:
+        # MEDIACHANGE event on /dev/multipath/multipath%d
+        # -> use first member for hardware queries
+        cons = gmultipath.consumers.next()
+        gdisk = cons.provider.geom
 
     if not gdisk:
         return
 
-    disk_info = info_from_device(path)
+    disk_info = info_from_device(gdisk.name)
     serial = disk_info['serial']
 
-    if serial:
+    # Path repesents disk device (not multipath device) and has serial number attached
+    if serial and not gmultipath:
         # Check if device could be part of multipath configuration
         d = diskinfo_cache.get('serial:{0}'.format(serial))
-        if d:
+        if d and d['path'] != path:
             attach_to_multipath(dispatcher, d, path)
-            return
 
     provider = gdisk.providers.next()
     partitions = []
@@ -434,7 +444,7 @@ def generate_disk_cache(dispatcher, path):
     data_uuid = data_part["uuid"] if data_part else None
     swap_part = first_or_default(lambda x: x['type'] == 'freebsd-swap', partitions)
     swap_uuid = swap_part["uuid"] if swap_part else None
-    camdev = CamDevice(name)
+    camdev = CamDevice(gdisk.name)
 
     disk = {
         'path': path,
@@ -489,7 +499,8 @@ def generate_disk_cache(dispatcher, path):
 
 def purge_disk_cache(path):
     d = get_disk_by_path(path)
-    diskinfo_cache.remove(d['identifier'])
+    if d:
+        diskinfo_cache.remove(d['identifier'])
 
 
 def _depends():
@@ -517,6 +528,7 @@ def _init(dispatcher, plugin):
         path = args['path']
 
         if re.match(r'^/dev/(da|ada)[0-9]+$', path):
+            logger.info("Disk %s detached", path)
             purge_disk_cache(path)
             disk = dispatcher.datastore.get_one('disks', ('path', '=', path))
             dispatcher.datastore.delete('disks', disk['id'])
@@ -530,6 +542,7 @@ def _init(dispatcher, plugin):
 
     def on_device_mediachange(args):
         # Regenerate caches
+        logger.info('Updating disk cache for device %s', args['path'])
         generate_disk_cache(dispatcher, args['path'])
 
         # Disk may be detached in the meantime
