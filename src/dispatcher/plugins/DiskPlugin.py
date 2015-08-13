@@ -433,8 +433,9 @@ def generate_disk_cache(dispatcher, path):
     # Path repesents disk device (not multipath device) and has serial number attached
     if serial and not gmultipath:
         # Check if device could be part of multipath configuration
-        if old and old['path'] != path:
-            multipath_info = attach_to_multipath(dispatcher, old, path)
+        d = diskinfo_cache.get('serial:{0}'.format(serial))
+        if d and d['path'] != path:
+            multipath_info = attach_to_multipath(dispatcher, d, path)
 
     provider = gdisk.providers.next()
     partitions = list(generate_partitions_list(gpart))
