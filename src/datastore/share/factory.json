@@ -895,7 +895,7 @@
 		"metadata": {
 			"name": "ntpservers",
 			"pkey-type": "native",
-			"migration": "replace",
+			"migration": "keep",
 			"attributes": {
 				"type": "persistent"
 			}
