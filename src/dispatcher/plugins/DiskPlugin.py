@@ -341,7 +341,6 @@ def clean_multipaths():
 
 
 def get_multipath_name():
-    geom.scan()
     return 'multipath{0}'.format(len(list(geom.class_by_name('MULTIPATH').geoms)))
 
 
