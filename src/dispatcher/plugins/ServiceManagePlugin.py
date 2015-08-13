@@ -161,6 +161,25 @@ class ServiceInfoProvider(Provider):
         except SubprocessException, e:
             pass
 
+    @private
+    @accepts(str)
+    def restart(self, service):
+        svc = self.datastore.get_one('service_definitions', ('name', '=', service))
+        if not svc:
+            raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
+
+        rc_scripts = svc['rcng']['rc-scripts']
+
+        try:
+            if type(rc_scripts) is unicode:
+                system("/usr/sbin/service", rc_scripts, 'onerestart')
+
+            if type(rc_scripts) is list:
+                for i in rc_scripts:
+                    system("/usr/sbin/service", i, 'onerestart')
+        except SubprocessException, e:
+            pass
+
 
 @description("Provides functionality to start, stop, restart or reload service")
 @accepts(
