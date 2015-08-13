@@ -79,8 +79,7 @@ class NTPServerCreateTask(Task):
         try:
             pkey = self.datastore.insert('ntpservers', ntp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ntpd')
-            #self.dispatcher.call_sync('services.ensure_started', 'ntpd')
-            #self.dispatcher.call_sync('services.reload', 'ntpd')
+            self.dispatcher.call_sync('services.restart', 'ntpd')
             self.dispatcher.dispatch_event('ntpservers.changed', {
                 'operation': 'create',
                 'ids': [pkey]
@@ -130,8 +129,7 @@ class NTPServerUpdateTask(Task):
             ntp.update(updated_fields)
             self.datastore.update('ntpservers', id, ntp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ntpd')
-            #self.dispatcher.call_sync('services.ensure_started', 'ntpd')
-            #self.dispatcher.call_sync('services.reload', 'ntpd')
+            self.dispatcher.call_sync('services.restart', 'ntpd')
             self.dispatcher.dispatch_event('ntpservers.changed', {
                 'operation': 'update',
                 'ids': [id]
@@ -156,8 +154,7 @@ class NTPServerDeleteTask(Task):
         try:
             self.datastore.delete('ntpservers', id)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ntpd')
-            #self.dispatcher.call_sync('services.ensure_started', 'ntpd')
-            #self.dispatcher.call_sync('services.reload', 'ntpd')
+            self.dispatcher.call_sync('services.restart', 'ntpd')
             self.dispatcher.dispatch_event('ntpservers.changed', {
                 'operation': 'delete',
                 'ids': [id]
