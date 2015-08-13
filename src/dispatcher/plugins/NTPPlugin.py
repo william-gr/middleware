@@ -27,7 +27,7 @@
 import errno
 import logging
 from datastore import DatastoreException
-from task import Task, Provider, TaskException, ValidationException, query
+from task import Task, Provider, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, accepts, description, returns
 from dispatcher.rpc import SchemaHelper as h
 from lib.system import system, SubprocessException
@@ -97,6 +97,10 @@ class NTPServerCreateTask(Task):
 class NTPServerUpdateTask(Task):
     def verify(self, id, updated_fields, force=False):
 
+        ntp = self.datastore.get_by_id('ntpservers', id)
+        if ntp is None:
+            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exists')
+
         errors = []
 
         try:
@@ -109,10 +113,10 @@ class NTPServerUpdateTask(Task):
                     errno.EINVAL,
                     'Server could not be reached. Check "Force" to continue regardless.'))
 
-        minpoll = updated_fields.get('minpoll', 6)
-        maxpoll = updated_fields.get('maxpoll', 10)
+        minpoll = updated_fields.get('minpoll', ntp.get('minpoll'))
+        maxpoll = updated_fields.get('maxpoll', ntp.get('maxpoll'))
 
-        if not maxpoll > minpoll:
+        if minpoll is not None and maxpoll is not None and not maxpoll > minpoll:
             errors.append(('maxpoll', errno.EINVAL, 'Max Poll should be higher than Min Poll'))
 
         if errors:
@@ -143,7 +147,7 @@ class NTPServerUpdateTask(Task):
 @accepts(str)
 class NTPServerDeleteTask(Task):
     def verify(self, id):
-        ntp = self.datastore.get_one('ntpservers', ('id', '=', id))
+        ntp = self.datastore.get_by_id('ntpservers', id)
         if ntp is None:
             raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exists')
         return ['system']
