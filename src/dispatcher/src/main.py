@@ -326,11 +326,6 @@ class Dispatcher(object):
         self.register_event_type('server.shutdown')
 
     def start(self):
-        for name, clazz in self.event_sources.items():
-            source = clazz(self)
-            greenlet = gevent.spawn(source.run)
-            self.threads.append(greenlet)
-
         self.started_at = time.time()
         self.balancer.start()
 
@@ -498,7 +493,7 @@ class Dispatcher(object):
         if name in self.event_handlers:
             for h in self.event_handlers[name]:
                 try:
-                    h(args)
+                    gevent.spawn(h, args)
                 except:
                     self.logger.exception('Event handler for event %s failed', name)
 
@@ -538,10 +533,9 @@ class Dispatcher(object):
         self.logger.debug("New event source: %s", name)
         self.event_sources[name] = clazz
 
-        if self.started_at is not None:
-            source = clazz(self)
-            greenlet = gevent.spawn(source.run)
-            self.threads.append(greenlet)
+        source = clazz(self)
+        greenlet = gevent.spawn(source.run)
+        self.threads.append(greenlet)
 
     def register_event_type(self, name, source=None, schema=None):
         self.event_types[name] = EventType(name, source, schema)
