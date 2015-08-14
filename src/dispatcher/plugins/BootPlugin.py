@@ -65,14 +65,14 @@ class BootEnvironmentActivate(Task):
     def verify(self, name):
         be = FindClone(name)
         if not be:
-            raise VerifyException(errno.ENOENT, 'Boot environment {0} not found'.format(oldname))
+            raise VerifyException(errno.ENOENT, 'Boot environment {0} not found'.format(name))
 
         return ['system']
 
 
     def run(self, name):
         if not ActivateClone(name):
-            raise TaskException(errno.EIO, 'Cannot activate the {0} boot environment'.format(newname))
+            raise TaskException(errno.EIO, 'Cannot activate the {0} boot environment'.format(name))
 
 
 class BootEnvironmentRename(Task):
@@ -100,7 +100,7 @@ class BootEnvironmentsDelete(Task):
     def run(self, names):
         for n in names:
             if not DeleteClone(n):
-                raise TaskException(errno.EIO, 'Cannot delete the {0} boot environment'.format(newname))
+                raise TaskException(errno.EIO, 'Cannot delete the {0} boot environment'.format(n))
 
 
 class BootAttachDisk(ProgressTask):
