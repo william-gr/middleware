@@ -31,6 +31,8 @@ from datastore import DatastoreException
 from task import Task, Provider, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, accepts, description, returns
 from dispatcher.rpc import SchemaHelper as h
+from lib.system import SubprocessException, system
+import sysctl
 
 logger = logging.getLogger('TunablePlugin')
 
@@ -47,6 +49,19 @@ VAR_SYSCTL_FORMAT = '''Sysctl variable names must:
 VAR_LOADER_RC_FORMAT = '''Loader and RC variable names must:
 1. Start with a letter or underscore.
 2. Can contain a combination of alphanumeric characters, numbers and/or underscores.'''
+
+
+def sysctl_set(name, value):
+    # Make sure sysctl name exists
+    sysctl.sysctlnametomib(name)
+
+    # FIXME: sysctl module doesn't handle types very well
+    # sysctl.sysctl(mib, new=value)
+    try:
+        system('sysctl', '{0}={1}'.format(name, str(value)))
+    except SubprocessException as e:
+        # sysctl module compatibility
+        raise OSError(str(e.err))
 
 
 @description("Provides access to OS tunables")
@@ -76,8 +91,13 @@ class TunableCreateTask(Task):
 
         if tunable['type'] in ('LOADER', 'RC') and not VAR_LOADER_RC_RE.match(tunable['var']):
             errors.append(('var', errno.EINVAL, VAR_SYSCTL_FORMAT))
-        elif tunable['type'] == 'SYSCTL' and not VAR_SYSCTL_RE.match(tunable['var']):
-            errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+        elif tunable['type'] == 'SYSCTL':
+            if not VAR_SYSCTL_RE.match(tunable['var']):
+                errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+            try:
+                sysctl.sysctlnametomib(tunable['var'])
+            except OSError:
+                errors.append(('var', errno.EINVAL, 'Sysctl variable does not exist'))
 
         if errors:
             raise ValidationException(errors)
@@ -88,6 +108,10 @@ class TunableCreateTask(Task):
         try:
             if 'enabled' not in tunable:
                 tunable['enabled'] = True
+
+            if tunable['enabled'] and tunable['type'] == 'SYSCTL':
+                sysctl_set(tunable['var'], tunable['value'])
+
             pkey = self.datastore.insert('tunables', tunable)
             self.dispatcher.dispatch_event('tunables.changed', {
                 'operation': 'create',
@@ -122,8 +146,13 @@ class TunableUpdateTask(Task):
         if 'type' in updated_fields:
             if updated_fields['type'] in ('LOADER', 'RC') and not VAR_LOADER_RC_RE.match(tunable['var']):
                 errors.append(('var', errno.EINVAL, VAR_SYSCTL_FORMAT))
-            elif updated_fields['type'] == 'SYSCTL' and not VAR_SYSCTL_RE.match(tunable['var']):
-                errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+            elif updated_fields['type'] == 'SYSCTL':
+                if not VAR_SYSCTL_RE.match(tunable['var']):
+                    errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+                try:
+                    sysctl.sysctlnametomib(tunable['var'])
+                except OSError:
+                    errors.append(('var', errno.EINVAL, 'Sysctl variable does not exist'))
 
         if errors:
             raise ValidationException(errors)
@@ -134,6 +163,10 @@ class TunableUpdateTask(Task):
         try:
             tunable = self.datastore.get_by_id('tunables', id)
             tunable.update(updated_fields)
+
+            if tunable['enabled'] and tunable['type'] == 'SYSCTL':
+                sysctl_set(tunable['var'], tunable['value'])
+
             self.datastore.update('tunables', id, tunable)
             self.dispatcher.dispatch_event('tunables.changed', {
                 'operation': 'update',
