@@ -2,7 +2,7 @@
 /usr/local/lib/etcd/src/main.py
 /usr/local/lib/etcd/plugins/autotune.py
 /usr/local/lib/etcd/plugins/group.mako
-/usr/local/lib/etcd/plugins/loader.conf.mako
+/usr/local/lib/etcd/plugins/loader.py
 /usr/local/lib/etcd/plugins/localtime.py
 /usr/local/lib/etcd/plugins/local/nginx/nginx.conf.mako
 /usr/local/lib/etcd/plugins/local/nullmailer/remotes.mako

@@ -690,6 +690,12 @@
         ],
         "name": "sshd"
       },
+      "BCCBFE9D-6E31-47AD-94B4-591B27737EBC": {
+        "dependencies": [
+          "plugin:loader"
+        ],
+        "name": "loader"
+      },
       "3C42EFC3-9C17-4CAF-8DFB-931711EB2D7A": {
         "dependencies": [
           "plugin:localtime"
