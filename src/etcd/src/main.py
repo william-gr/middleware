@@ -92,7 +92,7 @@ class FileGenerationService(RpcService):
             pname = os.path.basename(name)
             plugin = imp.load_source(pname, self.context.managed_files[name])
         except:
-            self.context.logger.error('Invalid plugin source file: {0}'.format(name))
+            self.context.logger.error('Invalid plugin source file: {0}'.format(name), exc_info=True)
             return
 
         if not hasattr(plugin, 'run'):
@@ -102,7 +102,7 @@ class FileGenerationService(RpcService):
         try:
             plugin.run(self.context)
         except Exception, err:
-            self.context.logger.error('Cannot run plugin {0}: {1}'.format(name, str(err)))
+            self.context.logger.error('Cannot run plugin {0}: {1}'.format(name, str(err)), exc_info=True)
 
     def generate_group(self, name):
         group = self.datastore.get_one('etcd.groups', ('name', '=', name))
