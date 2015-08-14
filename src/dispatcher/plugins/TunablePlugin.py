@@ -134,7 +134,7 @@ class TunableUpdateTask(Task):
         try:
             tunable = self.datastore.get_by_id('tunables', id)
             tunable.update(updated_fields)
-            pkey = self.datastore.update('tunables', id, tunable)
+            self.datastore.update('tunables', id, tunable)
             self.dispatcher.dispatch_event('tunables.changed', {
                 'operation': 'update',
                 'ids': [id]
@@ -143,7 +143,30 @@ class TunableUpdateTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot update Tunable: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
-        return pkey
+
+
+@description("Deletes Tunable")
+@accepts(str)
+class TunableDeleteTask(Task):
+    def verify(self, id):
+
+        tunable = self.datastore.get_by_id('tunables', id)
+        if tunable is None:
+            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exists')
+
+        return ['system']
+
+    def run(self, id):
+        try:
+            self.datastore.delete('tunables', id)
+            self.dispatcher.dispatch_event('tunables.changed', {
+                'operation': 'delete',
+                'ids': [id]
+            })
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot delete Tunable: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
 
 
 def _init(dispatcher, plugin):
@@ -174,3 +197,4 @@ def _init(dispatcher, plugin):
     # Register tasks
     plugin.register_task_handler('tunables.create', TunableCreateTask)
     plugin.register_task_handler('tunables.update', TunableUpdateTask)
+    plugin.register_task_handler('tunables.delete', TunableDeleteTask)
