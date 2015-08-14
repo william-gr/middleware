@@ -24,5 +24,8 @@ performance_cpu_freq="HIGH"
     % endif
 % endfor
 
-# MTA relay
-nullmailer_enable="YES"
+% for ctl in dispatcher.call_sync('tunables', [('type', '=', 'RC')]):
+% if ctl.get('enabled', True):
+${ctl['var']}="${ctl['value']}"
+% endif
+% endfor
