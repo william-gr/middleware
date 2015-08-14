@@ -633,6 +633,26 @@ class Dispatcher(object):
         done.wait(timeout=timeout)
         self.unregister_event_handler(event, handler)
 
+    def exec_and_wait_for_event(self, event, match_fn, fn, timeout=None):
+        done = Event()
+        self.event_delivery_lock.acquire()
+
+        try:
+            fn()
+        except:
+            self.event_delivery_lock.release()
+            raise
+
+        def handler(args):
+            if match_fn(args):
+                self.logger.debug("Exec and wait condition satisfied for event {0}".format(event))
+                done.set()
+
+        self.register_event_handler(event, handler)
+        self.event_delivery_lock.release()
+        done.wait(timeout=timeout)
+        self.unregister_event_handler(event, handler)
+
     def die(self):
         self.logger.warning('Exiting from "die" command')
 
