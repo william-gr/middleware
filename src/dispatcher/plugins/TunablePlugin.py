@@ -202,6 +202,18 @@ class TunableDeleteTask(Task):
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
 
 
+def _init_sysctls(dispatcher):
+
+    for ctl in dispatcher.call_sync('tunables.query', [('type', '=', 'SYSCTL')]):
+        if ctl.get('enabled') is False:
+            continue
+        try:
+            sysctl_set(ctl['var'], ctl['value'])
+        except OSError as e:
+            logger.error('Cannot set sysctl {0} to {1}: {2}'.format(
+                ctl['var'], ctl['value'], str(e)))
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('tunable', {
         'type': 'object',
@@ -231,3 +243,6 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('tunables.create', TunableCreateTask)
     plugin.register_task_handler('tunables.update', TunableUpdateTask)
     plugin.register_task_handler('tunables.delete', TunableDeleteTask)
+
+    # Set all configured sysctls
+    _init_sysctls(dispatcher)
