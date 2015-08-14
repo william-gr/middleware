@@ -68,8 +68,7 @@ class TunableCreateTask(Task):
     def verify(self, tunable):
 
         errors = []
-
-        if self.datastore.exists('tunables', [('var', '=', tunable['var'])]):
+        if self.datastore.exists('tunables', ('var', '=', tunable['var'])):
             errors.append(('var', errno.EEXIST, 'This variable already exists.'))
 
         if '"' in tunable['value'] or "'" in tunable['value']:
@@ -96,6 +95,52 @@ class TunableCreateTask(Task):
             })
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot create Tunable: {0}'.format(str(e)))
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
+        return pkey
+
+
+@description("Updates Tunable")
+@accepts(str, h.ref('tunable'))
+class TunableUpdateTask(Task):
+    def verify(self, id, updated_fields):
+
+        tunable = self.datastore.get_by_id('tunables', id)
+        if tunable is None:
+            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exists')
+
+        errors = []
+
+        if 'var' in updated_fields and self.datastore.exists(
+            'tunables', ('and', [('var', '=', updated_fields['var']), ('id', '!=', id)])
+        ):
+            errors.append(('var', errno.EEXIST, 'This variable already exists.'))
+
+        if 'value' in updated_fields and '"' in updated_fields['value'] or "'" in updated_fields['value']:
+            errors.append(('value', errno.EINVAL, 'Quotes are not allowed'))
+
+        if 'type' in updated_fields:
+            if updated_fields['type'] in ('LOADER', 'RC') and not VAR_LOADER_RC_RE.match(tunable['var']):
+                errors.append(('var', errno.EINVAL, VAR_SYSCTL_FORMAT))
+            elif updated_fields['type'] == 'SYSCTL' and not VAR_SYSCTL_RE.match(tunable['var']):
+                errors.append(('var', errno.EINVAL, VAR_LOADER_RC_FORMAT))
+
+        if errors:
+            raise ValidationException(errors)
+
+        return ['system']
+
+    def run(self, id, updated_fields):
+        try:
+            tunable = self.datastore.get_by_id('tunables', id)
+            tunable.update(updated_fields)
+            pkey = self.datastore.update('tunables', id, tunable)
+            self.dispatcher.dispatch_event('tunables.changed', {
+                'operation': 'update',
+                'ids': [id]
+            })
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot update Tunable: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
         return pkey
@@ -128,3 +173,4 @@ def _init(dispatcher, plugin):
 
     # Register tasks
     plugin.register_task_handler('tunables.create', TunableCreateTask)
+    plugin.register_task_handler('tunables.update', TunableUpdateTask)
