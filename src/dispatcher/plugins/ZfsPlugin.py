@@ -73,37 +73,37 @@ class ZpoolProvider(Provider):
     @returns(h.object())
     def get_capabilities(self):
         return {
-            'vdev-types': {
+            'vdev_types': {
                 'disk': {
-                    'min-devices': 1,
-                    'max-devices': 1
+                    'min_devices': 1,
+                    'max_devices': 1
                 },
                 'mirror': {
-                    'min-devices': 2
+                    'min_devices': 2
                 },
                 'raidz1': {
-                    'min-devices': 2
+                    'min_devices': 2
                 },
                 'raidz2': {
-                    'min-devices': 3
+                    'min_devices': 3
                 },
                 'raidz3': {
-                    'min-devices': 4
+                    'min_devices': 4
                 },
                 'spare': {
-                    'min-devices': 1
+                    'min_devices': 1
                 }
             },
-            'vdev-groups': {
+            'vdev_groups': {
                 'data': {
-                    'allowed-vdevs': ['disk', 'file', 'mirror',
+                    'allowed_vdevs': ['disk', 'file', 'mirror',
                                       'raidz1', 'raidz2', 'raidz3', 'spare']
                 },
                 'log': {
-                    'allowed-vdevs': ['disk', 'mirror']
+                    'allowed_vdevs': ['disk', 'mirror']
                 },
                 'cache': {
-                    'allowed-vdevs': ['disk']
+                    'allowed_vdevs': ['disk']
                 }
             }
         }
@@ -495,8 +495,7 @@ class ZfsBaseTask(Task):
             zfs = libzfs.ZFS()
             dataset = zfs.get_dataset(path)
             if not dataset:
-                raise VerifyException(errno.ENOENT,
-                                      'Dataset {0} not found'.format(path))
+                raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(path))
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
@@ -654,27 +653,47 @@ def convert_topology(zfs, topology):
 
 
 def get_disk_names(dispatcher, pool):
-    return ['disk:' + dispatcher.call_sync('disks.partition_to_disk', x) for x in pool.disks]
+    ret = []
+    for x in pool.disks:
+        try:
+            d = dispatcher.call_sync('disks.partition_to_disk', x)
+        except RpcException:
+            continue
+
+        ret.append('disk:' + d)
+
+    return ret
 
 
-def zpool_create_resources(dispatcher, pool):
+def zpool_sync_resources(dispatcher, name, datasets=False):
+    res_name = 'zpool:{0}'.format(name)
+
     def iter_dataset(ds):
         dispatcher.register_resource(
             Resource('zfs:{0}'.format(ds.name)),
-            parents=['zpool:{0}'.format(pool.name)])
+            parents=[res_name])
 
         for i in ds.children:
             iter_dataset(i)
 
-    dispatcher.register_resource(
-        Resource('zpool:{0}'.format(pool.name)),
-        parents=get_disk_names(dispatcher, pool))
+    try:
+        zfs = libzfs.ZFS()
+        pool = zfs.get(name)
+    except libzfs.ZFSException:
+        dispatcher.unregister_resource(res_name)
+        return
 
-    iter_dataset(pool.root_dataset)
+    if dispatcher.resource_exists(res_name):
+        dispatcher.update_resource(
+            res_name,
+            new_parents=get_disk_names(dispatcher, pool))
+    else:
+        dispatcher.register_resource(
+            Resource(res_name),
+            parents=get_disk_names(dispatcher, pool))
 
-
-def zpool_remove_resources(dispatcher, pool):
-    dispatcher.unregister_resource(Resource('zpool:{0}'.format(pool.name)))
+    if datasets:
+        iter_dataset(pool.root_dataset)
 
 
 def _depends():
@@ -723,27 +742,27 @@ def zfsprop_schema_creator(**kwargs):
 def _init(dispatcher, plugin):
     def on_pool_create(args):
         guid = args['guid']
-        name = args['pool']
-
+        zpool_sync_resources(dispatcher, args['pool'])
         dispatcher.dispatch_event('zfs.pool.changed', {
             'operation': 'create',
             'ids': [guid]
         })
 
-        # Register resources for pool and root dataset
-        dispatcher.register_resource(Resource('zpool:{0}'.format(name)),
-                                     parents=[])
-        dispatcher.register_resource(Resource('zfs:{0}'.format(name)),
-                                     parents=['zpool:{0}'.format(name)])
-
     def on_pool_destroy(args):
         guid = args['guid']
+        zpool_sync_resources(dispatcher, args['pool'])
         dispatcher.dispatch_event('zfs.pool.changed', {
             'operation': 'delete',
             'ids': [guid]
         })
 
-        dispatcher.unregister_resource('zpool:{0}'.format(args['pool']))
+    def on_pool_updated(args):
+        guid = args['guid']
+        zpool_sync_resources(dispatcher, args['pool'])
+        dispatcher.dispatch_event('zfs.pool.changed', {
+            'operation': 'delete',
+            'ids': [guid]
+        })
 
     def on_dataset_create(args):
         guid = args['guid']
@@ -996,6 +1015,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_event_handler('fs.zfs.pool.created', on_pool_create)
     plugin.register_event_handler('fs.zfs.pool.destroyed', on_pool_destroy)
+    plugin.register_event_handler('fs.zfs.pool.updated', on_pool_updated)
     plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_create)
     plugin.register_event_handler('fs.zfs.dataset.deleted', on_dataset_delete)
     plugin.register_event_handler('fs.zfs.dataset.renamed', on_dataset_rename)
@@ -1038,6 +1058,7 @@ def _init(dispatcher, plugin):
         # logs said guid with pool name and skips that import.
         unimported_unique_pools = {}
         unimported_duplicate_pools = []
+
         for pool in zfs.find_import():
             if pool.guid in unimported_unique_pools:
                 # This means that the pool is prolly a duplicate
@@ -1049,21 +1070,22 @@ def _init(dispatcher, plugin):
                 # Since there can be more than two duplicate copies
                 # of a pool might exist, we still need to check for
                 # it in the unimported pool list
-                duplicate_guids = map(lambda x: x.guid,
-                                      unimported_duplicate_pools)
+                duplicate_guids = map(lambda x: x.guid, unimported_duplicate_pools)
                 if pool.guid in duplicate_guids:
                     continue
                 else:
                     unimported_unique_pools[pool.guid] = pool
-        # Logging the duplicate pool naes and guids, if any
+
+        # Logging the duplicate pool names and guids, if any
         if unimported_duplicate_pools:
             dispatcher.logger.warning(
                 'The following pools were unimported because of duplicates' +
                 'being found: ')
             for duplicate_pool in unimported_duplicate_pools:
                 dispatcher.logger.warning(
-                    'Unimported Pool Name: {0}, GUID: {1}'.format(
+                    'Unimported pool name: {0}, guid: {1}'.format(
                         duplicate_pool.name, duplicate_pool.guid))
+
         # Finally, Importing the unique unimported pools that are present in
         # the database
         for vol in dispatcher.datastore.query('volumes'):
@@ -1081,8 +1103,10 @@ def _init(dispatcher, plugin):
                         ' because it is named as: {0} in'.format(vol['name']) +
                         ' the database but the actual system found it named' +
                         ' as {0}'.format(pool_to_import.name))
+
         for pool in zfs.pools:
-            zpool_create_resources(dispatcher, pool)
+            zpool_sync_resources(dispatcher, pool.name, datasets=True)
+
     except libzfs.ZFSException as err:
         # Log what happened
         dispatcher.logger.error('ZfsPlugin init error: {0}'.format(str(err)))
