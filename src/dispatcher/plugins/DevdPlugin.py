@@ -29,29 +29,19 @@ import os
 import re
 import netif
 import time
+import geom
 from resources import Resource
 from event import EventSource
 from task import Provider
 from dispatcher.rpc import accepts, returns, description
 from dispatcher.rpc import SchemaHelper as h
 from gevent import socket
-from lib import geom
 from lib.freebsd import get_sysctl
 from fnutils import exclude
 
 
 @description("Provides information about devices installed in the system")
 class DeviceInfoPlugin(Provider):
-    def initialize(self, context):
-        # Enumerate disks and network interface and create initial resources
-        for disk in self._get_class_disk():
-            context.dispatcher.register_resource(
-                Resource('disk:{0}'.format(disk['path'])))
-
-        for net in self._get_class_network():
-            context.dispatcher.register_resource(
-                Resource('net:{0}'.format(net['name'])))
-
     @description("Returns list of available device classes")
     @returns(h.array(str))
     def get_classes(self):
@@ -76,26 +66,31 @@ class DeviceInfoPlugin(Provider):
         return None
 
     def _get_class_disk(self):
-        disk = None
         result = []
-        confxml = geom.confxml()
+        geom.scan()
+        for child in geom.class_by_name('DISK').geoms:
+            result.append({
+                "path": os.path.join("/dev", child.name),
+                "name": child.name,
+                "mediasize": child.provider.mediasize,
+                "description": child.provider.config['descr']
+            })
 
-        for child in confxml.findall("class"):
-            if child.find("name").text == "DISK":
-                disk = child
+        return result
 
-        if disk is None:
+    def _get_class_multipath(self):
+        result = []
+        geom.scan()
+        cls = geom.class_by_name('MULTIPATH')
+        if not cls:
             return []
 
-        for child in disk.findall("geom"):
-            device = child.find("name").text
-            mediasize = int(child.find("provider/mediasize").text)
-            descr = child.find("provider/config/descr").text
+        for child in cls.geoms:
             result.append({
-                "path": os.path.join("/dev", device),
-                "name": device,
-                "mediasize": mediasize,
-                "description": descr
+                "path": os.path.join("/dev", child.name),
+                "name": child.name,
+                "mediasize": child.provider.mediasize,
+                "members": [c.provider.name for c in child.consumers]
             })
 
         return result
