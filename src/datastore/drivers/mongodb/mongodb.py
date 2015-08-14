@@ -30,6 +30,7 @@ import time
 import copy
 import uuid
 import dateutil.parser
+from datetime import datetime
 from pymongo import MongoClient
 import pymongo
 import pymongo.errors
@@ -111,13 +112,14 @@ class MongodbDatastore(object):
     def collection_create(self, name, pkey_type='uuid', attributes=None):
         attributes = attributes or {}
         ttl_index = attributes.get('ttl-index')
-        self.db.create_collection(name)
-        self.db['collections'].insert({
-            '_id': name,
-            'pkey-type': pkey_type,
-            'last-id': 0,
-            'attributes': attributes
-        })
+
+        if not self.db['collections'].find_one(name):
+            self.db['collections'].insert({
+                '_id': name,
+                'pkey-type': pkey_type,
+                'last-id': 0,
+                'attributes': attributes
+            })
 
         if ttl_index:
             self.db[name].create_index(ttl_index, expireAfterSeconds=0)
@@ -279,7 +281,7 @@ class MongodbDatastore(object):
         obj['_id'] = pkey
 
         if timestamp:
-            t = time.time()
+            t = datetime.now()
             obj['updated-at'] = t
             obj['created-at'] = t
 
