@@ -322,7 +322,7 @@ def info_from_device(devname):
 
 
 def get_disk_by_path(path):
-    for ident, disk in diskinfo_cache.itervalid():
+    for disk in diskinfo_cache.validvalues():
         if disk['path'] == path:
             return disk
 
@@ -331,6 +331,10 @@ def get_disk_by_path(path):
                 return disk
 
     return None
+
+
+def get_disk_by_lunid(lunid):
+    return first_or_default(lambda d: d['lunid'] == lunid, diskinfo_cache.validvalues())
 
 
 def clean_multipaths():
@@ -417,9 +421,18 @@ def generate_disk_cache(dispatcher, path):
     old = get_disk_by_path(path)
     multipath_info = None
 
+    if gdisk:
+        # Path repesents disk device (not multipath device) and has NAA ID attached
+        lunid = gdisk.provider.config.get('lunid')
+        if lunid:
+            # Check if device could be part of multipath configuration
+            d = get_disk_by_lunid(lunid)
+            if d and d['path'] != path:
+                multipath_info = attach_to_multipath(dispatcher, d, path)
+
     if gmultipath:
-        # MEDIACHANGE event on /dev/multipath/multipath%d
-        # -> use first member for hardware queries
+        # Path represents multipath device (not disk device)
+        # MEDIACHANGE event -> use first member for hardware queries
         cons = gmultipath.consumers.next()
         gdisk = cons.provider.geom
 
@@ -429,16 +442,8 @@ def generate_disk_cache(dispatcher, path):
     disk_info = info_from_device(gdisk.name)
     serial = disk_info['serial']
 
-    # Path repesents disk device (not multipath device) and has serial number attached
-    if serial and not gmultipath:
-        # Check if device could be part of multipath configuration
-        d = diskinfo_cache.get('serial:{0}'.format(serial))
-        if d and d['path'] != path:
-            multipath_info = attach_to_multipath(dispatcher, d, path)
-
-    provider = gdisk.providers.next()
+    provider = gdisk.provider
     partitions = list(generate_partitions_list(gpart))
-
     identifier = device_to_identifier(confxml(), name, serial)
     data_part = first_or_default(lambda x: x['type'] == 'freebsd-zfs', partitions)
     data_uuid = data_part["uuid"] if data_part else None
@@ -479,7 +484,7 @@ def generate_disk_cache(dispatcher, path):
     ds_disk = dispatcher.datastore.get_by_id('disks', identifier)
 
     dispatcher.datastore.upsert('disks', identifier, {
-        'id': identifier,
+        'lunid': disk['lunid'],
         'path': disk['path'],
         'mediasize': disk['mediasize'],
         'serial': disk['serial'],
@@ -532,14 +537,14 @@ def _depends():
 def _init(dispatcher, plugin):
     def on_device_attached(args):
         path = args['path']
-        if re.match(r'^/dev/(da|ada)[0-9]+$', path):
+        if re.match(r'^/dev/(da|ada|vtbd)[0-9]+$', path):
             # Regenerate disk cache
             logger.info("New disk attached: {0}".format(path))
             generate_disk_cache(dispatcher, path)
 
     def on_device_detached(args):
         path = args['path']
-        if re.match(r'^/dev/(da|ada)[0-9]+$', path):
+        if re.match(r'^/dev/(da|ada|vtbd)[0-9]+$', path):
             logger.info("Disk %s detached", path)
             purge_disk_cache(dispatcher, path)
 
