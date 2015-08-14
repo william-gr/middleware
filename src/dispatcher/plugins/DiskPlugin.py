@@ -48,7 +48,7 @@ gevent.monkey.patch_subprocess()
 from pySMART import Device
 
 
-EXPIRE_TIMEOUT = timedelta(seconds=24)
+EXPIRE_TIMEOUT = timedelta(hours=24)
 multipaths = -1
 diskinfo_cache = CacheStore()
 logger = logging.getLogger('DiskPlugin')
