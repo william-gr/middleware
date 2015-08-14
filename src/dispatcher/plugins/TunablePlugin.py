@@ -117,10 +117,16 @@ class TunableCreateTask(Task):
                 'operation': 'create',
                 'ids': [pkey]
             })
-        except DatastoreException, e:
+
+            if tunable['enabled']:
+                if tunable['type'] == 'LOADER':
+                    self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create Tunable: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
+        except OSError as e:
+            raise TaskException(errno.ENXIO, 'Failed to set sysctl: {0}'.format(str(e)))
         return pkey
 
 
@@ -164,7 +170,7 @@ class TunableUpdateTask(Task):
             tunable = self.datastore.get_by_id('tunables', id)
             tunable.update(updated_fields)
 
-            if tunable['enabled'] and tunable['type'] == 'SYSCTL':
+            if tunable.get('enabled') and tunable['type'] == 'SYSCTL':
                 sysctl_set(tunable['var'], tunable['value'])
 
             self.datastore.update('tunables', id, tunable)
@@ -172,10 +178,16 @@ class TunableUpdateTask(Task):
                 'operation': 'update',
                 'ids': [id]
             })
-        except DatastoreException, e:
+
+            # Could be enabled and now disabled, so generate either way
+            if tunable['type'] == 'LOADER':
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update Tunable: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
+        except OSError as e:
+            raise TaskException(errno.ENXIO, 'Failed to set sysctl: {0}'.format(str(e)))
 
 
 @description("Deletes Tunable")
@@ -190,15 +202,19 @@ class TunableDeleteTask(Task):
         return ['system']
 
     def run(self, id):
+        tunable = self.datastore.get_by_id('tunables', id)
+
         try:
             self.datastore.delete('tunables', id)
             self.dispatcher.dispatch_event('tunables.changed', {
                 'operation': 'delete',
                 'ids': [id]
             })
-        except DatastoreException, e:
+            if tunable['type'] == 'LOADER':
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete Tunable: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate tunable: {0}'.format(str(e)))
 
 
