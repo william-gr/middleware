@@ -189,7 +189,7 @@ class Balancer(object):
         self.queues = {}
         self.threads = []
         self.logger = logging.getLogger('Balancer')
-        self.dispatcher.require_collection('tasks', 'serial', 'log')
+        self.dispatcher.require_collection('tasks', 'serial', type='log')
         self.create_initial_queues()
         self.distribution_lock = RLock()
 

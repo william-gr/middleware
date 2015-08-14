@@ -69,7 +69,7 @@ class ResourceGraph(object):
 
         if self.get_resource(resource.name):
             self.unlock()
-            raise ResourceError('Resource already exists')
+            raise ResourceError('Resource {0} already exists'.format(resource.name))
 
         self.resources.add_node(resource)
         if not parents:
@@ -115,6 +115,8 @@ class ResourceGraph(object):
             if not node:
                 self.unlock()
                 raise ResourceError('Invalid parent resource {0}'.format(p))
+
+            self.resources.add_edge(node, resource)
 
         self.unlock()
 

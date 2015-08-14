@@ -302,10 +302,10 @@ class Dispatcher(object):
 
         self.configstore = ConfigStore(self.datastore)
         self.logger.info('Connected to datastore')
-        self.require_collection('events', 'serial', 'log')
-        self.require_collection('sessions', 'serial', 'log')
-        self.require_collection('tasks', 'serial', 'log')
-        self.require_collection('logs', 'uuid', 'log')
+        self.require_collection('events', 'serial', type='log')
+        self.require_collection('sessions', 'serial', type='log')
+        self.require_collection('tasks', 'serial', type='log')
+        self.require_collection('logs', 'uuid', type='log')
 
         self.balancer = Balancer(self)
         self.auth = PasswordAuthenticator(self)
@@ -572,17 +572,23 @@ class Dispatcher(object):
     def unregister_schema_definition(self, name):
         self.rpc.unregister_schema_definition(name)
 
-    def require_collection(self, collection, pkey_type='uuid', type='config'):
-        if not self.datastore.collection_exists(collection):
-            self.datastore.collection_create(collection, pkey_type, {'type': type})
+    def require_collection(self, collection, pkey_type='uuid', **kwargs):
+        self.datastore.collection_create(collection, pkey_type, kwargs)
 
     def register_resource(self, res, parents=None):
         self.logger.debug('Resource added: {0}'.format(res.name))
         self.resource_graph.add_resource(res, parents)
 
+    def update_resource(self, name, new_parents):
+        self.logger.debug('Resource updated: {0}, new parents: {1}'.format(name, ', '.join(new_parents)))
+        self.resource_graph.update_resource(name, new_parents)
+
     def unregister_resource(self, name):
         self.logger.debug('Resource removed: {0}'.format(name))
         self.resource_graph.remove_resource(name)
+
+    def resource_exists(self, name):
+        return self.resource_graph.get_resource(name) is not None
 
     def register_hook(self, name):
         if name not in self.hooks:
@@ -1044,7 +1050,6 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 'Tried to logout Websocket Connection and the ' +
                 'following error occured {0}'.format(str(werr)))
 
-
     def call_client_sync(self, method, *args, **kwargs):
         timeout = kwargs.pop('timeout', None)
         event = self.call_client(method, None, *args)
@@ -1105,7 +1110,11 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         trace_log('{0} <- {1}', self.ws.handler.client_address, data)
 
         self.rlock.acquire()
-        self.ws.send(data)
+        try:
+            self.ws.send(data)
+        except WebSocketError, err:
+            self.dispatcher.logger.error('Cannot send message to %s: %s', self.ws.handler.client_address, str(err))
+
         self.rlock.release()
 
 
