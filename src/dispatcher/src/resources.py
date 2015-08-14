@@ -77,6 +77,10 @@ class ResourceGraph(object):
 
         for p in parents:
             node = self.get_resource(p)
+            if not node:
+                self.unlock()
+                raise ResourceError('Invalid parent resource {0}'.format(p))
+
             self.resources.add_edge(node, resource)
 
         self.unlock()
@@ -93,6 +97,25 @@ class ResourceGraph(object):
             self.resources.remove_node(i)
 
         self.resources.remove_node(resource)
+        self.unlock()
+
+    def update_resource(self, name, new_parents):
+        self.lock()
+        resource = self.get_resource(name)
+
+        if not resource:
+            self.unlock()
+            return
+
+        for i in nx.descendants(self.resources, resource):
+            self.resources.remove_node(i)
+
+        for p in new_parents:
+            node = self.get_resource(p)
+            if not node:
+                self.unlock()
+                raise ResourceError('Invalid parent resource {0}'.format(p))
+
         self.unlock()
 
     def get_resource(self, name):
