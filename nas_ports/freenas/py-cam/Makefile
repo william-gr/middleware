@@ -25,6 +25,8 @@ WRKSRC=		/usr/middleware_src/py-cam
 USES=		python:2
 USE_PYTHON=	autoplist distutils
 
+export FREEBSD_SRC=/usr/src
+
 checksum fetch:
 	echo ${.TARGET} not needed because building direct
 
