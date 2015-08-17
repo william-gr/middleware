@@ -245,24 +245,45 @@ class DiskEraseTask(Task):
 @accepts({
     'allOf': [
         {'$ref': 'disk'},
-        {'not': {'required': ['name', 'serial', 'description', 'mediasize']}}
+        {'not': {'required': ['name', 'serial', 'description', 'mediasize', 'status']}}
     ]
 })
 class DiskConfigureTask(Task):
-    def verify(self, name, updated_fields):
-        return [os.path.basename(name)]
+    def verify(self, path, updated_fields):
+        disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
 
-    def run(self, name, updated_fields):
-        disk = self.datastore.query('disks', ('name', '=', name))
-        diskinfo_cache.invalidate(disk)
+        if not disk:
+            raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
+
+        if not self.dispatcher.call_sync('disk.is_online', path):
+            raise VerifyException(errno.EINVAL, 'Cannot configure offline disk')
+
+        return ['disk:{0}'.format(os.path.basename(path)]
+
+    def run(self, path, updated_fields):
+        disk = self.datastore.query('disks', ('path', '=', path))
+        disk.update(updated_fields)
+        self.datastore.update('disks', disk['id'], disk)
+
+        if 'smart' in updated_fields:
+            self.dispatcher.call_sync('service.reload', 'smartd')
 
 
 class DiskDeleteTask(Task):
-    def verify(self, name):
-        pass
+    def verify(self, path):
+        disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
 
-    def run(self, name):
-        pass
+        if not disk:
+            raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
+
+        if self.dispatcher.call_sync('disk.is_online', path):
+            raise VerifyException(errno.EINVAL, 'Cannot delete online disk')
+
+        return ['disk:{0}'.format(os.path.basename(path)]
+
+    def run(self, path):
+        disk = self.datastore.query('disks', ('path', '=', path))
+        self.datastore.delete('disks', disk['id'])
 
 
 def get_twcli(controller):
@@ -668,6 +689,7 @@ def _init(dispatcher, plugin):
             'interface': {'type': 'string'},
             'is_ssd': {'type': 'boolean'},
             'is_multipath': {'type': 'boolean'},
+            'is_encrypted': {'type': 'boolean'},
             'id': {'type': 'string'},
             'schema': {'type': ['string', 'null']},
             'controller': {'type': 'object'},
