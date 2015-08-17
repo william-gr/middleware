@@ -177,6 +177,8 @@ class SystemAdvancedProvider(Provider):
             'consolemsg': False,
             'autotune': cs.get('system.autotune'),
             'debugkernel': cs.get('system.debug.kernel'),
+            'traceback': False,
+            'advancedmode': False,
             'uploadcrash': False,
             'motd': cs.get('system.motd'),
             'boot_scrub_internal': cs.get('system.boot_scrub_internal'),
@@ -259,6 +261,61 @@ class SystemGeneralConfigureTask(Task):
             )
 
         self.dispatcher.dispatch_event('system.general.changed', {
+            'operation': 'update',
+        })
+
+
+@accepts(h.ref('system-advanced'))
+class SystemAdvancedConfigureTask(Task):
+
+    def describe(self):
+        return "System Advanced Settings Configure"
+
+    def verify(self, props):
+        return ['system']
+
+    def run(self, props):
+        cs = self.dispatcher.configstore
+        if 'console_cli' in props:
+            cs.set('system.console.cli', props['console_cli'])
+
+        if 'console_screensaver' in props:
+            cs.set('system.console.screensaver', props['console_screensaver'])
+
+        if 'serial_console' in props:
+            cs.set('system.serial.console', props['serial_console'])
+
+        if 'serial_port' in props:
+            cs.set('system.serial.port', props['serial_port'])
+
+        if 'powerd' in props:
+            cs.set('service.powerd.enable', props['powerd'])
+
+        if 'swapondrive' in props:
+            cs.set('system.swapondrive', props['swapondrive'])
+
+        if 'autotune' in props:
+            cs.set('system.autotune', props['autotune'])
+
+        if 'debugkernel' in props:
+            cs.set('system.debug.kernel', props['debugkernel'])
+
+        if 'motd' in props:
+            cs.set('motd', props['motd'])
+
+        if 'boot_scrub_internal' in props:
+            cs.set('system.boot_scrub_internal', props['boot_scrub_internal'])
+
+        if 'periodic_notify_user' in props:
+            cs.set('system.periodic.notify_user', props['periodic_notify_user'])
+
+        try:
+            pass
+            #self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure system: {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('system.advanced.changed', {
             'operation': 'update',
         })
 
@@ -359,7 +416,7 @@ def _init(dispatcher, plugin):
             'serial_console': {'type': 'boolean'},
             'serial_port': {'type': 'string'},
             'serial_speed': {'type': 'integer'},
-            'powerdaemon': {'type': 'boolean'},
+            'powerd': {'type': 'boolean'},
             'swapondrive': {'type': 'integer'},
             'consolemsg': {'type': 'boolean'},
             'traceback': {'type': 'boolean'},
@@ -418,6 +475,7 @@ def _init(dispatcher, plugin):
     plugin.register_provider("system.ui", SystemUIProvider)
 
     # Register task handlers
+    plugin.register_task_handler("system.advanced.configure", SystemAdvancedConfigureTask)
     plugin.register_task_handler("system.general.configure", SystemGeneralConfigureTask)
     plugin.register_task_handler("system.ui.configure", SystemUIConfigureTask)
     plugin.register_task_handler("system.shutdown", SystemHaltTask)
