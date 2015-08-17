@@ -36,6 +36,7 @@ from gevent.lock import RLock
 from resources import Resource
 from datetime import datetime, timedelta
 from fnutils import first_or_default
+from fnutils.query import wrap
 from cam import CamDevice
 from cache import CacheStore
 from lib.geom import confxml
@@ -65,7 +66,7 @@ class DiskProvider(Provider):
 
             return disk
 
-        return self.datastore.query('disks', *(filter or []), callback=extend, **(params or {}))
+        return wrap(self.datastore.query('disks', callback=extend)).query(*(filter or []), **(params or {}))
 
     @accepts(str)
     @returns(bool)
@@ -242,12 +243,12 @@ class DiskEraseTask(Task):
         return TaskStatus(self.remaining / self.mediasize, 'Erasing disk...')
 
 
-@accepts({
-    'allOf': [
-        {'$ref': 'disk'},
-        {'not': {'required': ['name', 'serial', 'description', 'mediasize', 'status']}}
-    ]
-})
+@accepts(
+    h.all_of(
+        h.ref('disk'),
+        h.no(h.required('name', 'serial', 'description', 'mediasize', 'status'))
+    )
+)
 class DiskConfigureTask(Task):
     def verify(self, path, updated_fields):
         disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
@@ -258,7 +259,7 @@ class DiskConfigureTask(Task):
         if not self.dispatcher.call_sync('disk.is_online', path):
             raise VerifyException(errno.EINVAL, 'Cannot configure offline disk')
 
-        return ['disk:{0}'.format(os.path.basename(path)]
+        return ['disk:{0}'.format(os.path.basename(path))]
 
     def run(self, path, updated_fields):
         disk = self.datastore.query('disks', ('path', '=', path))
@@ -279,7 +280,7 @@ class DiskDeleteTask(Task):
         if self.dispatcher.call_sync('disk.is_online', path):
             raise VerifyException(errno.EINVAL, 'Cannot delete online disk')
 
-        return ['disk:{0}'.format(os.path.basename(path)]
+        return ['disk:{0}'.format(os.path.basename(path))]
 
     def run(self, path):
         disk = self.datastore.query('disks', ('path', '=', path))
