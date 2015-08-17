@@ -739,8 +739,14 @@ def _init(dispatcher, plugin):
 
     plugin.register_event_type('disks.changed')
 
+    # Start with marking all disks as unavailable
+    for i in dispatcher.datastore.query('disks'):
+        i.setdefault('delete_at', datetime.now() + EXPIRE_TIMEOUT)
+        dispatcher.datastore.update('disks', i['id'], i)
+
     # Destroy all existing multipaths
     clean_multipaths(dispatcher)
 
+    # Generate cache for all disks
     for i in dispatcher.rpc.call_sync('system.device.get_devices', 'disk'):
         on_device_attached({'path': i['path']})
