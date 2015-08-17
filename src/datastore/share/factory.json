@@ -741,21 +741,6 @@
   },
   {
     "data": {
-      "8117202A-ED32-430E-A6AF-88B168B1601A": {
-        "rcng": {
-          "rc-scripts": "nullmailer"
-        },
-        "launchd": {
-          "RunAtLoad": true,
-          "ProgramArguments": [
-            "/usr/local/sbin/nullmailer-send"
-          ],
-          "Label": "org.untroubled.nullmailer"
-        },
-        "builtin": false,
-        "etcd-group": "mail",
-        "name": "nullmailer"
-      },
       "858EFB54-F5DC-4207-ACB6-8BA793984794": {
         "rcng": {
           "rc-scripts": "netatalk"
