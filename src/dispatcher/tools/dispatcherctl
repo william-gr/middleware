@@ -164,7 +164,7 @@ def wait_server(server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT):
             c.connect(server)
             c.login_service('dispatcherctl', timeout)
             c.subscribe_events('server.plugin.initialized')
-            c.call_sync('management.wait_ready', timeout)
+            c.call_sync('management.wait_ready', timeout=timeout)
             sys.exit(0)
         except socket.error, err:
             time.sleep(1)
