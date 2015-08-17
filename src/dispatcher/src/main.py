@@ -136,6 +136,7 @@ class Plugin(object):
         try:
             self.module._init(self.dispatcher, self)
             self.state = self.LOADED
+            self.dispatcher.dispatch_event('server.plugin.initialized', {"name": os.path.basename(self.filename)})
         except Exception, err:
             self.dispatcher.logger.exception('Plugin %s exception', self.filename)
             raise RuntimeError('Cannot load plugin {0}: {1}'.format(self.filename, str(err)))

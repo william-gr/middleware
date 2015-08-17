@@ -56,7 +56,7 @@ def call(method, args, server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT, j=False):
             args[idx] = json.loads(i)
 
     try:
-        result = c.call_sync(method, *args, timeout=timeout)
+        result = c.call_sync(method, *args)
     except RpcException, e:
         print('ERROR: {0}'.format(str(e)), file=sys.stderr)
         sys.exit(e.code)
@@ -155,10 +155,16 @@ def poll(task_id, server=DEFAULT_SERVER):
 def wait_server(server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT):
     while timeout > 0:
         try:
+            def callback(name, args):
+                if name == 'server.plugin.initialized':
+                    print('Plugin loaded: {0}'.format(args['name']))
+
             c = Client()
+            c.event_callback = callback
             c.connect(server)
             c.login_service('dispatcherctl', timeout)
-            c.call_sync('management.wait_ready')
+            c.subscribe_events('server.plugin.initialized')
+            c.call_sync('management.wait_ready', timeout)
             sys.exit(0)
         except socket.error, err:
             time.sleep(1)
