@@ -542,7 +542,6 @@
   },
   {
     "data": {
-      "service.nullmailer.enable": false,
       "service.afp.enable": false,
       "service.nfs.enable": false,
       "service.devd.enable": true,
@@ -567,6 +566,8 @@
         "0.0.0.0",
         "[::]"
       ],
+      "service.nginx.enable": true,
+      "service.powerd.enable": false,
       "update.check_auto": true,
       "update.train": "FreeNAS-10-Nightlies",
       "accounts.local_gid_range": [
@@ -590,14 +591,24 @@
         "/usr/local/bin/bash",
         "/usr/local/bin/cli"
       ],
+      "system.autotune": false,
       "system.boot_pool_name": "freenas-boot",
+      "system.boot_scrub_internal": 35,
+      "system.console.cli": true,
+      "system.console.screensaver": false,
       "system.dataset.pool": "freenas-boot",
       "system.dataset.id": null,
       "system.dataset.services": [
         "syslog",
         "fnstatd"
       ],
+      "system.debug.kernel": false,
       "system.language": "en",
+      "system.serial.console": false,
+      "system.serial.port": null,
+      "system.serial.speed": null,
+      "system.swapondrive": 2,
+      "system.periodic.notify_user": 0,
       "mail.from": "",
       "mail.server": "",
       "mail.port": 25,
@@ -612,8 +623,7 @@
       "network.dns.search": [],
       "network.http_proxy": null,
       "network.dhcp.assign_gateway": true,
-      "network.dhcp.assign_dns": true,
-      "service.nginx.enable": true
+      "network.dhcp.assign_dns": true
     },
     "metadata": {
       "attributes": {

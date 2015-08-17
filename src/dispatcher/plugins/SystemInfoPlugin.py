@@ -159,6 +159,31 @@ class SystemGeneralProvider(Provider):
         return result
 
 
+@description("Provides informations about advanced system settings")
+class SystemAdvancedProvider(Provider):
+
+    @accepts()
+    @returns(h.ref('system-advanced'))
+    def get_config(self):
+        cs = self.dispatcher.configstore
+        return {
+            'console_cli': cs.get('system.console.cli'),
+            'console_screensaver': cs.get('system.console.screensaver'),
+            'serial_console': cs.get('system.serial.console'),
+            'serial_port': cs.get('system.serial.port'),
+            'serial_speed': cs.get('system.serial.speed'),
+            'powerd': cs.get('service.powerd.enable'),
+            'swapondrive': cs.get('system.swapondrive'),
+            'consolemsg': False,
+            'autotune': cs.get('system.autotune'),
+            'debugkernel': cs.get('system.debug.kernel'),
+            'uploadcrash': False,
+            'motd': cs.get('system.motd'),
+            'boot_scrub_internal': cs.get('system.boot_scrub_internal'),
+            'periodic_notify_user': cs.get('system.periodic.notify_user'),
+        }
+
+
 @description("Provides informations about UI system settings")
 class SystemUIProvider(Provider):
 
@@ -326,6 +351,29 @@ def _init(dispatcher, plugin):
         })
 
     # Register schemas
+    plugin.register_schema_definition('system-advanced', {
+        'type': 'object',
+        'properties': {
+            'console_cli': {'type': 'boolean'},
+            'console_screensaver': {'type': 'boolean'},
+            'serial_console': {'type': 'boolean'},
+            'serial_port': {'type': 'string'},
+            'serial_speed': {'type': 'integer'},
+            'powerdaemon': {'type': 'boolean'},
+            'swapondrive': {'type': 'integer'},
+            'consolemsg': {'type': 'boolean'},
+            'traceback': {'type': 'boolean'},
+            'advancedmode': {'type': 'boolean'},
+            'autotune': {'type': 'boolean'},
+            'debugkernel': {'type': 'boolean'},
+            'uploadcrash': {'type': 'boolean'},
+            'motd': {'type': 'string'},
+            'boot_scrub_internal': {'type': 'integer'},
+            'periodic_notify_user': {'type': 'integer'},
+        },
+        'additionalProperties': False,
+    })
+
     plugin.register_schema_definition('system-general', {
         'type': 'object',
         'properties': {
@@ -364,6 +412,7 @@ def _init(dispatcher, plugin):
     plugin.register_event_handler('system.hostname.change', on_hostname_change)
 
     # Register providers
+    plugin.register_provider("system.advanced", SystemAdvancedProvider)
     plugin.register_provider("system.general", SystemGeneralProvider)
     plugin.register_provider("system.info", SystemInfoProvider)
     plugin.register_provider("system.ui", SystemUIProvider)
