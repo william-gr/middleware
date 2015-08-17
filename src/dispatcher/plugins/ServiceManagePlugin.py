@@ -145,11 +145,14 @@ class ServiceInfoProvider(Provider):
     @accepts(str)
     def reload(self, service):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
+        status = self.query([('name', '=', service)], {'single': True})
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
         rc_scripts = svc['rcng']['rc-scripts']
-        self.ensure_started(service)
+
+        if status['state'] != 'running':
+            return
 
         try:
             if type(rc_scripts) is unicode:
@@ -165,10 +168,14 @@ class ServiceInfoProvider(Provider):
     @accepts(str)
     def restart(self, service):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
+        status = self.query([('name', '=', service)], {'single': True})
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
         rc_scripts = svc['rcng']['rc-scripts']
+
+        if status['state'] != 'running':
+            return
 
         try:
             if type(rc_scripts) is unicode:
