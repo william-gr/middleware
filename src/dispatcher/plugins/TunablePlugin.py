@@ -121,6 +121,8 @@ class TunableCreateTask(Task):
             if tunable['enabled']:
                 if tunable['type'] == 'LOADER':
                     self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+                elif tunable['type'] == 'RC':
+                    self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create Tunable: {0}'.format(str(e)))
         except RpcException as e:
@@ -182,6 +184,8 @@ class TunableUpdateTask(Task):
             # Could be enabled and now disabled, so generate either way
             if tunable['type'] == 'LOADER':
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+            elif tunable['type'] == 'RC':
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update Tunable: {0}'.format(str(e)))
         except RpcException as e:
@@ -212,6 +216,8 @@ class TunableDeleteTask(Task):
             })
             if tunable['type'] == 'LOADER':
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+            elif tunable['type'] == 'RC':
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete Tunable: {0}'.format(str(e)))
         except RpcException as e:
