@@ -42,11 +42,12 @@ def run(context):
     autotune.main([
         '--kernel-reserved=1073741824',
         '--userland-reserved=2417483648',
-        '--conf', 'sysctl',
+        '--conf=sysctl',
     ])
 
+    autotune = imp.load_source('autotune', '/usr/local/bin/autotune')
     autotune.main([
         '--kernel-reserved=1073741824',
         '--userland-reserved=2417483648',
-        '--conf', 'loader',
+        '--conf=loader',
     ])
