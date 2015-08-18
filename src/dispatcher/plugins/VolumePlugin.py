@@ -62,7 +62,9 @@ class VolumeProvider(Provider):
                 for vdev, _ in iterate_vdevs(topology):
                     try:
                         vdev['path'] = self.dispatcher.call_sync(
-                            'disks.partition_to_disk', vdev['path'])
+                            'disks.partition_to_disk',
+                            vdev['path']
+                        )
                     except RpcException, err:
                         if err.code == errno.ENOENT:
                             pass
@@ -94,7 +96,9 @@ class VolumeProvider(Provider):
             for vdev, _ in iterate_vdevs(topology):
                 try:
                     vdev['path'] = self.dispatcher.call_sync(
-                        'disks.partition_to_disk', vdev['path'])
+                        'disks.partition_to_disk',
+                        vdev['path']
+                    )
                 except RpcException:
                     pass
 
@@ -175,10 +179,8 @@ class VolumeProvider(Provider):
     def get_available_disks(self):
         disks = set([d['path'] for d in self.dispatcher.call_sync('disks.query')])
         for pool in self.dispatcher.call_sync('zfs.pool.query'):
-            for dev in self.dispatcher.call_sync('zfs.pool.get_disks',
-                                                 pool['name']):
-                disk = self.dispatcher.call_sync('disks.partition_to_disk',
-                                                 dev)
+            for dev in self.dispatcher.call_sync('zfs.pool.get_disks', pool['name']):
+                disk = self.dispatcher.call_sync('disks.partition_to_disk', dev)
                 disks.remove(disk)
 
         return list(disks)
@@ -191,9 +193,11 @@ class VolumeProvider(Provider):
     @accepts(str)
     @returns(h.ref('$zfs-pool'))
     def get_config(self, volume):
-        return self.dispatcher.call_sync('zfs.pool.query',
-                                         [('name', '=', volume)],
-                                         {'single': True})
+        return self.dispatcher.call_sync(
+            'zfs.pool.query',
+            [('name', '=', volume)],
+            {'single': True}
+        )
 
     @description("Describes the various capacibilities of a Volumes given" +
                  "What type of Volume it is (example call it with 'zfs'")
@@ -211,8 +215,7 @@ class VolumeProvider(Provider):
 class VolumeCreateTask(ProgressTask):
     def verify(self, volume):
         if self.datastore.exists('volumes', ('name', '=', volume['name'])):
-            raise VerifyException(errno.EEXIST,
-                                  'Volume with same name already exists')
+            raise VerifyException(errno.EEXIST, 'Volume with same name already exists')
 
         return ['disk:{0}'.format(i) for i, _ in get_disks(volume['topology'])]
 
@@ -385,21 +388,21 @@ class VolumeImportTask(Task):
         if self.datastore.exists('volumes', ('id', '=', id)):
             raise VerifyException(
                 errno.ENOENT,
-                'Volume with id {0} already exists'.format(id))
+                'Volume with id {0} already exists'.format(id)
+            )
 
         if self.datastore.exists('volumes', ('name', '=', new_name)):
             raise VerifyException(
                 errno.ENOENT,
-                'Volume with name {0} already exists'.format(new_name))
+                'Volume with name {0} already exists'.format(new_name)
+            )
 
         return self.verify_subtask('zfs.pool.import', id)
 
     def run(self, id, new_name, params=None):
         mountpoint = os.path.join(VOLUMES_ROOT, new_name)
-        self.join_subtasks(self.run_subtask('zfs.pool.import', id,
-                                            new_name, params))
-        self.join_subtasks(self.run_subtask('zfs.configure', new_name,
-                                            {'mountpoint': mountpoint}))
+        self.join_subtasks(self.run_subtask('zfs.pool.import', id, new_name, params))
+        self.join_subtasks(self.run_subtask('zfs.configure', new_name, {'mountpoint': mountpoint}))
         self.join_subtasks(self.run_subtask('zfs.mount', new_name))
 
         new_id = self.datastore.insert('volumes', {
@@ -442,14 +445,12 @@ class VolumeDetachTask(Task):
 class DatasetCreateTask(Task):
     def verify(self, pool_name, path, params=None):
         if not self.datastore.exists('volumes', ('name', '=', pool_name)):
-            raise VerifyException(errno.ENOENT,
-                                  'Volume {0} not found'.format(pool_name))
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(pool_name))
 
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, params=None):
-        self.join_subtasks(self.run_subtask('zfs.create_dataset', pool_name,
-                                            path, params))
+        self.join_subtasks(self.run_subtask('zfs.create_dataset', pool_name, path, params))
         self.join_subtasks(self.run_subtask('zfs.mount', path))
 
 
@@ -458,8 +459,7 @@ class DatasetCreateTask(Task):
 class DatasetDeleteTask(Task):
     def verify(self, pool_name, path):
         if not self.datastore.exists('volumes', ('name', '=', pool_name)):
-            raise VerifyException(errno.ENOENT,
-                                  'Volume {0} not found'.format(pool_name))
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(pool_name))
 
         return ['zpool:{0}'.format(pool_name)]
 
@@ -473,12 +473,34 @@ class DatasetDeleteTask(Task):
 class DatasetConfigureTask(Task):
     def verify(self, pool_name, path, updated_params):
         if not self.datastore.exists('volumes', ('name', '=', pool_name)):
-            raise VerifyException(errno.ENOENT,
-                                  'Volume {0} not found'.format(pool_name))
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(pool_name))
 
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, updated_params):
+        if 'properties' in updated_params:
+            self.join_subtasks(self.run_subtask('zfs.configure', path, updated_params['properties']))
+
+        if 'share_type' in updated_params:
+            self.join_subtasks(self.run_subtask('zfs.configure', path, {
+                'freenas:share_type': updated_params['share_type']
+            }))
+
+
+class SnapshotCreateTask(Task):
+    def verify(self, dataset_name, snapshot_name, recursive=False):
+        return ['zfs:{0}'.format(dataset_name)]
+
+    def run(self, dataset_name, snapshot_name, recursive=False):
+        pass
+
+
+class SnapshotDeleteTask(Task):
+    def verify(self, snapshot_name):
+        ds, snap = snapshot_name.split('@')
+        return ['zfs:{0}'.format(ds)]
+
+    def run(self, snapshot_name):
         pass
 
 
@@ -501,7 +523,7 @@ def get_disks(topology):
 
 def get_disk_gptid(dispatcher, disk):
     config = dispatcher.call_sync('disks.get_disk_config', disk)
-    return config.get('data-partition-path', disk)
+    return config.get('data_partition_path', disk)
 
 
 def convert_topology_to_gptids(dispatcher, topology):
@@ -528,9 +550,11 @@ def _init(dispatcher, plugin):
 
         if args['operation'] == 'create':
             for i in args['ids']:
-                pool = dispatcher.call_sync('zfs.pool.query',
-                                            [('guid', '=', i)],
-                                            {'single': True})
+                pool = dispatcher.call_sync(
+                    'zfs.pool.query',
+                    [('guid', '=', i)],
+                    {'single': True}
+                )
                 with volumes_lock:
                     try:
                         dispatcher.datastore.insert('volumes', {
@@ -562,6 +586,22 @@ def _init(dispatcher, plugin):
         }
     })
 
+    plugin.register_schema_definition('dataset', {
+        'type': 'object',
+        'properties': {
+            'name': {'type': 'string'},
+            'type': {
+                'type': 'string',
+                'enum': ['FILESYSTEM', 'VOLUME']
+            },
+            'properties': {'type': 'object'},
+            'share_type': {
+                'type': 'string',
+                'enum': ['UNIX', 'MAC', 'WINDOWS']
+            }
+        }
+    })
+
     dispatcher.require_collection('volumes')
     plugin.register_provider('volumes', VolumeProvider)
     plugin.register_task_handler('volume.create', VolumeCreateTask)
@@ -573,6 +613,8 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('volume.dataset.create', DatasetCreateTask)
     plugin.register_task_handler('volume.dataset.delete', DatasetDeleteTask)
     plugin.register_task_handler('volume.dataset.update', DatasetConfigureTask)
+    plugin.register_task_handler('volume.snapshot.create', SnapshotCreateTask)
+    plugin.register_task_handler('volume.snapshot.delete', SnapshotDeleteTask)
 
     plugin.register_hook('volumes.pre-destroy')
     plugin.register_hook('volumes.pre-detach')
@@ -584,3 +626,7 @@ def _init(dispatcher, plugin):
 
     for vol in dispatcher.datastore.query('volumes'):
         dispatcher.call_task_sync('zfs.mount', vol['name'], True)
+
+    # TODO:
+    # Scan for sentinel files indicating share type and convert them
+    # to zfs user properties
