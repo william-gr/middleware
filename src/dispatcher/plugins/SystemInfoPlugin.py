@@ -290,10 +290,12 @@ class SystemAdvancedConfigureTask(Task):
         try:
             cs = self.dispatcher.configstore
 
+            console = False
             loader = False
 
             if 'console_cli' in props:
                 cs.set('system.console.cli', props['console_cli'])
+                console = True
 
             if 'console_screensaver' in props:
                 cs.set('system.console.screensaver', props['console_screensaver'])
@@ -301,14 +303,17 @@ class SystemAdvancedConfigureTask(Task):
             if 'serial_console' in props:
                 cs.set('system.serial.console', props['serial_console'])
                 loader = True
+                console = True
 
             if 'serial_port' in props:
                 cs.set('system.serial.port', props['serial_port'])
                 loader = True
+                console = True
 
             if 'serial_speed' in props:
                 cs.set('system.serial.speed', props['serial_speed'])
                 loader = True
+                console = True
 
             if 'powerd' in props:
                 cs.set('service.powerd.enable', props['powerd'])
@@ -334,6 +339,8 @@ class SystemAdvancedConfigureTask(Task):
             if 'periodic_notify_user' in props:
                 cs.set('system.periodic.notify_user', props['periodic_notify_user'])
 
+            if console:
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'console')
             if loader:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
         except DatastoreException, e:
