@@ -298,27 +298,28 @@ def get_twcli(controller):
     return units
 
 
-def device_to_identifier(doc, name, serial=None):
+def device_to_identifier(name, serial=None):
+    gdisk = geom.geom_by_name('DISK', name)
+    if not gdisk:
+        return None
+
+    if 'lunid' in gdisk.provider.config:
+        return "lunid:{0}".format(gdisk.provider.config['lunid'])
+
     if serial:
         return "serial:{0}".format(serial)
 
-    search = doc.xpath("//class[name = 'PART']/..//*[name = '{0}']//config[type = 'freebsd-zfs']/rawuuid".format(name))
-    if len(search) > 0:
-        return "uuid:{0}".format(search[0].text)
+    gpart = geom.geom_by_name('PART', name)
+    if gpart:
+        for i in gpart.providers:
+            if i.config['type'] in ('freebsd-zfs', 'freebsd-ufs'):
+                return "uuid:{0}".format(i.config['rawuuid'])
 
-    search = doc.xpath("//class[name = 'PART']/geom/..//*[name = '{0}']//config[type = 'freebsd-ufs']/rawuuid".format(name))
-    if len(search) > 0:
-        return "uuid:{0}".format(search[0].text)
+    glabel = geom.geom_by_name('LABEL', name)
+    if glabel and glabel.provider:
+        return "label:{0}".format(glabel.provider.name)
 
-    search = doc.xpath("//class[name = 'LABEL']/geom[name = '{0}']/provider/name".format(name))
-    if len(search) > 0:
-        return "label:{0}".format(search[0].text)
-
-    search = doc.xpath("//class[name = 'DEV']/geom[name = '{0}']".format(name))
-    if len(search) > 0:
-        return "devicename:{0}".format(name)
-
-    return ''
+    return "devicename:{0}".format(os.path.join('/dev', name))
 
 
 def info_from_device(devname):
@@ -355,14 +356,14 @@ def get_disk_by_path(path):
             return disk
 
         if disk['is_multipath']:
-            if path in disk['multipath_members']:
+            if path in disk['multipath.members']:
                 return disk
 
     return None
 
 
 def get_disk_by_lunid(lunid):
-    return first_or_default(lambda d: d['lunid'] == lunid, diskinfo_cache.validvalues())
+    return wrap(first_or_default(lambda d: d['lunid'] == lunid, diskinfo_cache.validvalues()))
 
 
 def clean_multipaths(dispatcher):
@@ -396,32 +397,45 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
         logger.info('Reusing %s path', nodename)
 
         # Degenerated single-disk multipath
-        dispatcher.exec_and_wait_for_event(
-            'system.device.attached',
-            lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
-            lambda: system('/sbin/gmultipath', 'create', nodename, path)
-        )
+        try:
+            dispatcher.exec_and_wait_for_event(
+                'system.device.attached',
+                lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
+                lambda: system('/sbin/gmultipath', 'create', nodename, path)
+            )
+        except SubprocessException, e:
+            logger.warning('Cannot create multipath: {0}'.format(e.err))
+            return
 
         ret = {
             'is_multipath': True,
-            'multipath_node': nodename,
-            'multipath_members': [path],
-            'path': os.path.join('/dev/multipath', nodename)
+            'path': os.path.join('/dev/multipath', nodename),
+            'multipath': {
+                'node': nodename,
+                'members': [path]
+            }
         }
     elif disk:
         logger.info("Device node %s is another path to disk <%s> (%s)", path, disk['id'], disk['description'])
         if disk['is_multipath']:
-            if path in disk['multipath_members']:
+            if path in disk['multipath.members']:
                 # Already added
                 return
 
             # Attach new disk
-            system('/sbin/gmultipath', 'add', disk['multipath_node'], path)
+            try:
+                system('/sbin/gmultipath', 'add', disk['multipath.node'], path)
+            except SubprocessException, e:
+                logger.warning('Cannot attach {0} to multipath: {0}'.format(path, e.err))
+                return
+
             ret = {
                 'is_multipath': True,
-                'multipath_node': disk['multipath_node'],
-                'multipath_members': disk['multipath_members'] + [path],
-                'path': os.path.join('/dev/multipath', disk['multipath_node'])
+                'path': os.path.join('/dev/multipath', disk['multipath.node']),
+                'multipath': {
+                    'node': disk['multipath.node'],
+                    'members': disk['multipath.members'] + [path],
+                }
             }
         else:
             # Create new multipath
@@ -436,22 +450,32 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
                 nodename = get_multipath_name()
                 logger.info('Using new %s path', nodename)
 
-            dispatcher.exec_and_wait_for_event(
-                'system.device.attached',
-                lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
-                lambda: system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
-            )
+            try:
+                dispatcher.exec_and_wait_for_event(
+                    'system.device.attached',
+                    lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
+                    lambda: system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
+                )
+            except SubprocessException, e:
+                logger.warning('Cannot create multipath: {0}'.format(e.err))
+                return
+
             ret = {
                 'is_multipath': True,
-                'multipath_node': nodename,
-                'multipath_members': [disk['path'], path],
-                'path': os.path.join('/dev/multipath', nodename)
+                'path': os.path.join('/dev/multipath', nodename),
+                'multipath': {
+                    'node': nodename,
+                    'members': [disk['path'], path],
+                }
             }
 
     return ret
 
 
 def generate_partitions_list(gpart):
+    if not gpart:
+        return
+
     for p in gpart.providers:
         paths = [os.path.join("/dev", p.name)]
         label = p.config['label']
@@ -497,8 +521,8 @@ def update_disk_cache(dispatcher, path):
     serial = disk_info['serial']
 
     provider = gdisk.provider
-    partitions = list()
-    identifier = device_to_identifier(confxml(), name, serial)
+    partitions = list(generate_partitions_list(gpart))
+    identifier = device_to_identifier(name, serial)
     data_part = first_or_default(lambda x: x['type'] == 'freebsd-zfs', partitions)
     data_uuid = data_part["uuid"] if data_part else None
     swap_part = first_or_default(lambda x: x['type'] == 'freebsd-swap', partitions)
@@ -520,6 +544,11 @@ def update_disk_cache(dispatcher, path):
         'swap_partition_path': os.path.join("/dev/gptid", swap_uuid) if swap_uuid else None,
     })
 
+    if gmultipath:
+        disk['multipath.status'] = gmultipath.config['State']
+        disk['multipath.mode'] = gmultipath.config['Mode']
+        disk['multipath.uuid'] = gmultipath.config['UUID']
+
     # Purge old cache entry if identifier has changed
     if old_id != identifier:
         logger.debug('Removing disk cache entry for <%s> because identifier changed', old_id)
@@ -538,7 +567,7 @@ def generate_disk_cache(dispatcher, path):
 
     disk_info = info_from_device(gdisk.name)
     serial = disk_info['serial']
-    identifier = device_to_identifier(confxml(), name, serial)
+    identifier = device_to_identifier(name, serial)
     ds_disk = dispatcher.datastore.get_by_id('disks', identifier)
 
     # Path repesents disk device (not multipath device) and has NAA ID attached
@@ -552,7 +581,7 @@ def generate_disk_cache(dispatcher, path):
     provider = gdisk.provider
     camdev = CamDevice(gdisk.name)
 
-    disk = {
+    disk = wrap({
         'path': path,
         'is_multipath': False,
         'description': provider.config['descr'],
@@ -563,7 +592,7 @@ def generate_disk_cache(dispatcher, path):
         'is_ssd': disk_info['is_ssd'],
         'id': identifier,
         'controller': camdev.__getstate__(),
-    }
+    })
 
     if multipath_info:
         disk.update(multipath_info)
@@ -586,10 +615,10 @@ def purge_disk_cache(dispatcher, path):
     if disk['is_multipath']:
         # Looks like one path was removed
         logger.info('Path %s to disk <%s> (%s) was removed', path, disk['id'], disk['description'])
-        disk['multipath_members'].remove(path)
+        disk['multipath.members'].remove(path)
 
         # Was this last path?
-        if len(disk['multipath_members']) == 0:
+        if len(disk['multipath.members']) == 0:
             logger.info('Disk %s <%s> (%s) was removed (last path is gone)', path, disk['id'], disk['description'])
             diskinfo_cache.remove(disk['id'])
             delete = True
@@ -667,9 +696,12 @@ def _init(dispatcher, plugin):
             'mediasize': {'type': 'integer'},
             'smart': {'type': 'boolean'},
             'smart_options': {'type': 'string'},
-            'standby_mode': {'type': 'string'},
-            'acoustic_level': {'type': 'string'},
-            'apm_mode': {'type': 'string'},
+            'standby_mode': {'type': ['integer', 'null']},
+            'apm_mode': {'type': ['integer', 'null']},
+            'acoustic_level': {
+                'type': 'string',
+                'enum': ['DISABLED', 'MINIMUM', 'MEDIUM', 'MAXIMUM']
+            },
             'status': {'$ref': 'disk-status'},
         }
     })
@@ -698,10 +730,16 @@ def _init(dispatcher, plugin):
                 'type': 'array',
                 'items': {'$ref': 'disk-partition'}
             },
-            'multipath_node': {'type': 'string'},
-            'multipath_members': {
-                'type': 'aray',
-                'items': 'string'
+            'multipath': {
+                'type': 'object',
+                'properties': {
+                    'status': {'type': 'string'},
+                    'node': {'type': 'string'},
+                    'members': {
+                        'type': 'aray',
+                        'items': 'string'
+                    },
+                }
             },
             'data_partition_uuid': {'type': 'string'},
             'data_partition_path': {'type': 'string'},
