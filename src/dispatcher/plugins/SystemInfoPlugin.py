@@ -33,6 +33,7 @@ import re
 import time
 import netif
 
+from datastore import DatastoreException
 from datetime import datetime
 from dateutil import tz
 from dispatcher.rpc import (
@@ -46,7 +47,8 @@ from lib.system import system, system_bg
 from lib.freebsd import get_sysctl
 from task import Provider, Task, TaskException
 
-sys.path.append('/usr/local/lib')
+if '/usr/local/lib' not in sys.path:
+    sys.path.append('/usr/local/lib')
 from freenasOS import Configuration
 
 KEYMAPS_INDEX = "/usr/share/syscons/keymaps/INDEX.keymaps"
@@ -275,43 +277,57 @@ class SystemAdvancedConfigureTask(Task):
         return ['system']
 
     def run(self, props):
-        cs = self.dispatcher.configstore
-        if 'console_cli' in props:
-            cs.set('system.console.cli', props['console_cli'])
-
-        if 'console_screensaver' in props:
-            cs.set('system.console.screensaver', props['console_screensaver'])
-
-        if 'serial_console' in props:
-            cs.set('system.serial.console', props['serial_console'])
-
-        if 'serial_port' in props:
-            cs.set('system.serial.port', props['serial_port'])
-
-        if 'powerd' in props:
-            cs.set('service.powerd.enable', props['powerd'])
-
-        if 'swapondrive' in props:
-            cs.set('system.swapondrive', props['swapondrive'])
-
-        if 'autotune' in props:
-            cs.set('system.autotune', props['autotune'])
-
-        if 'debugkernel' in props:
-            cs.set('system.debug.kernel', props['debugkernel'])
-
-        if 'motd' in props:
-            cs.set('motd', props['motd'])
-
-        if 'boot_scrub_internal' in props:
-            cs.set('system.boot_scrub_internal', props['boot_scrub_internal'])
-
-        if 'periodic_notify_user' in props:
-            cs.set('system.periodic.notify_user', props['periodic_notify_user'])
-
         try:
-            pass
-            #self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
+            cs = self.dispatcher.configstore
+
+            loader = False
+
+            if 'console_cli' in props:
+                cs.set('system.console.cli', props['console_cli'])
+
+            if 'console_screensaver' in props:
+                cs.set('system.console.screensaver', props['console_screensaver'])
+
+            if 'serial_console' in props:
+                cs.set('system.serial.console', props['serial_console'])
+                loader = True
+
+            if 'serial_port' in props:
+                cs.set('system.serial.port', props['serial_port'])
+                loader = True
+
+            if 'serial_speed' in props:
+                cs.set('system.serial.speed', props['serial_speed'])
+                loader = True
+
+            if 'powerd' in props:
+                cs.set('service.powerd.enable', props['powerd'])
+
+            if 'swapondrive' in props:
+                cs.set('system.swapondrive', props['swapondrive'])
+
+            if 'autotune' in props:
+                cs.set('system.autotune', props['autotune'])
+                loader = True
+
+            if 'debugkernel' in props:
+                cs.set('system.debug.kernel', props['debugkernel'])
+                loader = True
+
+            if 'motd' in props:
+                cs.set('motd', props['motd'])
+                self.dispatcher.call_sync('etcd.generation.generate_file', 'motd')
+
+            if 'boot_scrub_internal' in props:
+                cs.set('system.boot_scrub_internal', props['boot_scrub_internal'])
+
+            if 'periodic_notify_user' in props:
+                cs.set('system.periodic.notify_user', props['periodic_notify_user'])
+
+            if loader:
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+        except DatastoreException, e:
+            raise TaskException(errno.EBADMSG, 'Cannot configure system advanced: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure system: {0}'.format(str(e)))
 
