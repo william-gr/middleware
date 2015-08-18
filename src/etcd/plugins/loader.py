@@ -25,21 +25,7 @@
 #
 #####################################################################
 import os
-import sys
 import subprocess
-
-if '/usr/local/www' not in sys.path:
-    sys.path.append('/usr/local/www')
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'freenasUI.settings')
-if 'DJANGO_LOGGING_DISABLE' not in os.environ:
-    os.environ['DJANGO_LOGGING_DISABLE'] = 'true'
-
-# Make sure to load all modules
-from django.db.models.loading import cache
-cache.get_apps()
-
-from freenasUI.system.models import Advanced
 
 LOADER_CONF = '/boot/loader.conf.local'
 FIRST_INSTALL_SENTINEL = '/data/first-boot'
@@ -48,15 +34,16 @@ FIRST_INSTALL_SENTINEL = '/data/first-boot'
 def generate_loader_conf(context):
 
     output = []
-    advanced = Advanced.objects.order_by('-id')[0]
-    if advanced.adv_serialconsole:
+
+    config = context.client.call_sync('system.advanced.get_config')
+    if config['serial_console']:
         output.extend([
-            'comconsole_port="{0}"'.format(advanced.adv_serialport),
-            'comconsole_speed="{0}"'.format(advanced.adv_serialspeed),
+            'comconsole_port="{0}"'.format(config['serial_port']),
+            'comconsole_speed="{0}"'.format(config['serial_speed']),
             'boot_multicons="YES"',
             'console="comconsole,vidconsole"',
         ])
-    if advanced.adv_debugkernel:
+    if config['debugkernel']:
         output.extend([
             'kernel="kernel-debug"',
             'module_path="/boot/kernel-debug;/boot/modules;/usr/local/modules"',
