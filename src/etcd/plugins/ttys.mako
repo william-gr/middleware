@@ -54,7 +54,7 @@ console	none				unknown	off secure
 % if adv.get('console_cli'):
 ttyv0	"/usr/libexec/getty cli"	cons25	on  secure
 ttyv1	"/usr/libexec/getty freenas"	cons25	on  secure
-% else
+% else:
 ttyv0	"/usr/libexec/getty Pc"		cons25	on  secure
 ttyv1	"/usr/libexec/getty Pc"		cons25	on  secure
 % endif
@@ -70,7 +70,7 @@ ttyv8	"/usr/local/bin/xdm -nodaemon"	xterm	off secure
 # The 'dialup' keyword identifies dialin lines to login, fingerd etc.
 % if adv.get('console_cli'):
 sercons	"/usr/libexec/getty freenas_serial${adv.get('serial_speed')}"	vt100	${serial} secure
-% else
+% else:
 sercons	"/usr/libexec/getty std.${adv.get('serial_speed')}"	vt100	${serial} secure
 % endif
 ttyu0	"/usr/libexec/getty std.9600"	dialup	off secure
