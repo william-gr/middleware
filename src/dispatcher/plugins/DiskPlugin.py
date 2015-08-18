@@ -256,7 +256,7 @@ class DiskConfigureTask(Task):
         if not disk:
             raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
 
-        if not self.dispatcher.call_sync('disk.is_online', path):
+        if not self.dispatcher.call_sync('disks.is_online', path):
             raise VerifyException(errno.EINVAL, 'Cannot configure offline disk')
 
         return ['disk:{0}'.format(os.path.basename(path))]
@@ -277,7 +277,7 @@ class DiskDeleteTask(Task):
         if not disk:
             raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
 
-        if self.dispatcher.call_sync('disk.is_online', path):
+        if self.dispatcher.call_sync('disks.is_online', path):
             raise VerifyException(errno.EINVAL, 'Cannot delete online disk')
 
         return ['disk:{0}'.format(os.path.basename(path))]
@@ -730,12 +730,12 @@ def _init(dispatcher, plugin):
     plugin.register_event_handler('system.device.attached', on_device_attached)
     plugin.register_event_handler('system.device.detached', on_device_detached)
     plugin.register_event_handler('system.device.mediachange', on_device_mediachange)
-    plugin.register_task_handler('disk.erase', DiskEraseTask)
-    plugin.register_task_handler('disk.format.gpt', DiskGPTFormatTask)
-    plugin.register_task_handler('disk.format.boot', DiskBootFormatTask)
-    plugin.register_task_handler('disk.install_bootloader', DiskInstallBootloaderTask)
-    plugin.register_task_handler('disk.configure', DiskConfigureTask)
-    plugin.register_task_handler('disk.delete', DiskDeleteTask)
+    plugin.register_task_handler('disks.erase', DiskEraseTask)
+    plugin.register_task_handler('disks.format.gpt', DiskGPTFormatTask)
+    plugin.register_task_handler('disks.format.boot', DiskBootFormatTask)
+    plugin.register_task_handler('disks.install_bootloader', DiskInstallBootloaderTask)
+    plugin.register_task_handler('disks.configure', DiskConfigureTask)
+    plugin.register_task_handler('disks.delete', DiskDeleteTask)
 
     plugin.register_event_type('disks.changed')
 

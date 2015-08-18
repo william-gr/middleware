@@ -221,14 +221,16 @@ class VolumeCreateTask(ProgressTask):
         name = volume['name']
         type = volume['type']
         params = volume.get('params') or {}
-        mountpoint = params.pop('mountpoint', os.path.join(VOLUMES_ROOT,
-                                volume['name']))
+        mountpoint = params.pop(
+            'mountpoint',
+            os.path.join(VOLUMES_ROOT, volume['name'])
+        )
 
         if type != 'zfs':
             raise TaskException(errno.EINVAL, 'Invalid volume type')
 
         for dname, dgroup in get_disks(volume['topology']):
-            subtasks.append(self.run_subtask('disk.format.gpt', dname, 'freebsd-zfs', {
+            subtasks.append(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
                 'blocksize': params.get('blocksize', 4096),
                 'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
             }))
@@ -238,11 +240,15 @@ class VolumeCreateTask(ProgressTask):
         self.set_progress(40)
 
         with volumes_lock:
-            self.join_subtasks(self.run_subtask('zfs.pool.create',
-                                                name,
-                                                convert_topology_to_gptids(
-                                                    self.dispatcher,
-                                                    volume['topology'])))
+            self.join_subtasks(self.run_subtask(
+                'zfs.pool.create',
+                name,
+                convert_topology_to_gptids(
+                    self.dispatcher,
+                    volume['topology']
+                )
+
+            ))
             self.set_progress(60)
             self.join_subtasks(self.run_subtask('zfs.mount', name))
             self.set_progress(80)
@@ -356,7 +362,7 @@ class VolumeUpdateTask(Task):
 
             for vdev, group in iterate_vdevs(new_vdevs):
                 if vdev['type'] == 'disk':
-                    subtasks.append(self.run_subtask('disk.format.gpt', vdev['path'], 'freebsd-zfs', {
+                    subtasks.append(self.run_subtask('disks.format.gpt', vdev['path'], 'freebsd-zfs', {
                         'blocksize': params.get('blocksize', 4096),
                         'swapsize': params.get('swapsize', 2048) if group == 'data' else 0
                     }))
@@ -364,8 +370,12 @@ class VolumeUpdateTask(Task):
             self.join_subtasks(*subtasks)
 
             new_vdevs = convert_topology_to_gptids(self.dispatcher, new_vdevs)
-            self.join_subtasks(self.run_subtask('zfs.pool.extend', name,
-                                                new_vdevs, updated_vdevs))
+            self.join_subtasks(self.run_subtask(
+                'zfs.pool.extend',
+                name,
+                new_vdevs,
+                updated_vdevs)
+            )
 
 
 @description("Imports previously exported volume")

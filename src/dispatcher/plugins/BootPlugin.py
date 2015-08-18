@@ -109,7 +109,7 @@ class BootAttachDisk(ProgressTask):
 
     def run(self, guid, disk):
         # Format disk
-        self.join_subtasks(self.run_subtask('disk.format.boot', disk))
+        self.join_subtasks(self.run_subtask('disks.format.boot', disk))
         self.set_progress(30)
 
         # Attach disk to the pool
@@ -124,7 +124,7 @@ class BootAttachDisk(ProgressTask):
         self.set_progress(80)
 
         # Install grub
-        self.join_subtasks(self.run_subtask('disk.install_bootloader', disk))
+        self.join_subtasks(self.run_subtask('disks.install_bootloader', disk))
         self.set_progress(100)
 
 
