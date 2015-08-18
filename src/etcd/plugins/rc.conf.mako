@@ -1,3 +1,6 @@
+<%
+    adv_config = dispatcher.call_sync('system.advanced.get_config')
+%>\
 hostname="${config.get("system.hostname")}"
 local_startup="/usr/local/etc/rc.d"
 early_late_divider="*"
@@ -29,3 +32,7 @@ performance_cpu_freq="HIGH"
 ${ctl['var']}="${ctl['value']}"
 % endif
 % endfor
+
+% if adv_config.get('console_screensaver'):
+saver="daemon"
+% endif
