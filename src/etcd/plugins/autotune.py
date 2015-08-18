@@ -44,3 +44,9 @@ def run(context):
         '--userland-reserved=2417483648',
         '--conf', 'sysctl',
     ])
+
+    autotune.main([
+        '--kernel-reserved=1073741824',
+        '--userland-reserved=2417483648',
+        '--conf', 'loader',
+    ])
