@@ -187,6 +187,16 @@ class SystemAdvancedProvider(Provider):
             'periodic_notify_user': cs.get('system.periodic.notify_user'),
         }
 
+    @description('Returns array of serial port address')
+    @accepts()
+    @returns(h.array(str))
+    def serial_ports(self):
+        return filter(
+            lambda y: bool(y),
+            system(
+                "/usr/sbin/devinfo -u | grep uart | grep 0x | cut -d- -f 1 | awk '{print $1}'",
+                shell=True)[0].strip('\n').split('\n'))
+
 
 @description("Provides informations about UI system settings")
 class SystemUIProvider(Provider):
