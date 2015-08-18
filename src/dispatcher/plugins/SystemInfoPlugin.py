@@ -43,7 +43,7 @@ from dispatcher.rpc import (
     description,
     returns
 )
-from lib.system import system, system_bg
+from lib.system import SubprocessException, system, system_bg
 from lib.freebsd import get_sysctl
 from task import Provider, Task, TaskException
 
@@ -292,13 +292,26 @@ class SystemAdvancedConfigureTask(Task):
 
             console = False
             loader = False
+            rc = False
 
             if 'console_cli' in props:
                 cs.set('system.console.cli', props['console_cli'])
                 console = True
 
+
             if 'console_screensaver' in props:
                 cs.set('system.console.screensaver', props['console_screensaver'])
+                if props['console_screensaver']:
+                    try:
+                        system('kldload', 'daemon_saver')
+                    except SubprocessException:
+                        pass
+                else:
+                    try:
+                        system('kldunload', 'daemon_saver')
+                    except SubprocessException:
+                        pass
+                rc = True
 
             if 'serial_console' in props:
                 cs.set('system.serial.console', props['serial_console'])
@@ -323,6 +336,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'autotune' in props:
                 cs.set('system.autotune', props['autotune'])
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
                 loader = True
 
             if 'debugkernel' in props:
@@ -343,6 +357,8 @@ class SystemAdvancedConfigureTask(Task):
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'console')
             if loader:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
+            if rc:
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot configure system advanced: {0}'.format(str(e)))
         except RpcException, e:
