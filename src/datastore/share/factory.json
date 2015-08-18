@@ -650,6 +650,13 @@
         ],
         "name": "samba"
       },
+      "8EF44832-9132-49B4-BF59-7318FEBF4728": {
+        "dependencies": [
+          "file:ttys",
+          "plugin:devicehints"
+        ],
+        "name": "console"
+      },
       "9199AEF2-590B-4145-99A4-CABB7D00FFA5": {
         "dependencies": [
           "file:local/afp.conf"
