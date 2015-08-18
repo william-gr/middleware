@@ -243,7 +243,9 @@ class DiskEraseTask(Task):
         return TaskStatus(self.remaining / self.mediasize, 'Erasing disk...')
 
 
+@description("Configures online disk parameters")
 @accepts(
+    str,
     h.all_of(
         h.ref('disk'),
         h.no(h.required('name', 'serial', 'description', 'mediasize', 'status'))
@@ -270,6 +272,8 @@ class DiskConfigureTask(Task):
             self.dispatcher.call_sync('service.reload', 'smartd')
 
 
+@description("Deletes offline disk configuration from database")
+@accepts(str)
 class DiskDeleteTask(Task):
     def verify(self, path):
         disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
