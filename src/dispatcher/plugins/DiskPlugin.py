@@ -92,7 +92,7 @@ class DiskProvider(Provider):
 
     @accepts(str)
     def get_disk_config(self, name):
-        disk = diskinfo_cache.get(name)
+        disk = get_disk_by_path(name)
         if not disk:
             raise RpcException(errno.ENOENT, "Disk {0} not found".format(name))
 
@@ -116,7 +116,7 @@ class DiskGPTFormatTask(Task):
         return "Formatting disk {0}".format(os.path.basename(disk))
 
     def verify(self, disk, fstype, params=None):
-        if not diskinfo_cache.exists(disk):
+        if not get_disk_by_path(disk):
             raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
 
         if fstype not in ['freebsd-zfs']:
@@ -158,7 +158,7 @@ class DiskBootFormatTask(Task):
         return "Formatting bootable disk {0}".format(disk)
 
     def verify(self, disk):
-        if not diskinfo_cache.exists(disk):
+        if not get_disk_by_path(disk):
             raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
 
         return ['disk:{0}'.format(disk)]
@@ -184,7 +184,7 @@ class DiskInstallBootloaderTask(Task):
         return "Installing bootloader on disk {0}".format(disk)
 
     def verify(self, disk):
-        if not diskinfo_cache.exists(disk):
+        if not get_disk_by_path(disk):
             raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
 
         return ['disk:{0}'.format(disk)]
@@ -206,7 +206,7 @@ class DiskEraseTask(Task):
         self.remaining = 0
 
     def verify(self, disk, erase_data=False):
-        if not diskinfo_cache.exists(disk):
+        if not get_disk_by_path(disk):
             raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
 
         return ['disk:{0}'.format(disk)]
@@ -215,7 +215,7 @@ class DiskEraseTask(Task):
         try:
             system('/sbin/zpool', 'labelclear', '-f', disk)
             generate_disk_cache(self.dispatcher, disk)
-            if (self.dispatcher.call_sync("disks.get_disk_config", disk)['partitions']):
+            if self.dispatcher.call_sync("disks.get_disk_config", disk)['partitions']:
                 system('/sbin/gpart', 'destroy', '-F', disk)
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot erase disk: {0}'.format(err.err))
