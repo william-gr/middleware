@@ -40,3 +40,7 @@ saver="daemon"
 % if adv_config.get('uploadcrash'):
 ix_diagnose_enable="YES"
 % endif
+
+% if adv_config.get('powerd'):
+powerd_enable="YES"
+% endif
