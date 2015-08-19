@@ -675,9 +675,11 @@ def _init(dispatcher, plugin):
             path = os.path.join(vol['mountpoint'], *ds_name)
 
             if os.path.exists(os.path.join(path, '.windows')):
+                os.unlink(os.path.join(path, '.windows'))
                 share_type = 'WINDOWS'
 
             if os.path.exists(os.path.join(path, '.apple')):
+                os.unlink(os.path.join(path, '.apple'))
                 share_type = 'MAC'
 
             if share_type:
