@@ -34,6 +34,8 @@ from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from utils import first_or_default
 from datastore import DuplicateKeyException
+from fnutils import include
+from fnutils.query import wrap
 
 
 VOLUMES_ROOT = '/volumes'
@@ -53,6 +55,24 @@ def flatten_datasets(root):
 class VolumeProvider(Provider):
     @query('volume')
     def query(self, filter=None, params=None):
+        def extend_dataset(ds):
+            ds = wrap(ds)
+            return {
+                'name': ds['name'],
+                'type': ds['type'],
+                'properties': include(
+                    ds['properties'],
+                    'compression',
+                    'atime',
+                    'dedup',
+                    'quota',
+                    'refquota',
+                    'resevation',
+                    'refreservation'
+                ),
+                'share_type': ds.get('properties.freenas:share_type.value')
+            }
+
         def extend(vol):
             config = self.get_config(vol['name'])
             if not config:
@@ -73,7 +93,7 @@ class VolumeProvider(Provider):
                 vol['status'] = config['status']
                 vol['scan'] = config['scan']
                 vol['properties'] = config['properties']
-                vol['datasets'] = list(flatten_datasets(config['root_dataset']))
+                vol['datasets'] = map(extend_dataset, flatten_datasets(config['root_dataset']))
 
             return vol
 
@@ -252,12 +272,18 @@ class VolumeCreateTask(ProgressTask):
                 )
 
             ))
+
+            self.join_subtasks(self.run_subtask(
+                'zfs.configure',
+                name, name,
+                {'freenas:share_type': 'UNIX'}
+            ))
+
             self.set_progress(60)
             self.join_subtasks(self.run_subtask('zfs.mount', name))
             self.set_progress(80)
 
-            pool = self.dispatcher.call_sync('zfs.pool.query',
-                                             [('name', '=', name)]).pop()
+            pool = self.dispatcher.call_sync('zfs.pool.query', [('name', '=', name)]).pop()
             id = self.datastore.insert('volumes', {
                 'id': str(pool['guid']),
                 'name': name,
@@ -344,8 +370,7 @@ class VolumeDestroyTask(Task):
 class VolumeUpdateTask(Task):
     def verify(self, name, updated_params):
         topology = updated_params.get('topology')
-        return ['disk:{0}'.format(i) for i, _ in get_disks(self.dispatcher,
-                                                           topology)]
+        return ['disk:{0}'.format(i) for i, _ in get_disks(self.dispatcher, topology)]
 
     def run(self, name, updated_params):
         if 'topology' in updated_params:
@@ -479,10 +504,10 @@ class DatasetConfigureTask(Task):
 
     def run(self, pool_name, path, updated_params):
         if 'properties' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', path, updated_params['properties']))
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, updated_params['properties']))
 
         if 'share_type' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', path, {
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
                 'freenas:share_type': updated_params['share_type']
             }))
 
