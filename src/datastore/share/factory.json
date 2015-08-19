@@ -987,7 +987,7 @@
         "type": "persistent"
       },
       "migration": "keep",
-      "pkey-type": "native",
+      "pkey-type": "uuid",
       "name": "ntpservers"
     }
   }
