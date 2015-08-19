@@ -548,9 +548,16 @@ class ZfsDatasetCreateTask(Task):
 
     def run(self, pool_name, path, type, params=None):
         try:
+            params = params or {}
+            sparse = False
+
+            if params.get('sparse'):
+                sparse = True
+                del params['sparse']
+
             zfs = libzfs.ZFS()
             pool = zfs.get(pool_name)
-            pool.create(path, params, fstype=self.type)
+            pool.create(path, params, fstype=self.type, sparse_vol=sparse)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
