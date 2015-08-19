@@ -663,6 +663,24 @@ def _init(dispatcher, plugin):
     for vol in dispatcher.datastore.query('volumes'):
         dispatcher.call_task_sync('zfs.mount', vol['name'], True)
 
-    # TODO:
     # Scan for sentinel files indicating share type and convert them
     # to zfs user properties
+    for vol in dispatcher.datastore.query('volumes'):
+        if vol['status'] != 'ONLINE':
+            continue
+
+        for ds in vol['datasets']:
+            share_type = None
+            ds_name = ds['name'].split('/')[1:]
+            path = os.path.join(vol['mountpoint'], *ds_name)
+
+            if os.path.exists(os.path.join(path, '.windows')):
+                share_type = 'WINDOWS'
+
+            if os.path.exists(os.path.join(path, '.apple')):
+                share_type = 'MAC'
+
+            if share_type:
+                dispatcher.call_task_sync('zfs.configure', vol['name'], ds['name'], {
+                    'freenas:share_type': {'value': share_type}
+                })
