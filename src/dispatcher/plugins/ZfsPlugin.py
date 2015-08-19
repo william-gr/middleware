@@ -1000,6 +1000,18 @@ def _init(dispatcher, plugin):
         'enum': ['FILESYSTEM', 'VOLUME']
     })
 
+    plugin.register_schema_definition('zfs-property', {
+        'type': 'object',
+        'properties': {
+            'source': {
+                'type': 'string',
+                'enum': ['NONE', 'DEFAULT', 'LOCAL', 'INHERITED', 'RECEIVED']
+            },
+            'value': {'type': 'string'},
+            'rawvalue': {'type': 'string'}
+        }
+    })
+
     plugin.register_schema_definition('zfs-pool', {
         'type': 'object',
         'properties': {
