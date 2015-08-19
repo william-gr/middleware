@@ -41,6 +41,10 @@ def exclude(d, *keys):
     return {k: v for k, v in d.items() if k not in keys}
 
 
+def include(d, *keys):
+    return {k: v for k, v in d.items() if k in keys}
+
+
 def extend(d, d2):
     ret = copy.copy(d)
     ret.update(d2)
