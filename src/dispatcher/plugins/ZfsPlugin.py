@@ -588,9 +588,12 @@ class ZfsConfigureTask(ZfsBaseTask):
             dataset = zfs.get_dataset(name)
             for k, v in properties.items():
                 if k in dataset.properties:
-                    dataset.properties[k].value = v
+                    if v['value'] is None:
+                        dataset.properties[k].inherit()
+                    else:
+                        dataset.properties[k].value = v['value']
                 else:
-                    prop = libzfs.ZFSUserProperty(v)
+                    prop = libzfs.ZFSUserProperty(v['value'])
                     dataset.properties[k] = prop
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
