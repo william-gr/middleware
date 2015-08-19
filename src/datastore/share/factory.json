@@ -707,6 +707,12 @@
         ],
         "name": "sshd"
       },
+      "B9A0629D-2A0B-461D-A3D7-68CAA1D80590": {
+        "dependencies": [
+          "file:periodic.conf"
+        ],
+        "name": "periodic"
+      },
       "BCCBFE9D-6E31-47AD-94B4-591B27737EBC": {
         "dependencies": [
           "plugin:loader"
