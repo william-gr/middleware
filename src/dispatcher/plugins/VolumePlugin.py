@@ -67,7 +67,7 @@ class VolumeProvider(Provider):
                     'dedup',
                     'quota',
                     'refquota',
-                    'resevation',
+                    'reservation',
                     'refreservation'
                 ),
                 'share_type': ds.get('properties.freenas:share_type.value')
