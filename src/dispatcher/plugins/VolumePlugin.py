@@ -662,7 +662,7 @@ def _init(dispatcher, plugin):
 
     # Scan for sentinel files indicating share type and convert them
     # to zfs user properties
-    for vol in dispatcher.datastore.query('volumes'):
+    for vol in dispatcher.call_sync('volumes.query'):
         if vol['status'] != 'ONLINE':
             continue
 
