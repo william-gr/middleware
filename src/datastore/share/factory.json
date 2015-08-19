@@ -633,6 +633,7 @@
       "system.serial.speed": null,
       "system.swapondrive": 2,
       "system.periodic.notify_user": 0,
+      "system.upload_crash": true,
       "mail.from": "",
       "mail.server": "",
       "mail.port": 25,

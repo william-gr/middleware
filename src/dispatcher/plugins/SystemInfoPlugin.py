@@ -178,7 +178,7 @@ class SystemAdvancedProvider(Provider):
             'swapondrive': cs.get('system.swapondrive'),
             'autotune': cs.get('system.autotune'),
             'debugkernel': cs.get('system.debug.kernel'),
-            'uploadcrash': False,
+            'uploadcrash': cs.get('system.upload_crash'),
             'motd': cs.get('system.motd'),
             'boot_scrub_internal': cs.get('system.boot_scrub_internal'),
             'periodic_notify_user': cs.get('system.periodic.notify_user'),
@@ -295,7 +295,6 @@ class SystemAdvancedConfigureTask(Task):
                 cs.set('system.console.cli', props['console_cli'])
                 console = True
 
-
             if 'console_screensaver' in props:
                 cs.set('system.console.screensaver', props['console_screensaver'])
                 if props['console_screensaver']:
@@ -339,6 +338,10 @@ class SystemAdvancedConfigureTask(Task):
             if 'debugkernel' in props:
                 cs.set('system.debug.kernel', props['debugkernel'])
                 loader = True
+
+            if 'uploadcrash' in props:
+                cs.set('system.upload_crash', props['uploadcrash'])
+                rc = True
 
             if 'motd' in props:
                 cs.set('motd', props['motd'])

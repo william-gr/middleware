@@ -36,3 +36,7 @@ ${ctl['var']}="${ctl['value']}"
 % if adv_config.get('console_screensaver'):
 saver="daemon"
 % endif
+
+% if adv_config.get('uploadcrash'):
+ix_diagnose_enable="YES"
+% endif
