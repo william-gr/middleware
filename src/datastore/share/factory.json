@@ -853,6 +853,14 @@
         "pidfile": "/var/run/nginx.pid",
         "name": "nginx"
       },
+      "69E1F6EF-8171-47C0-BB5F-22F3C8CCE517": {
+        "rcng": {
+          "rc-scripts": "powerd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/powerd.pid",
+        "name": "powerd"
+      },
       "77C47B78-9BF3-4BA7-AA76-8CB99A8DA4A3": {
         "rcng": {
           "rc-scripts": [
