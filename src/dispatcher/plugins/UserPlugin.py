@@ -205,6 +205,7 @@ class UserCreateTask(Task):
             user['shell'] = user.get('shell', '/bin/sh')
             user['home'] = user.get('home', os.path.join('/home', user['username']))
             user.setdefault('groups', [])
+            user.setdefault('attributes', {})
 
             password = user.pop('password', None)
             if password:
