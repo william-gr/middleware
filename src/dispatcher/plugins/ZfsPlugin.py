@@ -127,7 +127,7 @@ class ZpoolProvider(Provider):
             raise RpcException(errno.EFAULT, str(err))
 
 
-class ZfsProvider(Provider):
+class ZfsDatasetProvider(Provider):
     @query('zfs-dataset')
     def query(self, filter=None, params=None):
         try:
@@ -136,6 +136,12 @@ class ZfsProvider(Provider):
             return wrap(result).query(*(filter or []), **(params or {}))
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
+
+
+class ZfsSnapshotProvider(Provider):
+    @query('zfs-snapshot')
+    def query(self, filter=None, params=None):
+        pass
 
 
 @description("Scrubs ZFS pool")
@@ -499,7 +505,7 @@ class ZfsBaseTask(Task):
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
-        return ['system']
+        return ['zpool:{0}'.format(dataset.pool.name)]
 
 
 @accepts(str, bool)
@@ -530,6 +536,9 @@ class ZfsDatasetUmountTask(ZfsBaseTask):
 @accepts(str, str, h.object())
 class ZfsDatasetCreateTask(Task):
     def verify(self, pool_name, path, params=None):
+        if not pool_exists(pool_name):
+            raise VerifyException('Pool {0} not found'.format(pool_name))
+
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, params=None):
@@ -540,14 +549,13 @@ class ZfsDatasetCreateTask(Task):
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
-        # self.dispatcher.register_resource(
-        #     Resource('zfs:{0}'.format(path)),
-        #     parents=['zpool:{0}'.format(pool_name)])
-
 
 @accepts(str, str, int, h.object())
 class ZfsVolumeCreateTask(Task):
     def verify(self, pool_name, path, size, params=None):
+        if not pool_exists(pool_name):
+            raise VerifyException('Pool {0} not found'.format(pool_name))
+
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, size, params=None):
@@ -558,60 +566,52 @@ class ZfsVolumeCreateTask(Task):
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
-        # self.dispatcher.register_resource(
-        #     Resource('zfs:{0}'.format(path)),
-        #     parents=['zpool:{0}'.format(pool_name)])
 
-
-class ZfsSnapshotCreateTask(Task):
-    def verify(self, pool_name, path, size, params=None):
-        return ['zpool:{0}'.format(pool_name)]
-
-    def run(self, pool_name, path, size, params=None):
+class ZfsSnapshotCreateTask(ZfsBaseTask):
+    def run(self, pool_name, path, snapshot_name, recursive=False):
         try:
             zfs = libzfs.ZFS()
-            pool = zfs.get(pool_name)
-            pool.create(path, params)
+            ds = zfs.get_dataset(path)
+            ds.snapshot(snapshot_name, {})
+
+            if recursive:
+                for child_ds in ds.children_recursive:
+                    child_ds.snapshot(snapshot_name, {})
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
-
-        # self.dispatcher.register_resource(
-        #     Resource('zfs:{0}'.format(path)),
-        #     parents=['zpool:{0}'.format(pool_name)])
 
 
 class ZfsConfigureTask(ZfsBaseTask):
-    def verify(self, name, properties):
-        super(ZfsConfigureTask, self).verify(name)
-
-    def run(self, name, properties):
+    def run(self, pool_name, name, properties):
         try:
             zfs = libzfs.ZFS()
             dataset = zfs.get_dataset(name)
             for k, v in properties.items():
-                dataset.properties[k].value = v
+                if k in dataset.properties:
+                    dataset.properties[k].value = v
+                else:
+                    prop = libzfs.ZFSUserProperty(v)
+                    dataset.properties[k] = prop
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
 
 class ZfsDestroyTask(ZfsBaseTask):
-    def run(self, path):
+    def run(self, name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(path)
+            dataset = zfs.get_dataset(name)
             dataset.delete()
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
-        # self.dispatcher.unregister_resource('zfs:{0}'.format(path))
-
 
 class ZfsRenameTask(ZfsBaseTask):
-    def run(self, path):
+    def run(self, name, new_name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(path)
-            dataset.delete()
+            dataset = zfs.get_dataset(name)
+            dataset.rename(new_name)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
@@ -650,6 +650,14 @@ def convert_topology(zfs, topology):
             nvroot[group].append(vdev)
 
     return nvroot
+
+
+def pool_exists(pool):
+    try:
+        zfs = libzfs.ZFS()
+        return zfs.get(pool) is not None
+    except libzfs.ZFSException:
+        return False
 
 
 def get_disk_names(dispatcher, pool):
@@ -1022,7 +1030,8 @@ def _init(dispatcher, plugin):
 
     # Register Providers
     plugin.register_provider('zfs.pool', ZpoolProvider)
-    plugin.register_provider('zfs', ZfsProvider)
+    plugin.register_provider('zfs.dataset', ZfsDatasetProvider)
+    plugin.register_provider('zfs.snapshot', ZfsSnapshotProvider)
 
     # Register Task Handlers
     plugin.register_task_handler('zfs.pool.create', ZpoolCreateTask)
