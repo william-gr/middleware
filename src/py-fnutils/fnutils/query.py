@@ -239,6 +239,9 @@ class QueryDict(dict):
             return super(QueryDict, self).__setitem__(key, value)
 
         left, sep, right = key.partition('.')
+        if left not in self:
+            self[left] = {}
+
         self[left][right] = value
 
     def __contains__(self, item):
