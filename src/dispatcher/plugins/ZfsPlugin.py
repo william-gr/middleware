@@ -535,34 +535,22 @@ class ZfsDatasetUmountTask(ZfsBaseTask):
 
 @accepts(str, str, h.object())
 class ZfsDatasetCreateTask(Task):
-    def verify(self, pool_name, path, params=None):
+    def verify(self, pool_name, path, type, params=None):
         if not pool_exists(pool_name):
             raise VerifyException('Pool {0} not found'.format(pool_name))
 
-        return ['zpool:{0}'.format(pool_name)]
-
-    def run(self, pool_name, path, params=None):
         try:
-            zfs = libzfs.ZFS()
-            pool = zfs.get(pool_name)
-            pool.create(path, params)
-        except libzfs.ZFSException, err:
-            raise TaskException(errno.EFAULT, str(err))
-
-
-@accepts(str, str, int, h.object())
-class ZfsVolumeCreateTask(Task):
-    def verify(self, pool_name, path, size, params=None):
-        if not pool_exists(pool_name):
-            raise VerifyException('Pool {0} not found'.format(pool_name))
+            self.type = getattr(libzfs.DatasetType, type)
+        except AttributeError:
+            raise VerifyException(errno.EINVAL, 'Invalid dataset type: {0}'.format(type))
 
         return ['zpool:{0}'.format(pool_name)]
 
-    def run(self, pool_name, path, size, params=None):
+    def run(self, pool_name, path, type, params=None):
         try:
             zfs = libzfs.ZFS()
             pool = zfs.get(pool_name)
-            pool.create(path, params)
+            pool.create(path, params, fstype=self.type)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
@@ -991,16 +979,18 @@ def _init(dispatcher, plugin):
         'properties': {
             'name': {'type': 'string'},
             'pool': {'type': 'string'},
-            'type': {
-                'type': 'string',
-                'enum': ['filesystem', 'volume', 'snapshot']
-            },
+            'type': {'$ref': 'dataset-type'},
             'properties': {'$ref': 'zfs-datasetproperties'},
             'children': {
                 'type': 'array',
                 'items': {'$ref': 'zfs-dataset'},
             },
         }
+    })
+
+    plugin.register_schema_definition('dataset-type', {
+        'type': 'string',
+        'enum': ['FILESYSTEM', 'VOLUME']
     })
 
     plugin.register_schema_definition('zfs-pool', {
@@ -1054,7 +1044,6 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.umount', ZfsDatasetUmountTask)
     plugin.register_task_handler('zfs.create_dataset', ZfsDatasetCreateTask)
     plugin.register_task_handler('zfs.create_snapshot', ZfsSnapshotCreateTask)
-    plugin.register_task_handler('zfs.create_zvol', ZfsVolumeCreateTask)
     plugin.register_task_handler('zfs.configure', ZfsConfigureTask)
     plugin.register_task_handler('zfs.destroy', ZfsDestroyTask)
     plugin.register_task_handler('zfs.rename', ZfsRenameTask)
