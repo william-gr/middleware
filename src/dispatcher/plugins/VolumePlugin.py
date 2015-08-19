@@ -62,14 +62,9 @@ class VolumeProvider(Provider):
                 'type': ds['type'],
                 'properties': include(
                     ds['properties'],
-                    'compression',
-                    'atime',
-                    'dedup',
-                    'quota',
-                    'refquota',
-                    'reservation',
-                    'refreservation',
-                    'casesensitivity'
+                    'used', 'available', 'compression', 'atime', 'dedup',
+                    'quota', 'refquota', 'reservation', 'refreservation',
+                    'casesensitivity', 'volsize', 'volblocksize',
                 ),
                 'share_type': ds.get('properties.freenas:share_type.value')
             }
@@ -466,26 +461,28 @@ class VolumeDetachTask(Task):
         })
 
 
-@description("Creates a Dataset in an existing Volume")
-@accepts(str, str, h.object())
+@description("Creates a dataset in an existing volume")
+@accepts(str, str, h.ref('dataset-type'), h.object())
 class DatasetCreateTask(Task):
-    def verify(self, pool_name, path, params=None):
+    def verify(self, pool_name, path, type, params=None):
         if not self.datastore.exists('volumes', ('name', '=', pool_name)):
             raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(pool_name))
 
         return ['zpool:{0}'.format(pool_name)]
 
-    def run(self, pool_name, path, params=None):
+    def run(self, pool_name, path,type, params=None):
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
             pool_name,
             path,
-            {k: v['value'] for k, v in params['properties'].items()}
+            type,
+            {k: v['value'] for k, v in params['properties'].items()} if params else {}
         ))
 
-        self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-            'freenas:share_type': {'value': params['share_type']}
-        }))
+        if params and 'share_type' in params:
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
+                'freenas:share_type': {'value': params['share_type']}
+            }))
 
         self.join_subtasks(self.run_subtask('zfs.mount', path))
 
