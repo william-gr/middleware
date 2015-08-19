@@ -352,6 +352,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'periodic_notify_user' in props:
                 cs.set('system.periodic.notify_user', props['periodic_notify_user'])
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'periodic')
 
             if console:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'console')
