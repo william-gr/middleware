@@ -508,7 +508,7 @@ class DatasetConfigureTask(Task):
 
         if 'share_type' in updated_params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-                'freenas:share_type': updated_params['share_type']
+                'freenas:share_type': {'value': updated_params['share_type']}
             }))
 
 
