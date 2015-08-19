@@ -476,7 +476,17 @@ class DatasetCreateTask(Task):
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, params=None):
-        self.join_subtasks(self.run_subtask('zfs.create_dataset', pool_name, path, params))
+        self.join_subtasks(self.run_subtask(
+            'zfs.create_dataset',
+            pool_name,
+            path,
+            {k: v['value'] for k, v in params['properties'].items()}
+        ))
+
+        self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
+            'freenas:share_type': {'value': params['share_type']}
+        }))
+
         self.join_subtasks(self.run_subtask('zfs.mount', path))
 
 
