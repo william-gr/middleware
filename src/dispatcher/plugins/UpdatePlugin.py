@@ -503,7 +503,7 @@ class UpdateApplyTask(ProgressTask):
                 'the Updates) is already in the queue, please retry later'
             ))
 
-        return [update_resource_string]
+        return ['root']
 
     def update_progress(self, progress, message):
         if message:
