@@ -96,7 +96,7 @@ class VolumeProvider(Provider):
                             pass
 
                 vol.update({
-                    'description': config['properties.org\\.freenas:description.value'],
+                    'description': config.get('properties.org\\.freenas:description.value'),
                     'topology': topology,
                     'status': config['status'],
                     'upgraded': is_upgraded(config),
