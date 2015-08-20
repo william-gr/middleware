@@ -540,7 +540,6 @@ class UpdateApplyTask(ProgressTask):
             )
         handler.finished = True
         handler.emit_update_details()
-        self.run_subtask('system.reboot')
         self.message = "Updates Finished Installing Successfully"
         self.set_progress(100)
 
