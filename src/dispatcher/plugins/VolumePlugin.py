@@ -55,6 +55,16 @@ def flatten_datasets(root):
 class VolumeProvider(Provider):
     @query('volume')
     def query(self, filter=None, params=None):
+        def is_upgraded(pool):
+            if pool['properties.version.value'] != '-':
+                return False
+
+            for feat in pool['features']:
+                if feat['state'] == 'DISABLED':
+                    return False
+
+            return True
+
         def extend_dataset(ds):
             ds = wrap(ds)
             return {
@@ -70,7 +80,7 @@ class VolumeProvider(Provider):
             }
 
         def extend(vol):
-            config = self.get_config(vol['name'])
+            config = wrap(self.get_config(vol['name']))
             if not config:
                 vol['status'] = 'UNKNOWN'
             else:
@@ -85,11 +95,15 @@ class VolumeProvider(Provider):
                         if err.code == errno.ENOENT:
                             pass
 
-                vol['topology'] = topology
-                vol['status'] = config['status']
-                vol['scan'] = config['scan']
-                vol['properties'] = config['properties']
-                vol['datasets'] = map(extend_dataset, flatten_datasets(config['root_dataset']))
+                vol.update({
+                    'description': config['properties.org.freenas:description.value'],
+                    'topology': topology,
+                    'status': config['status'],
+                    'upgraded': is_upgraded(config),
+                    'scan': config['scan'],
+                    'properties': config['properties'],
+                    'datasets': map(extend_dataset, flatten_datasets(config['root_dataset']))
+                })
 
             return vol
 
