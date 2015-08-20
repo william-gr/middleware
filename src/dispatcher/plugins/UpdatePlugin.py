@@ -582,7 +582,7 @@ def _init(dispatcher, plugin):
             'previous_version': {'type': 'string'},
             'operation': {
                 'type': 'string',
-                'enum': ['upgrade', 'install']
+                'enum': ['delete', 'install', 'upgrade']
             },
             'new_version': {'type': 'string'},
             'previous_name': {'type': 'string'},
