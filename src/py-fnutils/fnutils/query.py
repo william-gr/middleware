@@ -105,6 +105,13 @@ def matches(obj, *rules):
     return not fail
 
 
+def partition(s):
+    return map(
+        lambda r: r.replace(r'\.', '.'),
+        re.split(r'(?<!\\)\.', s, maxsplit=1)
+    )
+
+
 def wrap(obj):
     if hasattr(obj, '__getstate__'):
         obj = obj.__getstate__()
@@ -226,7 +233,7 @@ class QueryDict(dict):
         if '.' not in item:
             return super(QueryDict, self).__getitem__(item)
 
-        left, sep, right = item.partition('.')
+        left, right = partition(item)
         return super(QueryDict, self).__getitem__(left)[right]
 
     def __setitem__(self, key, value):
@@ -238,7 +245,7 @@ class QueryDict(dict):
         if '.' not in key:
             return super(QueryDict, self).__setitem__(key, value)
 
-        left, sep, right = key.partition('.')
+        left, right = partition(key)
         if left not in self:
             self[left] = {}
 
@@ -251,7 +258,7 @@ class QueryDict(dict):
         if '.' not in item:
             return super(QueryDict, self).__contains__(item)
 
-        left, sep, right = item.partition('.')
+        left, right = partition(item)
         tmp = self.get(left)
 
         if not tmp:
