@@ -113,12 +113,18 @@ class CheckUpdateHandler(object):
 def check_updates(dispatcher, cache_dir=None, check_now=False):
     "Utility function to just check for Updates"
     update_cache.invalidate('updateAvailable')
+    update_cache.invalidate('updateNotes')
+    update_cache.invalidate('updateNotice')
     update_cache.invalidate('updateOperations')
     update_cache.invalidate('changelog')
+
     conf = Configuration.Configuration()
     update_ops = None
     handler = CheckUpdateHandler()
     train = dispatcher.configstore.get('update.train')
+    notes = None
+    notice = None
+
     try:
         update = CheckForUpdates(
             handler=handler.call,
@@ -127,6 +133,8 @@ def check_updates(dispatcher, cache_dir=None, check_now=False):
         )
     except Exception:
         update_cache.put('updateAvailable', False)
+        update_cache.put('updateNotes', None)
+        update_cache.put('updateNotice', None)
         update_cache.put('updateOperations', update_ops)
         update_cache.put('changelog', '')
         raise
@@ -140,13 +148,17 @@ def check_updates(dispatcher, cache_dir=None, check_now=False):
         else:
             sequence = ''
         changelog = get_changelog(train, cache_dir=cache_dir, start=sequence, end=update.Sequence())
+        notes = update.Notes()
+        notice = update.Notice()
     else:
         logger.debug("No update available")
         changelog = None
-    logger.debug("updateavailable set %r", True if update else False)
+
     update_cache.put('updateAvailable', True if update else False)
     update_cache.put('updateOperations', update_ops)
     update_cache.put('changelog', changelog)
+    update_cache.put('updateNotes', notes)
+    update_cache.put('updateNotice', notice)
 
 
 class UpdateHandler(object):
@@ -261,8 +273,7 @@ class UpdateProvider(Provider):
     @accepts()
     @returns(str)
     def is_update_available(self):
-        temp_updateAvailable = update_cache.get('updateAvailable', timeout=2)
-        logger.error("tmp %r", temp_updateAvailable)
+        temp_updateAvailable = update_cache.get('updateAvailable', timeout=1)
         if temp_updateAvailable is not None:
             return temp_updateAvailable
         elif update_cache.is_valid('updateAvailable'):
@@ -300,6 +311,31 @@ class UpdateProvider(Provider):
                 'Update Operations Dict is invalidated, an Update Check '
                 'might be underway. Try again in some time.'
             ))
+
+    @accepts()
+    @returns(h.any_of(
+        h.ref('update-info'),
+        None,
+    ))
+    def get_update_info(self):
+        if not update_cache.is_valid('updateAvailable'):
+            raise RpcException(errno.EBUSY, (
+                'Update Availability flag is invalidated, an Update Check'
+                ' might be underway. Try again in some time.'
+            ))
+        updateAvailable = update_cache.get('updateAvailable', timeout=1)
+        if updateAvailable is None:
+            return None
+        updateOperations = update_cache.get('updateOperations', timeout=1)
+        updateNotes = update_cache.get('updateNotes', timeout=1)
+        updateNotice = update_cache.get('updateNotice', timeout=1)
+        changelog = update_cache.get('changelog', timeout=1)
+        return {
+            'changelog': changelog,
+            'notes': updateNotes,
+            'notice': updateNotice,
+            'operations': updateOperations,
+        }
 
     @accepts()
     @returns(str)
@@ -550,6 +586,16 @@ def _init(dispatcher, plugin):
             },
             'new_version': {'type': 'string'},
             'previous_name': {'type': 'string'},
+        }
+    })
+
+    plugin.register_schema_definition('update-info', {
+        'type': 'object',
+        'properties': {
+            'notes': {'type': 'object'},
+            'notice': {'type': 'string'},
+            'changelog': {'type': 'string'},
+            'operations': {'$ref': 'update-ops'},
         }
     })
 
