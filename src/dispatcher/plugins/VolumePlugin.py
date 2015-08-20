@@ -76,7 +76,7 @@ class VolumeProvider(Provider):
                     'quota', 'refquota', 'reservation', 'refreservation',
                     'casesensitivity', 'volsize', 'volblocksize',
                 ),
-                'share_type': ds.get('properties.freenas:share_type.value')
+                'share_type': ds.get('properties.org\\.freenas:share_type.value')
             }
 
         def extend(vol):
@@ -96,7 +96,7 @@ class VolumeProvider(Provider):
                             pass
 
                 vol.update({
-                    'description': config['properties.org.freenas:description.value'],
+                    'description': config['properties.org\\.freenas:description.value'],
                     'topology': topology,
                     'status': config['status'],
                     'upgraded': is_upgraded(config),
@@ -286,7 +286,7 @@ class VolumeCreateTask(ProgressTask):
             self.join_subtasks(self.run_subtask(
                 'zfs.configure',
                 name, name,
-                {'freenas:share_type': 'UNIX'}
+                {'org.freenas:share_type': 'UNIX'}
             ))
 
             self.set_progress(60)
@@ -458,8 +458,7 @@ class VolumeImportTask(Task):
 class VolumeDetachTask(Task):
     def verify(self, name):
         if not self.datastore.exists('volumes', ('name', '=', name)):
-            raise VerifyException(errno.ENOENT,
-                                  'Volume {0} not found'.format(name))
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(name))
 
         return ['disk:{0}'.format(d) for d in self.dispatcher.call_sync('volumes.get_volume_disks', name)]
 
@@ -473,6 +472,19 @@ class VolumeDetachTask(Task):
             'operation': 'delete',
             'ids': [vol['id']]
         })
+
+
+@description("Upgrades volume to newest ZFS version")
+@accepts(str)
+class VolumeUpgradeTask(Task):
+    def verify(self, name):
+        if not self.datastore.exists('volumes', ('name', '=', name)):
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(name))
+
+        return ['disk:{0}'.format(d) for d in self.dispatcher.call_sync('volumes.get_volume_disks', name)]
+
+    def run(self, name):
+        pass
 
 
 @description("Creates a dataset in an existing volume")
@@ -495,7 +507,7 @@ class DatasetCreateTask(Task):
 
         if params and 'share_type' in params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-                'freenas:share_type': {'value': params['share_type']}
+                'org+freenas:share_type': {'value': params['share_type']}
             }))
 
         self.join_subtasks(self.run_subtask('zfs.mount', path))
@@ -530,7 +542,7 @@ class DatasetConfigureTask(Task):
 
         if 'share_type' in updated_params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-                'freenas:share_type': {'value': updated_params['share_type']}
+                'org.freenas:share_type': {'value': updated_params['share_type']}
             }))
 
 
@@ -695,5 +707,5 @@ def _init(dispatcher, plugin):
 
             if share_type:
                 dispatcher.call_task_sync('zfs.configure', vol['name'], ds['name'], {
-                    'freenas:share_type': {'value': share_type}
+                    'org.freenas:share_type': {'value': share_type}
                 })
