@@ -106,10 +106,12 @@ def matches(obj, *rules):
 
 
 def partition(s):
-    return map(
-        lambda r: r.replace(r'\.', '.'),
-        re.split(r'(?<!\\)\.', s, maxsplit=1)
-    )
+    res = re.split(r'(?<!\\)\.', s, maxsplit=1)
+    left = res[0].replace(r'\.', '.')
+    if len(res) == 1:
+        return left, None
+
+    return left, res[1]
 
 
 def wrap(obj):
@@ -230,10 +232,11 @@ class QueryDict(dict):
         if not isinstance(item, basestring):
             return super(QueryDict, self).__getitem__(item)
 
-        if '.' not in item:
-            return super(QueryDict, self).__getitem__(item)
-
         left, right = partition(item)
+
+        if not right:
+            return super(QueryDict, self).__getitem__(left)
+
         return super(QueryDict, self).__getitem__(left)[right]
 
     def __setitem__(self, key, value):
@@ -242,12 +245,10 @@ class QueryDict(dict):
         if not isinstance(key, basestring):
             return super(QueryDict, self).__setitem__(key, value)
 
-        if '.' not in key:
-            return super(QueryDict, self).__setitem__(key, value)
-
         left, right = partition(key)
-        if left not in self:
-            self[left] = {}
+
+        if not right:
+            return super(QueryDict, self).__setitem__(left, value)
 
         self[left][right] = value
 
@@ -255,12 +256,12 @@ class QueryDict(dict):
         if not isinstance(item, basestring):
             return super(QueryDict, self).__contains__(item)
 
-        if '.' not in item:
+        left, right = partition(item)
+
+        if not right:
             return super(QueryDict, self).__contains__(item)
 
-        left, right = partition(item)
         tmp = self.get(left)
-
         if not tmp:
             return False
 
@@ -268,3 +269,19 @@ class QueryDict(dict):
 
     def get(self, k, d=None):
         return self[k] if k in self else d
+
+    def set(self, key, value):
+        value = wrap(value)
+
+        if not isinstance(key, basestring):
+            return super(QueryDict, self).__setitem__(key, value)
+
+        left, right = partition(key)
+
+        if not right:
+            return super(QueryDict, self).__setitem__(left, value)
+
+        if left not in self:
+            self[left] = {}
+
+        self[left].set(right, value)
