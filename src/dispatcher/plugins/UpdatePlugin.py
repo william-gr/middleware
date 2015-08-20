@@ -26,9 +26,10 @@
 #####################################################################
 
 import errno
+import logging
+import os
 import sys
 import re
-import logging
 from resources import Resource
 from cache import CacheStore
 from task import Provider, Task, ProgressTask, TaskException, VerifyException
@@ -244,6 +245,8 @@ def generate_update_cache(dispatcher, cache_dir=None):
             cache_dir = dispatcher.rpc.call_sync('system-dataset.request_directory', 'update')
         except RpcException:
             cache_dir = '/var/tmp/update'
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
     update_cache.put('cache_dir', cache_dir)
     try:
         check_updates(dispatcher, cache_dir=cache_dir)
