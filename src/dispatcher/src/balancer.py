@@ -77,7 +77,7 @@ class Task(object):
             "resources": self.resources,
             "session": self.session_id,
             "name": self.name,
-            "args": self.args,
+            "args": remove_dots(self.args),
             "result": self.result,
             "state": self.state,
             "error": self.error
@@ -365,3 +365,13 @@ def serialize_error(err):
         ret['code'] = errno.EFAULT
 
     return ret
+
+
+def remove_dots(obj):
+    if isinstance(obj, dict):
+        return {k.replace('.', '+'): v for k, v in obj.items()}
+
+    if isinstance(obj, (list, tuple)):
+        return [remove_dots(x) for x in obj]
+
+    return obj
