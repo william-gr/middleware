@@ -31,24 +31,18 @@ import re
 import logging
 from resources import Resource
 from cache import CacheStore
-from task import (Provider, Task, ProgressTask, TaskException, VerifyException)
-from dispatcher.rpc import (RpcException, description, accepts,
-                            returns, SchemaHelper as h)
-from lib.system import system
+from task import Provider, Task, ProgressTask, TaskException, VerifyException
+from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
 
-sys.path.append('/usr/local/lib')
+if '/usr/local/lib' not in sys.path:
+    sys.path.append('/usr/local/lib')
 from freenasOS import Configuration
-from freenasOS.Exceptions import (UpdateManifestNotFound,
-                                  ManifestInvalidSignature,
-                                  UpdateBootEnvironmentException,
-                                  UpdatePackageException)
-from freenasOS.Update import (
-    ActivateClone, CheckForUpdates, DeleteClone, PendingUpdates,
-    PendingUpdatesChanges, DownloadUpdate, ApplyUpdate
+from freenasOS.Exceptions import (
+    UpdateManifestNotFound, ManifestInvalidSignature, UpdateBootEnvironmentException,
+    UpdatePackageException,
 )
+from freenasOS.Update import CheckForUpdates, DownloadUpdate, ApplyUpdate
 
-# Keep this even if currently unused as it helps when there is a
-# need for debugging
 logger = logging.getLogger('UpdatePlugin')
 update_cache = CacheStore()
 update_resource_string = 'update:operations'
@@ -137,18 +131,18 @@ def check_updates(dispatcher, cache_dir=None, check_now=False):
         raise
 
     if update:
+        logger.debug("An update is available")
         update_ops = handler.output()
         sys_mani = conf.SystemManifest()
         if sys_mani:
             sequence = sys_mani.Sequence()
         else:
             sequence = ''
-        changelog = get_changelog(train,
-                                  cache_dir=cache_dir,
-                                  start=sequence,
-                                  end=update.Sequence())
+        changelog = get_changelog(train, cache_dir=cache_dir, start=sequence, end=update.Sequence())
     else:
+        logger.debug("No update available")
         changelog = None
+    logger.debug("updateavailable set %r", True if update else False)
     update_cache.put('updateAvailable', True if update else False)
     update_cache.put('updateOperations', update_ops)
     update_cache.put('changelog', changelog)
@@ -215,12 +209,7 @@ class UpdateHandler(object):
         self.numfilesdone = total
         self.progress = int((float(index) / float(total)) * 100.0)
         self.operation = 'Installing'
-        self.details = '%s %s (%d/%d)' % (
-            'Installing',
-            name,
-            index,
-            total,
-        )
+        self.details = '%s %s (%d/%d)' % ('Installing', name, index, total)
 
     def emit_update_details(self):
         # Doing the drill below as there is a small window when
@@ -252,9 +241,7 @@ class UpdateHandler(object):
 def generate_update_cache(dispatcher, cache_dir=None):
     if cache_dir is None:
         try:
-            cache_dir = dispatcher.rpc.call_sync(
-                            'system-dataset.request_directory',
-                            'update')
+            cache_dir = dispatcher.rpc.call_sync('system-dataset.request_directory', 'update')
         except RpcException:
             cache_dir = '/var/tmp/update'
     update_cache.put('cache_dir', cache_dir)
@@ -262,8 +249,7 @@ def generate_update_cache(dispatcher, cache_dir=None):
         check_updates(dispatcher, cache_dir=cache_dir)
     except Exception as e:
         # What to do now?
-        logger.debug('generate_update_cache (UpdatePlugin) falied' +
-                     'because of: {0}'.format(str(e)))
+        logger.debug('generate_update_cache (UpdatePlugin) falied because of: %s', e)
 
 
 @description("Provides System Updater Configuration")
@@ -272,17 +258,17 @@ class UpdateProvider(Provider):
     @accepts()
     @returns(str)
     def is_update_available(self):
-        temp_updateAvailable = update_cache.get('updateAvailable',
-                                                timeout=1)
+        temp_updateAvailable = update_cache.get('updateAvailable', timeout=2)
+        logger.error("tmp %r", temp_updateAvailable)
         if temp_updateAvailable is not None:
             return temp_updateAvailable
         elif update_cache.is_valid('updateAvailable'):
             return temp_updateAvailable
         else:
-            raise RpcException(
-                errno.EBUSY,
-                'Update Availability flag is invalidated, an Update Check' +
-                ' might be underway. Try again in some time.')
+            raise RpcException(errno.EBUSY, (
+                'Update Availability flag is invalidated, an Update Check'
+                ' might be underway. Try again in some time.'
+            ))
 
     @accepts()
     @returns(h.array(str))
@@ -293,10 +279,10 @@ class UpdateProvider(Provider):
         elif update_cache.is_valid('changelog'):
             return temp_changelog
         else:
-            raise RpcException(
-                errno.EBUSY,
-                'Changelog list is invalidated, an Update Check' +
-                ' might be underway. Try again in some time.')
+            raise RpcException(errno.EBUSY, (
+                'Changelog list is invalidated, an Update Check '
+                'might be underway. Try again in some time.'
+            ))
 
     @accepts()
     @returns(h.array(h.ref('update-ops')))
@@ -307,10 +293,10 @@ class UpdateProvider(Provider):
         elif update_cache.is_valid('updateOperations'):
             return temp_updateOperations
         else:
-            raise RpcException(
-                errno.EBUSY,
-                'Update Operations Dict is invalidated, an Update Check' +
-                ' might be underway. Try again in some time.')
+            raise RpcException(errno.EBUSY, (
+                'Update Operations Dict is invalidated, an Update Check '
+                'might be underway. Try again in some time.'
+            ))
 
     @accepts()
     @returns(str)
@@ -346,8 +332,7 @@ class UpdateConfigureTask(Task):
             raise VerifyException(
                 errno.ENOENT,
                 '{0} is not a valid train'.format(train_to_set))
-        block = self.dispatcher.resource_graph.get_resource(
-                    update_resource_string)
+        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
             raise VerifyException(
                 errno.EBUSY,
@@ -371,9 +356,11 @@ class UpdateConfigureTask(Task):
         })
 
 
-@description("Checks for Available Updates and returns if update is availabe" +
-             " and if yes returns information on operations that will be" +
-             " performed during the update")
+@description((
+    "Checks for Available Updates and returns if update is availabe "
+    "and if yes returns information on operations that will be "
+    "performed during the update"
+))
 @accepts()
 class CheckUpdateTask(Task):
     def describe(self):
@@ -381,27 +368,24 @@ class CheckUpdateTask(Task):
 
     def verify(self):
         # TODO: Fix this verify's resource allocation as unique task
-        block = self.dispatcher.resource_graph.get_resource(
-                    update_resource_string)
+        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
-            raise VerifyException(
-                errno.EBUSY,
-                'An Update Operation (Configuration/ Download/ Applying' +
-                'the Updates) is already in the queue, please retry later')
+            raise VerifyException(errno.EBUSY, (
+                'An Update Operation (Configuration/ Download/ Applying'
+                'the Updates) is already in the queue, please retry later'
+            ))
 
         return [update_resource_string]
 
     def run(self):
         try:
-            check_updates(self.dispatcher,
-                          cache_dir=update_cache.get('cache_dir', timeout=1),
-                          check_now=True)
+            check_updates(
+                self.dispatcher, cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True
+            )
         except UpdateManifestNotFound:
-            TaskException(errno.ENETUNREACH,
-                          'Update server could not be reached')
+            raise TaskException(errno.ENETUNREACH, 'Update server could not be reached')
         except Exception as e:
-            TaskException(errno.EAGAIN,
-                          '{0}'.format(str(e)))
+            raise TaskException(errno.EAGAIN, '{0}'.format(str(e)))
 
 
 @description("Downloads Updates for the current system update train")
@@ -412,18 +396,17 @@ class DownloadUpdateTask(ProgressTask):
 
     def verify(self):
         if not update_cache.get('updateAvailable', timeout=1):
-            raise VerifyException(
-                errno.ENOENT,
-                'No updates currently available for download, try running ' +
-                'the `update.check` task')
+            raise VerifyException(errno.ENOENT, (
+                'No updates currently available for download, try running '
+                'the `update.check` task'
+            ))
 
-        block = self.dispatcher.resource_graph.get_resource(
-                    update_resource_string)
+        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
-            raise VerifyException(
-                errno.EBUSY,
-                'An Update Operation (Configuration/ Download/ Applying' +
-                'the Updates) is already in the queue, please retry later')
+            raise VerifyException(errno.EBUSY, (
+                'An Update Operation (Configuration/ Download/ Applying'
+                'the Updates) is already in the queue, please retry later'
+            ))
 
         return [update_resource_string]
 
@@ -435,33 +418,31 @@ class DownloadUpdateTask(ProgressTask):
     def run(self):
         self.message = 'Downloading Updates...'
         self.set_progress(0)
-        handler = UpdateHandler(self.dispatcher,
-                                update_progress=self.update_progress)
+        handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
         train = self.dispatcher.configstore.get('update.train')
         cache_dir = update_cache.get('cache_dir')
         if cache_dir is None:
             try:
                 cache_dir = self.dispatcher.rpc.call_sync(
-                                'system-dataset.request_directory',
-                                'update')
+                    'system-dataset.request_directory', 'update'
+                )
             except RpcException:
                 cache_dir = '/var/tmp/update'
         try:
             download_successful = DownloadUpdate(
-                                  train, cache_dir,
-                                  get_handler=handler.get_handler,
-                                  check_handler=handler.check_handler)
+                train, cache_dir, get_handler=handler.get_handler,
+                check_handler=handler.check_handler,
+            )
         except Exception as e:
             raise TaskException(
-                      errno.EAGAIN,
-                      'Got exception {0} while trying to '.format(str(e)) +
-                      ' Download Updates')
+                errno.EAGAIN, 'Got exception {0} while trying to Download Updates'.format(str(e))
+            )
         if not download_successful:
             handler.error = True
             handler.emit_update_details()
             raise TaskException(
-                      errno.EAGAIN,
-                      'Downloading Updates Failed for some reason, check logs')
+                errno.EAGAIN, 'Downloading Updates Failed for some reason, check logs'
+            )
         handler.finished = True
         handler.emit_update_details()
         self.message = "Updates Finished Downloading"
@@ -476,13 +457,12 @@ class UpdateApplyTask(ProgressTask):
         return "Applies cached updates to the system and reboots if necessary"
 
     def verify(self):
-        block = self.dispatcher.resource_graph.get_resource(
-                    update_resource_string)
+        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
-            raise VerifyException(
-                errno.EBUSY,
-                'An Update Operation (Configuration/ Download/ Applying' +
-                'the Updates) is already in the queue, please retry later')
+            raise VerifyException(errno.EBUSY, (
+                'An Update Operation (Configuration/ Download/ Applying '
+                'the Updates) is already in the queue, please retry later'
+            ))
 
         return ['root', update_resource_string]
 
@@ -494,38 +474,31 @@ class UpdateApplyTask(ProgressTask):
     def run(self):
         self.message = 'Applying Updates...'
         self.set_progress(0)
-        handler = UpdateHandler(self.dispatcher,
-                                update_progress=self.update_progress)
+        handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
         cache_dir = update_cache.get('cache_dir')
         if cache_dir is None:
             try:
                 cache_dir = self.dispatcher.rpc.call_sync(
-                                'system-dataset.request_directory',
-                                'update')
+                    'system-dataset.request_directory', 'update'
+                )
             except RpcException:
                 cache_dir = '/var/tmp/update'
         # Note: for now we force reboots always, TODO: Fix in M3-M4
         try:
-            ApplyUpdate(cache_dir, install_handler=handler.install_handler,
-                        force_reboot=True)
+            ApplyUpdate(cache_dir, install_handler=handler.install_handler, force_reboot=True)
         except ManifestInvalidSignature as e:
-            logger.debug('UpdateApplyTask Error: Cached manifest has ' +
-                         'invalid signature: {0}'.format(str(e)))
-            TaskException(
-                errno.EINVAL,
-                'Cached manifest has invalid signature: {0}'.format(str(e)))
+            logger.debug('UpdateApplyTask Error: Cached manifest has invalid signature: %s', e)
+            TaskException(errno.EINVAL, 'Cached manifest has invalid signature: {0}'.format(str(e)))
         except UpdateBootEnvironmentException as e:
-            logger.debug(
-                'UpdateApplyTask Boot Environment Error: {0}'.format(str(e)))
+            logger.debug('UpdateApplyTask Boot Environment Error: {0}'.format(str(e)))
             TaskException(errno.EAGAIN, str(e))
         except UpdatePackageException as e:
             logger.debug('UpdateApplyTask Package Error: {0}'.format(str(e)))
             TaskException(errno.EAGAIN, str(e))
         except Exception as e:
             raise TaskException(
-                      errno.EAGAIN,
-                      'Got exception {0} while trying to '.format(str(e)) +
-                      ' Apply Updates')
+                errno.EAGAIN, 'Got exception {0} while trying to Apply Updates'.format(str(e))
+            )
         handler.finished = True
         handler.emit_update_details()
         self.run_subtask('system.reboot')
