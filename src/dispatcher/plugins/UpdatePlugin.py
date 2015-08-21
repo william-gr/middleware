@@ -26,14 +26,19 @@
 #####################################################################
 
 import errno
+import gevent
+import hashlib
 import logging
 import os
+import signal
 import sys
 import re
+import tempfile
 from resources import Resource
 from cache import CacheStore
-from task import Provider, Task, ProgressTask, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
+from gevent import subprocess
+from task import Provider, Task, ProgressTask, TaskException, VerifyException
 
 if '/usr/local/lib' not in sys.path:
     sys.path.append('/usr/local/lib')
@@ -510,6 +515,86 @@ class DownloadUpdateTask(ProgressTask):
         self.set_progress(100)
 
 
+@description("Apply a manual update file")
+@accepts(str, str)
+class UpdateManualTask(ProgressTask):
+    def describe(self):
+        return "Manual update from a file"
+
+    def verify(self, path, sha256):
+
+        if not os.path.exists(path):
+            raise VerifyException(errno.EEXIST, 'File does not exist')
+
+        return ['root']
+
+    def run(self, path, sha256):
+        self.message = 'Applying update...'
+        self.set_progress(0)
+
+        filehash = hashlib.sha256()
+        with open(path, 'rb') as f:
+            while True:
+                read = f.read(65536)
+                if not read:
+                    break
+                filehash.update(read)
+
+        if filehash.hexdigest() != sha256:
+            raise TaskException(errno.EINVAL, 'SHA 256 hash does not match file')
+
+        os.chdir(os.path.dirname(path))
+
+        size = os.stat(path).st_size
+        temperr = tempfile.NamedTemporaryFile()
+
+        proc = subprocess.Popen(
+            ["/usr/bin/tar", "-xSJpf", path],
+            stdout=subprocess.PIPE,
+            stderr=temperr,
+            close_fds=False)
+        RE_TAR = re.compile(r"^In: (\d+)", re.M | re.S)
+        while True:
+            if proc.poll() is not None:
+                break
+            try:
+                os.kill(proc.pid, signal.SIGINFO)
+            except:
+                break
+            gevent.sleep(1)
+            with open(temperr.name, 'r') as f:
+                line = f.read()
+            reg = RE_TAR.findall(line)
+            if reg:
+                current = float(reg[-1])
+                percent = ((current / size) * 100
+                self.set_progress(percent / 3)
+        temperr.close()
+        proc.communicate()
+        if proc.returncode != 0:
+            raise TaskException(errno.EINVAL, 'Image is invalid, make sure to use .txz file')
+
+        try:
+            subprocess.check_output(
+                ['bin/install_worker.sh', 'pre-install'], stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as cpe:
+            raise TaskException(errno.EINVAL, (
+                'The firmware does not meet the pre-install criteria: {0}'.format(cpe.output)))
+
+        try:
+            subprocess.check_output(
+                ['bin/install_worker.sh', 'install'], stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as cpe:
+            raise TaskException(errno.EFAULT, 'The update failed: {0}'.format(cpe.output))
+
+        # FIXME: New world order
+        open('/data/need-update').close()
+
+        self.set_progress(100)
+
+
 # Fix this when the fn10 freenas-pkg tools is updated by sef
 @accepts()
 @description("Applies cached updates")
@@ -637,6 +722,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("update.configure", UpdateConfigureTask)
     plugin.register_task_handler("update.check", CheckUpdateTask)
     plugin.register_task_handler("update.download", DownloadUpdateTask)
+    plugin.register_task_handler("update.manual", UpdateManualTask)
     plugin.register_task_handler("update.update", UpdateApplyTask)
 
     # Register Event Types
