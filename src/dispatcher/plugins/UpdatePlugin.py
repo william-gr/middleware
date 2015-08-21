@@ -37,7 +37,7 @@ from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHe
 
 if '/usr/local/lib' not in sys.path:
     sys.path.append('/usr/local/lib')
-from freenasOS import Configuration
+from freenasOS import Configuration, Train
 from freenasOS.Exceptions import (
     UpdateManifestNotFound, ManifestInvalidSignature, UpdateBootEnvironmentException,
     UpdatePackageException,
@@ -317,7 +317,7 @@ class UpdateProvider(Provider):
         h.ref('update-info'),
         None,
     ))
-    def get_update_info(self):
+    def update_info(self):
         if not update_cache.is_valid('updateAvailable'):
             raise RpcException(errno.EBUSY, (
                 'Update Availability flag is invalidated, an Update Check'
@@ -336,6 +336,28 @@ class UpdateProvider(Provider):
             'notice': updateNotice,
             'operations': updateOperations,
         }
+
+    @returns(h.array(h.ref('update-train')))
+    def trains(self):
+        conf = Configuration.Configuration()
+        conf.LoadTrainsConfig()
+        trains = conf.AvailableTrains() or {}
+
+        seltrain = self.dispatcher.configstore.get('update.train')
+
+        data = []
+        for name in trains.keys():
+            if name in conf._trains:
+                train = conf._trains.get(name)
+            else:
+                train = Train.Train(name)
+            data.append({
+                'name': train.Name(),
+                'description': train.Description(),
+                'sequence': train.LastSequence(),
+                'current': True if name == seltrain else False,
+            })
+        return data
 
     @accepts()
     @returns(str)
@@ -595,6 +617,16 @@ def _init(dispatcher, plugin):
             'notice': {'type': 'string'},
             'changelog': {'type': 'string'},
             'operations': {'$ref': 'update-ops'},
+        }
+    })
+
+    plugin.register_schema_definition('update-train', {
+        'type': 'object',
+        'properties': {
+            'name': {'type': 'string'},
+            'description': {'type': 'string'},
+            'sequence': {'type': 'string'},
+            'current': {'type': 'boolean'},
         }
     })
 
