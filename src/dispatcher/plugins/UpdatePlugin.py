@@ -324,7 +324,7 @@ class UpdateProvider(Provider):
                 ' might be underway. Try again in some time.'
             ))
         updateAvailable = update_cache.get('updateAvailable', timeout=1)
-        if updateAvailable is None:
+        if not updateAvailable:
             return None
         updateOperations = update_cache.get('updateOperations', timeout=1)
         updateNotes = update_cache.get('updateNotes', timeout=1)
