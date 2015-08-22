@@ -6,6 +6,7 @@ install:
 	install etc/middleware.conf ${PREFIX}/etc/middleware.conf
 	install tools/dispatcherd ${PREFIX}/sbin/
 	install tools/dispatcherctl ${PREFIX}/sbin/
+	install tools/taskproxy ${PREFIX}/libexec/
 	install -d ${PREFIX}/lib/dispatcher/src
 	install -d ${PREFIX}/lib/dispatcher/plugins
 	install -d ${PREFIX}/libexec/dispatcher

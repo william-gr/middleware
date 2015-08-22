@@ -28,7 +28,9 @@
 import errno
 import subprocess
 from gevent.event import Event
-from dispatcher.rpc import RpcService, RpcException, pass_sender
+from gevent.lock import RLock
+from dispatcher.rpc import RpcService, RpcException, pass_sender, private
+from balancer import TaskExecutor
 from auth import ShellToken
 from utils import first_or_default
 
@@ -87,6 +89,14 @@ class EventService(RpcService):
         filter = filter if filter else []
         params = params if params else {}
         return list(self.__datastore.query('events', *filter, **params))
+
+    @private
+    def suspend(self):
+        self.__dispatcher.event_delivery_lock.acquire()
+
+    @private
+    def resume(self):
+        self.__dispatcher.event_delivery_lock.release()
 
 
 class PluginService(RpcService):
@@ -252,6 +262,41 @@ class TaskService(RpcService):
         filter = filter if filter else []
         params = params if params else {}
         return self.__datastore.query('tasks', *filter, **params)
+
+    @private
+    @pass_sender
+    def checkin(self, key, sender):
+        task = self.__balancer.get_task_by_key(key)
+        if not task:
+            raise RpcException(errno.ENOENT, 'Task not found')
+
+        return task.executor.checkin(sender)
+
+    @private
+    @pass_sender
+    def put_status(self, status, sender):
+        task = self.__balancer.get_task_by_sender(sender)
+        if not task:
+            raise RpcException(errno.ENOENT, 'Task not found')
+
+        task.executor.put_status(status)
+
+
+class LockService(RpcService):
+    def initialize(self):
+        self.locks = {}
+
+    def acquire(self, lock):
+        self.locks.ge
+
+    def release(self, lock):
+        pass
+
+    def is_locked(self, lock):
+        pass
+
+    def get_locks(self):
+        pass
 
 
 class ShellService(RpcService):

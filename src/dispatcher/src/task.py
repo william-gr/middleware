@@ -42,9 +42,9 @@ class TaskState(object):
 class Task(object):
     SUCCESS = (0, "Success")
 
-    def __init__(self, dispatcher):
+    def __init__(self, dispatcher, datastore):
         self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
+        self.datastore = datastore
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @classmethod
@@ -124,6 +124,11 @@ class TaskStatus(object):
             'message': self.message,
             'extra': self.extra
         }
+
+    def __setstate__(self, obj):
+        self.percentage = obj['percentage']
+        self.message = obj['message']
+        self.extra = obj['extra']
 
 
 class Provider(RpcService):

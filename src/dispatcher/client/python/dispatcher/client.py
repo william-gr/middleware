@@ -32,7 +32,6 @@ import uuid
 import errno
 from jsonenc import dumps, loads
 from dispatcher import rpc
-from ws4py.client.threadedclient import WebSocketClient
 from fnutils.query import matches
 
 
@@ -52,40 +51,47 @@ class ClientType(enum.Enum):
     GEVENT = 2
 
 
-thread_type = ClientType.THREADED
-debug_log_file = None
+if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
+    from ws4py.client.geventclient import WebSocketClient
+    _thread_type = ClientType.GEVENT
+else:
+    from ws4py.client.threadedclient import WebSocketClient
+    _thread_type = ClientType.THREADED
+
+
+_debug_log_file = None
 
 
 def debug_log(message, *args):
-    global debug_log_file
+    global _debug_log_file
 
     if os.getenv('DISPATCHER_CLIENT_DEBUG'):
-        if not debug_log_file:
+        if not _debug_log_file:
             try:
-                debug_log_file = open('/var/tmp/dispatcherclient.{0}.log'.format(os.getpid()), 'w')
+                _debug_log_file = open('/var/tmp/dispatcherclient.{0}.log'.format(os.getpid()), 'w')
             except OSError:
                 pass
 
-        print(message.format(*args), file=debug_log_file)
-        debug_log_file.flush()
+        print(message.format(*args), file=_debug_log_file)
+        _debug_log_file.flush()
 
 
 def spawn_thread(*args, **kwargs):
-    if thread_type == ClientType.THREADED:
+    if _thread_type == ClientType.THREADED:
         from threading import Thread
         return Thread(*args, **kwargs)
 
-    if thread_type == ClientType.GEVENT:
+    if _thread_type == ClientType.GEVENT:
         from gevent.greenlet import Greenlet
         return Greenlet(*args, **kwargs)
 
 
 def get_event():
-    if thread_type == ClientType.THREADED:
+    if _thread_type == ClientType.THREADED:
         from threading import Event
         return Event()
 
-    if thread_type == ClientType.GEVENT:
+    if _thread_type == ClientType.GEVENT:
         from gevent.event import Event
         return Event()
 
@@ -141,11 +147,11 @@ class Client(object):
             if self.filters:
                 return match(args, *self.filters)
 
-    def __init__(self, thread_type=ClientType.THREADED):
+    def __init__(self):
         self.pending_calls = {}
+        self.event_handlers = {}
         self.rpc = None
         self.ws = None
-        self.thread_type = thread_type
         self.opened = get_event()
         self.event_callback = None
         self.error_callback = None
@@ -210,6 +216,13 @@ class Client(object):
             if err.errno == errno.EPIPE:
                 self.error_callback(ClientError.CONNECTION_CLOSED)
 
+    def __process_event(self, name, args):
+        if name in self.event_handlers:
+            for h in self.event_handlers[name]:
+                h(args)
+
+        self.event_callback(name, args)
+
     def decode(self, msg):
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
@@ -221,7 +234,7 @@ class Client(object):
 
         if msg['namespace'] == 'events' and msg['name'] == 'event':
             args = msg['args']
-            t = spawn_thread(target=self.event_callback, args=(args['name'], args['args']))
+            t = spawn_thread(target=self.__process_event, args=(args['name'], args['args']))
             t.start()
             return
 
@@ -410,6 +423,17 @@ class Client(object):
 
     def wait_forever(self):
         self.ws.run_forever()
+
+    def register_event_handler(self, name, handler):
+        if name not in self.event_handlers:
+            self.event_handlers[name] = []
+
+        self.event_handlers[name].append(handler)
+        self.subscribe_events(name)
+        return handler
+
+    def unregister_event_handler(self, name, handler):
+        self.event_handlers[name].remove(handler)
 
     @property
     def connected(self):

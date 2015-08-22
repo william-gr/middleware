@@ -32,19 +32,108 @@ import traceback
 import errno
 import copy
 import threading
+import uuid
+import inspect
 from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
 from gevent.lock import RLock
+from gevent.event import AsyncResult
+from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, TaskStatus, TaskState
+
+
+TASKPROXY_PATH = '/usr/local/libexec/taskproxy'
 
 
 class WorkerState(object):
     IDLE = 'IDLE'
     EXECUTING = 'EXECUTING'
     WAITING = 'WAITING'
+
+
+class TaskExecutor(object):
+    def __init__(self, balancer, task):
+        self.balancer = balancer
+        self.task = task
+        self.proc = None
+        self.pid = None
+        self.conn = None
+        self.result = AsyncResult()
+
+    def checkin(self, conn):
+        self.balancer.logger.debug('Check-in of task #{0} (key {1})'.format(self.task.id, self.task.key))
+        self.conn = conn
+        self.task.set_state(TaskState.EXECUTING)
+        return {
+            'id': self.task.id,
+            'class': self.task.clazz.__name__,
+            'filename': inspect.getsourcefile(self.task.clazz),
+            'args': self.task.args
+        }
+
+    def get_status(self):
+        try:
+            st = TaskStatus(0)
+            st.__setstate__(self.conn.call_client_sync('taskproxy.get_status'))
+            return st
+        except RpcException, err:
+            self.balancer.logger.error("Cannot obtain status from task #{0}: {1}".format(self.task.id, str(err)))
+            self.proc.terminate()
+
+    def put_status(self, status):
+        if status['status'] == 'FINISHED':
+            self.result.set(status['result'])
+
+        if status['status'] == 'FAILED':
+            error = status['error']
+            self.result.set_exception(TaskException(
+                code=error['code'],
+                message=error['message'],
+                extra=error.get('extra')
+            ))
+
+    def run(self):
+        gevent.spawn(self.executor)
+        try:
+            self.result.get()
+        except BaseException, e:
+            self.task.error = serialize_error(e)
+            self.task.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
+                "stacktrace": traceback.format_exc()
+            }))
+            self.task.ended.set()
+            self.balancer.task_exited(self.task)
+            return
+
+        self.task.result = self.result.value
+        self.task.set_state(TaskState.FINISHED, TaskStatus(100, ''))
+        self.task.ended.set()
+        self.balancer.task_exited(self.task)
+
+    def abort(self):
+        # Try to abort via RPC. If this fails, kill process
+        try:
+            self.conn.call_client_sync('taskproxy.abort')
+        except RpcException, err:
+            self.proc.terminate()
+
+    def executor(self):
+        try:
+            self.proc = Popen([TASKPROXY_PATH, self.task.key], close_fds=True)
+            self.pid = self.proc.pid
+            self.balancer.logger.debug('Started task #{0} as PID {1}'.format(self.task.id, self.pid))
+        except OSError:
+            self.result.set_exception(TaskException(errno.EFAULT, 'Cannot spawn task executor'))
+
+        self.proc.wait()
+        if not self.result.ready():
+            self.balancer.logger.error('Executor process with PID {0} died abruptly with exit code {1}'.format(
+                self.proc.pid,
+                self.proc.returncode))
+            self.result.set_exception(TaskException(errno.EFAULT, 'Task executor died'))
 
 
 class Task(object):
@@ -54,6 +143,7 @@ class Task(object):
         self.started_at = None
         self.finished_at = None
         self.id = None
+        self.key = str(uuid.uuid4())
         self.name = name
         self.clazz = None
         self.args = None
@@ -67,6 +157,7 @@ class Task(object):
         self.instance = None
         self.parent = None
         self.result = None
+        self.executor = TaskExecutor(self.dispatcher.balancer, self)
         self.ended = threading.Event()
 
     def __getstate__(self):
@@ -125,9 +216,8 @@ class Task(object):
         self.dispatcher.balancer.task_exited(self)
 
     def start(self):
-        # Start actual thread
-        self.thread = threading.Thread(target=self.run, name='{0} #{1}'.format(self.name, self.id))
-        self.thread.start()
+        # Start actual task
+        gevent.spawn(self.executor.run)
 
         # Start progress watcher
         gevent.spawn(self.progress_watcher)
@@ -161,23 +251,24 @@ class Task(object):
         while True:
             if self.ended.wait(1):
                 return
-            elif (hasattr(self.instance, 'suggested_timeout') and
-                  time.time() - self.started_at > self.instance.suggested_timeout):
-                self.set_state(TaskState.FAILED, TaskStatus(0, "FAILED"))
-                self.ended.set()
-                self.error = {
-                   'type': "ETIMEDOUT",
-                   'message': "The task was killed due to a timeout",
-                }
-                self.progress = self.instance.get_status()
-                self.set_state(TaskState.FAILED, TaskStatus(self.progress.percentage, "TIMEDOUT"))
-                self.ended.set()
-                self.dispatcher.balancer.task_exited(self)
-                self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s was TIMEDOUT", self.id, self.name)
+            #elif (hasattr(self.instance, 'suggested_timeout') and
+            #      time.time() - self.started_at > self.instance.suggested_timeout):
+            #    self.set_state(TaskState.FAILED, TaskStatus(0, "FAILED"))
+            #    self.ended.set()
+            #    self.error = {
+            #       'type': "ETIMEDOUT",
+            #       'message': "The task was killed due to a timeout",
+            #    }
+            #    self.progress = self.instance.get_status()
+            #    self.set_state(TaskState.FAILED, TaskStatus(self.progress.percentage, "TIMEDOUT"))
+            #    self.ended.set()
+            #    self.dispatcher.balancer.task_exited(self)
+            #    self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s was TIMEDOUT", self.id, self.name)
             else:
-                progress = self.instance.get_status()
-                self.progress = progress
-                self.__emit_progress()
+                progress = self.executor.get_status()
+                if progress:
+                    self.progress = progress
+                    self.__emit_progress()
 
 
 class Balancer(object):
@@ -307,7 +398,7 @@ class Balancer(object):
 
             try:
                 self.logger.debug("Picked up task %d: %s with args %s", task.id, task.name, task.args)
-                task.instance = task.clazz(self.dispatcher)
+                task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
                 task.resources = task.instance.verify(*task.args)
 
                 if type(task.resources) is not list:
@@ -348,6 +439,12 @@ class Balancer(object):
 
         self.distribution_lock.release()
         return t
+
+    def get_task_by_key(self, key):
+        return first_or_default(lambda t: t.key == key, self.task_list)
+
+    def get_task_by_sender(self, sender):
+        return first_or_default(lambda t: t.executor.conn == sender, self.task_list)
 
 
 def serialize_error(err):
