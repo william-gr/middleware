@@ -28,7 +28,7 @@
 import os
 import errno
 import libzfs
-from gevent.event import Event
+from threading import Event
 from task import (Provider, Task, TaskStatus, TaskException,
                   VerifyException, TaskAbortException, query)
 from dispatcher.rpc import RpcException, accepts, returns, description
@@ -147,8 +147,8 @@ class ZfsSnapshotProvider(Provider):
 @description("Scrubs ZFS pool")
 @accepts(str)
 class ZpoolScrubTask(Task):
-    def __init__(self, dispatcher):
-        super(ZpoolScrubTask, self).__init__(dispatcher)
+    def __init__(self, dispatcher, datastore):
+        super(ZpoolScrubTask, self).__init__(dispatcher, datastore)
         self.pool = None
         self.started = False
         self.finish_event = Event()

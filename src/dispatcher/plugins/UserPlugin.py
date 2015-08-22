@@ -159,10 +159,6 @@ class GroupProvider(Provider):
         h.required('password_disabled')),
 ))
 class UserCreateTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def describe(self, user):
         return "Adding user {0}".format(user['username'])
 
@@ -246,10 +242,6 @@ class UserCreateTask(Task):
 @description("Deletes an user from the system")
 @accepts(int)
 class UserDeleteTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def describe(self, uid):
         user = self.datastore.get_by_id('users', uid)
         return "Deleting user {0}".format(user['username'] if user else uid)
@@ -288,10 +280,6 @@ class UserDeleteTask(Task):
     )
 )
 class UserUpdateTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def verify(self, uid, updated_fields):
         if not self.datastore.exists('users', ('id', '=', uid)):
             raise VerifyException(errno.ENOENT, 'User does not exists')
@@ -364,10 +352,6 @@ class UserUpdateTask(Task):
     h.required('name')
 ))
 class GroupCreateTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def describe(self, group):
         return "Adding group {0}".format(group['name'])
 
@@ -419,10 +403,6 @@ class GroupCreateTask(Task):
 @description("Updates a group")
 @accepts(int, h.ref('group'))
 class GroupUpdateTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def describe(self, id, updated_fields):
         return "Deleting group {0}".format(id)
 
@@ -468,10 +448,6 @@ class GroupUpdateTask(Task):
 @description("Deletes a group")
 @accepts(int)
 class GroupDeleteTask(Task):
-    def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-
     def describe(self, name):
         return "Deleting group {0}".format(name)
 
