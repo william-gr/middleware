@@ -53,9 +53,16 @@ class ClientType(enum.Enum):
 
 if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
     from ws4py.client.geventclient import WebSocketClient
+    from gevent.lock import RLock
+    from gevent.event import Event
+    from gevent.greenlet import Greenlet
+    from threading import Thread
     _thread_type = ClientType.GEVENT
 else:
     from ws4py.client.threadedclient import WebSocketClient
+    from threading import Thread
+    from threading import Event
+    from threading import RLock
     _thread_type = ClientType.THREADED
 
 
@@ -78,22 +85,10 @@ def debug_log(message, *args):
 
 def spawn_thread(*args, **kwargs):
     if _thread_type == ClientType.THREADED:
-        from threading import Thread
         return Thread(*args, **kwargs)
 
     if _thread_type == ClientType.GEVENT:
-        from gevent.greenlet import Greenlet
         return Greenlet(*args, **kwargs)
-
-
-def get_event():
-    if _thread_type == ClientType.THREADED:
-        from threading import Event
-        return Event()
-
-    if _thread_type == ClientType.GEVENT:
-        from gevent.event import Event
-        return Event()
 
 
 class Client(object):
@@ -131,7 +126,7 @@ class Client(object):
             self.args = args
             self.result = None
             self.error = None
-            self.completed = get_event()
+            self.completed = Event()
             self.callback = None
 
     class SubscribedEvent(object):
@@ -152,12 +147,13 @@ class Client(object):
         self.event_handlers = {}
         self.rpc = None
         self.ws = None
-        self.opened = get_event()
+        self.opened = Event()
         self.event_callback = None
         self.error_callback = None
         self.rpc_callback = None
         self.receive_thread = None
         self.token = None
+        self.event_distribution_lock = RLock()
         self.default_timeout = 10
 
     def __pack(self, namespace, name, args, id=None):
@@ -217,11 +213,13 @@ class Client(object):
                 self.error_callback(ClientError.CONNECTION_CLOSED)
 
     def __process_event(self, name, args):
+        self.event_distribution_lock.acquire()
         if name in self.event_handlers:
             for h in self.event_handlers[name]:
                 h(args)
 
         self.event_callback(name, args)
+        self.event_distribution_lock.release()
 
     def decode(self, msg):
         if 'namespace' not in msg:
@@ -434,6 +432,25 @@ class Client(object):
 
     def unregister_event_handler(self, name, handler):
         self.event_handlers[name].remove(handler)
+
+    def exec_and_wait_for_event(self, event, match_fn, fn, timeout=None):
+        done = Event()
+        self.event_distribution_lock.acquire()
+
+        try:
+            fn()
+        except:
+            self.event_distribution_lock.release()
+            raise
+
+        def handler(args):
+            if match_fn(args):
+                done.set()
+
+        self.register_event_handler(event, handler)
+        self.event_distribution_lock.release()
+        done.wait(timeout=timeout)
+        self.unregister_event_handler(event, handler)
 
     @property
     def connected(self):
