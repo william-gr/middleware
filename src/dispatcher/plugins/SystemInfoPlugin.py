@@ -457,7 +457,7 @@ def _init(dispatcher, plugin):
         if 'hostname' not in args:
             return
 
-        configstore.set('system.hostname', args['hostname'])
+        dispatcher.configstore.set('system.hostname', args['hostname'])
         dispatcher.dispatch_event('system.general.changed', {
             'operation': 'update',
         })
@@ -534,4 +534,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("system.reboot", SystemRebootTask)
 
     # Set initial hostname
-    netif.set_hostname(configstore.get('system.hostname'))
+    netif.set_hostname(dispatcher.configstore.get('system.hostname'))
