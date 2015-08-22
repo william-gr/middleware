@@ -124,11 +124,11 @@ class SystemGeneralProvider(Provider):
     @returns(h.ref('system-general'))
     def get_config(self):
         return {
-            'hostname': self.dispatcher.configstore.get('system.hostname'),
-            'language': self.dispatcher.configstore.get('system.language'),
-            'timezone': self.dispatcher.configstore.get('system.timezone'),
-            'syslog_server': self.dispatcher.configstore.get('system.syslog_server'),
-            'console_keymap': self.dispatcher.configstore.get('system.console.keymap')
+            'hostname': self.configstore.get('system.hostname'),
+            'language': self.configstore.get('system.language'),
+            'timezone': self.configstore.get('system.timezone'),
+            'syslog_server': self.configstore.get('system.syslog_server'),
+            'console_keymap': self.configstore.get('system.console.keymap')
         }
 
     @accepts()
@@ -167,7 +167,7 @@ class SystemAdvancedProvider(Provider):
     @accepts()
     @returns(h.ref('system-advanced'))
     def get_config(self):
-        cs = self.dispatcher.configstore
+        cs = self.configstore
         return {
             'console_cli': cs.get('system.console.cli'),
             'console_screensaver': cs.get('system.console.screensaver'),
@@ -203,26 +203,26 @@ class SystemUIProvider(Provider):
     def get_config(self):
 
         protocol = []
-        if self.dispatcher.configstore.get('service.nginx.http.enable'):
+        if self.configstore.get('service.nginx.http.enable'):
             protocol.append('HTTP')
-        if self.dispatcher.configstore.get('service.nginx.https.enable'):
+        if self.configstore.get('service.nginx.https.enable'):
             protocol.append('HTTPS')
 
         return {
             'webui_procotol': protocol,
-            'webui_listen': self.dispatcher.configstore.get(
+            'webui_listen': self.configstore.get(
                 'service.nginx.listen',
             ),
-            'webui_http_port': self.dispatcher.configstore.get(
+            'webui_http_port': self.configstore.get(
                 'service.nginx.http.port',
             ),
-            'webui_http_redirect_https': self.dispatcher.configstore.get(
+            'webui_http_redirect_https': self.configstore.get(
                 'service.nginx.http.redirect_https',
             ),
-            'webui_https_certificate': self.dispatcher.configstore.get(
+            'webui_https_certificate': self.configstore.get(
                 'service.nginx.https.certificate',
             ),
-            'webui_https_port': self.dispatcher.configstore.get(
+            'webui_https_port': self.configstore.get(
                 'service.nginx.https.port',
             ),
         }
@@ -242,20 +242,20 @@ class SystemGeneralConfigureTask(Task):
             netif.set_hostname(props['hostname'])
 
         if 'language' in props:
-            self.dispatcher.configstore.set('system.language', props['language'])
+            self.configstore.set('system.language', props['language'])
 
         if 'timezone' in props:
-            self.dispatcher.configstore.set('system.timezone', props['timezone'])
+            self.configstore.set('system.timezone', props['timezone'])
 
         if 'console_keymap' in props:
-            self.dispatcher.configstore.set(
+            self.configstore.set(
                 'system.console.keymap',
                 props['console_keymap'],
             )
 
         syslog_changed = False
         if 'syslog_server' in props:
-            self.dispatcher.configstore.set('system.syslog_server', props['syslog_server'])
+            self.configstore.set('system.syslog_server', props['syslog_server'])
             syslog_changed = True
 
         try:
@@ -285,7 +285,7 @@ class SystemAdvancedConfigureTask(Task):
 
     def run(self, props):
         try:
-            cs = self.dispatcher.configstore
+            cs = self.configstore
 
             console = False
             loader = False
@@ -385,21 +385,21 @@ class SystemUIConfigureTask(Task):
         return ['system']
 
     def run(self, props):
-        self.dispatcher.configstore.set(
+        self.configstore.set(
             'service.nginx.http.enable',
             True if 'HTTP' in props.get('webui_protocol') else False,
         )
-        self.dispatcher.configstore.set(
+        self.configstore.set(
             'service.nginx.https.enable',
             True if 'HTTPS' in props.get('webui_protocol') else False,
         )
-        self.dispatcher.configstore.set('service.nginx.listen', props.get('webui_listen'))
-        self.dispatcher.configstore.set('service.nginx.http.port', props.get('webui_http_port'))
-        self.dispatcher.configstore.set(
+        self.configstore.set('service.nginx.listen', props.get('webui_listen'))
+        self.configstore.set('service.nginx.http.port', props.get('webui_http_port'))
+        self.configstore.set(
             'service.nginx.http.redirect_https', props.get('webui_http_redirect_https'))
-        self.dispatcher.configstore.set(
+        self.configstore.set(
             'service.nginx.https.certificate', props.get('webui_https_certificate'))
-        self.dispatcher.configstore.set('service.nginx.https.port', props.get('webui_https_port'))
+        self.configstore.set('service.nginx.https.port', props.get('webui_https_port'))
 
         try:
             self.dispatcher.call_sync(
@@ -457,7 +457,7 @@ def _init(dispatcher, plugin):
         if 'hostname' not in args:
             return
 
-        dispatcher.configstore.set('system.hostname', args['hostname'])
+        configstore.set('system.hostname', args['hostname'])
         dispatcher.dispatch_event('system.general.changed', {
             'operation': 'update',
         })
@@ -534,4 +534,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("system.reboot", SystemRebootTask)
 
     # Set initial hostname
-    netif.set_hostname(dispatcher.configstore.get('system.hostname'))
+    netif.set_hostname(configstore.get('system.hostname'))
