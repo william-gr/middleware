@@ -342,7 +342,7 @@ class Balancer(object):
         task.clazz = self.dispatcher.tasks[name]
         task.args = args
         task.state = TaskState.CREATED
-        task.instance = task.clazz(self.dispatcher)
+        task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
         task.start()
