@@ -59,24 +59,21 @@ class Task(object):
         return TaskStatus(50, 'Executing...')
 
     def verify_subtask(self, classname, *args):
-        return self.dispatcher.balancer.verify_subtask(self, classname, args)
+        return self.dispatcher.verify_subtask(self, classname, args)
 
     def run_subtask(self, classname, *args):
-        return self.dispatcher.balancer.run_subtask(self, classname, args)
+        return self.dispatcher.run_subtask(self, classname, args)
 
     def join_subtasks(self, *tasks):
-        self.dispatcher.balancer.join_subtasks(*tasks)
-        for i in tasks:
-            if i.state != TaskState.FINISHED:
-                raise TaskException(errno.EFAULT, 'Subtask failed: {0}'.format(i.progress.message))
+        self.dispatcher.join_subtasks(*tasks)
 
     def chain(self, task, *args):
         self.dispatcher.balancer.submit(task, *args)
 
 
 class ProgressTask(Task):
-    def __init__(self, dispatcher):
-        super(ProgressTask, self).__init__(dispatcher)
+    def __init__(self, dispatcher, datastore):
+        super(ProgressTask, self).__init__(dispatcher, datastore)
         self.progress = 0
         self.message = 'Executing...'
 
