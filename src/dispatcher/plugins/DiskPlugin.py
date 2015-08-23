@@ -42,7 +42,7 @@ from cache import CacheStore
 from lib.geom import confxml
 from lib.system import system, SubprocessException
 from task import Provider, Task, TaskStatus, TaskException, VerifyException, query
-from dispatcher.rpc import RpcException, accepts, returns, description
+from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 
 # Note the following monkey patch is required for pySMART to work correctly
@@ -109,6 +109,10 @@ class DiskProvider(Provider):
 
         raise RpcException(errno.ENOENT, "Partition {0} not found".format(part_name))
 
+    @private
+    def update_disk_cache(self, disk):
+        update_disk_cache(self.dispatcher, disk)
+
 
 @accepts(str, str, h.object())
 class DiskGPTFormatTask(Task):
@@ -139,18 +143,23 @@ class DiskGPTFormatTask(Task):
             pass
 
         try:
-            system('/sbin/gpart', 'create', '-s', 'gpt', disk)
-            if swapsize > 0:
-                system('/sbin/gpart', 'add', '-a', str(blocksize), '-b', '128', '-s', '{0}M'.format(swapsize), '-t', 'freebsd-swap', disk)
-                system('/sbin/gpart', 'add', '-a', str(blocksize), '-t', fstype, disk)
-            else:
-                system('/sbin/gpart', 'add', '-a', str(blocksize), '-b', '128', '-t', fstype, disk)
+            def partition():
+                system('/sbin/gpart', 'create', '-s', 'gpt', disk)
+                if swapsize > 0:
+                    system('/sbin/gpart', 'add', '-a', str(blocksize), '-b', '128', '-s', '{0}M'.format(swapsize), '-t', 'freebsd-swap', disk)
+                    system('/sbin/gpart', 'add', '-a', str(blocksize), '-t', fstype, disk)
+                else:
+                    system('/sbin/gpart', 'add', '-a', str(blocksize), '-b', '128', '-t', fstype, disk)
 
-            system('/sbin/gpart', 'bootcode', '-b', bootcode, disk)
+                system('/sbin/gpart', 'bootcode', '-b', bootcode, disk)
+
+            self.dispatcher.exec_and_wait_for_event(
+                'system.device.mediachange',
+                lambda args: args['path'] == disk,
+                partition
+            )
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
-
-        generate_disk_cache(self.dispatcher, disk)
 
 
 class DiskBootFormatTask(Task):
@@ -502,6 +511,7 @@ def generate_partitions_list(gpart):
 
 
 def update_disk_cache(dispatcher, path):
+    geom.scan()
     name = os.path.basename(path)
     gdisk = geom.geom_by_name('DISK', name)
     gpart = geom.geom_by_name('PART', name)
@@ -557,6 +567,7 @@ def update_disk_cache(dispatcher, path):
     if old_id != identifier:
         logger.debug('Removing disk cache entry for <%s> because identifier changed', old_id)
         diskinfo_cache.remove(old_id)
+        diskinfo_cache.put(identifier, disk)
         dispatcher.datastore.delete('disks', old_id)
 
     persist_disk(dispatcher, disk)

@@ -39,7 +39,6 @@ from fnutils.query import wrap
 
 
 VOLUMES_ROOT = '/volumes'
-volumes_lock = RLock()
 
 
 def flatten_datasets(root):
@@ -272,7 +271,7 @@ class VolumeCreateTask(ProgressTask):
         self.join_subtasks(*subtasks)
         self.set_progress(40)
 
-        with volumes_lock:
+        with self.dispatcher.get_lock('volumes'):
             self.join_subtasks(self.run_subtask(
                 'zfs.pool.create',
                 name,
@@ -286,7 +285,7 @@ class VolumeCreateTask(ProgressTask):
             self.join_subtasks(self.run_subtask(
                 'zfs.configure',
                 name, name,
-                {'org.freenas:share_type': 'UNIX'}
+                {'org.freenas:share_type': {'value': 'UNIX'}}
             ))
 
             self.set_progress(60)
@@ -614,7 +613,7 @@ def _init(dispatcher, plugin):
                     [('guid', '=', i)],
                     {'single': True}
                 )
-                with volumes_lock:
+                with dispatcher.get_lock('volumes'):
                     try:
                         dispatcher.datastore.insert('volumes', {
                             'id': i,
