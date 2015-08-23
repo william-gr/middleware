@@ -33,6 +33,7 @@ import imp
 import setproctitle
 import socket
 import traceback
+import logging
 from threading import Event
 from dispatcher.client import Client, ClientType
 from dispatcher.rpc import RpcService, RpcException
@@ -62,9 +63,33 @@ class DispatcherWrapper(object):
     def __init__(self, dispatcher):
         self.dispatcher = dispatcher
 
+    def __run_hook(self, name, args):
+        return self.dispatcher.call_sync('task.run_hook', name, args)
+
+    def __verify_subtask(self, task, name, args):
+        return self.dispatcher.call_sync('task.verify_subtask', name, args)
+
+    def __run_subtask(self, task, name, args):
+        return self.dispatcher.call_sync('task.run_subtask', name, args)
+
+    def __join_subtasks(self, *tasks):
+        return self.dispatcher.call_sync('task.join_subtasks', tasks, timeout=None)
+
     def __getattr__(self, item):
         if item == 'dispatch_event':
             return self.dispatcher.emit_event
+
+        if item == 'run_hook':
+            return self.__run_hook
+
+        if item == 'verify_subtask':
+            return self.__verify_subtask
+
+        if item == 'run_subtask':
+            return self.__run_subtask
+
+        if item == 'join_subtasks':
+            return self.__join_subtasks
 
         return getattr(self.dispatcher, item)
 
