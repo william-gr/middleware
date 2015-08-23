@@ -38,7 +38,7 @@ from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
 from gevent.lock import RLock
-from gevent.event import AsyncResult
+from gevent.event import Event, AsyncResult
 from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
@@ -61,6 +61,7 @@ class TaskExecutor(object):
         self.proc = None
         self.pid = None
         self.conn = None
+        self.checked_in = Event()
         self.result = AsyncResult()
 
     def checkin(self, conn):
@@ -75,6 +76,9 @@ class TaskExecutor(object):
         }
 
     def get_status(self):
+        if not self.conn:
+            return None
+
         try:
             st = TaskStatus(0)
             st.__setstate__(self.conn.call_client_sync('taskproxy.get_status'))
@@ -92,6 +96,7 @@ class TaskExecutor(object):
             self.result.set_exception(TaskException(
                 code=error['code'],
                 message=error['message'],
+                stacktrace=error['stacktrace'],
                 extra=error.get('extra')
             ))
 
@@ -224,6 +229,9 @@ class Task(object):
 
         return self.thread
 
+    def join(self, timeout=None):
+        self.ended.wait(timeout)
+
     def set_state(self, state, progress=None, error=None):
         event = {'id': self.id, 'name': self.name, 'state': state}
 
@@ -345,12 +353,13 @@ class Balancer(object):
         task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
+        self.task_list.append(task)
         task.start()
         return task
 
     def join_subtasks(self, *tasks):
         for i in tasks:
-            i.thread.join()
+            i.join()
 
     def abort(self, id):
         task = self.get_task(id)
@@ -451,7 +460,7 @@ def serialize_error(err):
     ret = {
         'type': type(err).__name__,
         'message': err.message,
-        'stacktrace': traceback.format_exc()
+        'stacktrace': err.stacktrace
     }
 
     if isinstance(err, RpcException):
