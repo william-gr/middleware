@@ -56,7 +56,6 @@ if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
     from gevent.lock import RLock
     from gevent.event import Event
     from gevent.greenlet import Greenlet
-    from threading import Thread
     _thread_type = ClientType.GEVENT
 else:
     from ws4py.client.threadedclient import WebSocketClient
@@ -218,7 +217,9 @@ class Client(object):
             for h in self.event_handlers[name]:
                 h(args)
 
-        self.event_callback(name, args)
+        if self.event_callback:
+            self.event_callback(name, args)
+
         self.event_distribution_lock.release()
 
     def decode(self, msg):
@@ -451,6 +452,10 @@ class Client(object):
         self.event_distribution_lock.release()
         done.wait(timeout=timeout)
         self.unregister_event_handler(event, handler)
+
+    def get_lock(self, name):
+        self.call_sync('lock.init', name)
+        return rpc.ServerLockProxy(self, name)
 
     @property
     def connected(self):

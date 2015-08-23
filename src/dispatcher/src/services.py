@@ -28,7 +28,7 @@
 import errno
 import subprocess
 from gevent.event import Event
-from gevent.lock import RLock
+from gevent.lock import Semaphore
 from dispatcher.rpc import RpcService, RpcException, pass_sender, private
 from balancer import TaskExecutor
 from auth import ShellToken
@@ -268,7 +268,7 @@ class TaskService(RpcService):
     def checkin(self, key, sender):
         task = self.__balancer.get_task_by_key(key)
         if not task:
-            raise RpcException(errno.ENOENT, 'Task not found')
+            raise RpcException(errno.EPERM, 'Not authorized')
 
         return task.executor.checkin(sender)
 
@@ -277,26 +277,84 @@ class TaskService(RpcService):
     def put_status(self, status, sender):
         task = self.__balancer.get_task_by_sender(sender)
         if not task:
-            raise RpcException(errno.ENOENT, 'Task not found')
+            raise RpcException(errno.EPERM, 'Not authorized')
 
         task.executor.put_status(status)
 
+    @private
+    @pass_sender
+    def run_hook(self, hook, args, sender):
+        task = self.__balancer.get_task_by_sender(sender)
+        if not task:
+            raise RpcException(errno.EPERM, 'Not authorized')
+
+        return self.__dispatcher.run_hook(hook, args)
+
+    @private
+    @pass_sender
+    def verify_subtask(self, name, args, sender):
+        task = self.__balancer.get_task_by_sender(sender)
+        if not task:
+            raise RpcException(errno.EPERM, 'Not authorized')
+
+        return self.__dispatcher.verify_subtask(task, name, args)
+
+    @private
+    @pass_sender
+    def run_subtask(self, name, args, sender):
+        task = self.__balancer.get_task_by_sender(sender)
+        if not task:
+            raise RpcException(errno.EPERM, 'Not authorized')
+
+        ret = self.__dispatcher.balancer.run_subtask(task, name, args)
+        return ret.id
+
+    @private
+    @pass_sender
+    def join_subtasks(self, subtask_ids, sender):
+        task = self.__balancer.get_task_by_sender(sender)
+        if not task:
+            raise RpcException(errno.EPERM, 'Not authorized')
+
+        subtasks = map(self.__balancer.get_task, subtask_ids)
+        self.__dispatcher.balancer.join_subtasks(*subtasks)
+
 
 class LockService(RpcService):
-    def initialize(self):
+    def initialize(self, context):
         self.locks = {}
+        self.mutex = Semaphore()
 
-    def acquire(self, lock):
-        self.locks.ge
+    def init(self, lock):
+        with self.mutex:
+            if lock not in self.locks:
+                self.locks[lock] = Semaphore()
+
+    def acquire(self, lock, timo=None):
+        with self.mutex:
+            if lock not in self.locks:
+                self.locks[lock] = Semaphore()
+
+        return self.locks[lock].acquire(True, timo)
 
     def release(self, lock):
-        pass
+        with self.mutex:
+            if lock not in self.locks:
+                self.locks[lock] = Semaphore()
+                return
+
+        self.locks[lock].release()
 
     def is_locked(self, lock):
-        pass
+        with self.mutex:
+            if lock not in self.locks:
+                self.locks[lock] = Semaphore()
+                return False
+
+        return self.locks[lock].locked()
 
     def get_locks(self):
-        pass
+        return self.locks.keys()
 
 
 class ShellService(RpcService):

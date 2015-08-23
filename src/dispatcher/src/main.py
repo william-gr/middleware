@@ -61,9 +61,9 @@ from geventwebsocket import (WebSocketServer, WebSocketApplication, Resource,
 from datastore import get_datastore
 from datastore.config import ConfigStore
 from dispatcher.jsonenc import loads, dumps
-from dispatcher.rpc import RpcContext, RpcException, convert_schema
+from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
 from resources import ResourceGraph
-from services import ManagementService, EventService, TaskService, PluginService, ShellService
+from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
 from api.handler import ApiHandler
 from balancer import Balancer
 from auth import PasswordAuthenticator, TokenStore, Token, TokenException
@@ -316,6 +316,7 @@ class Dispatcher(object):
         self.rpc.register_service('task', TaskService)
         self.rpc.register_service('plugin', PluginService)
         self.rpc.register_service('shell', ShellService)
+        self.rpc.register_service('lock', LockService)
 
         self.register_event_type('server.client_connected')
         self.register_event_type('server.client_disconnected')
@@ -647,6 +648,10 @@ class Dispatcher(object):
         self.event_delivery_lock.release()
         done.wait(timeout=timeout)
         self.unregister_event_handler(event, handler)
+
+    def get_lock(self, name):
+        self.call_sync('lock.init', name)
+        return ServerLockProxy(self, name)
 
     def die(self):
         self.logger.warning('Exiting from "die" command')

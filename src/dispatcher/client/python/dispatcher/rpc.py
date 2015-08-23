@@ -207,14 +207,35 @@ class RpcService(object):
 
 
 class RpcException(Exception):
-    def __init__(self, code, message, extra=None):
+    def __init__(self, code, message, extra=None, stacktrace=None):
         self.code = code
         self.message = message
         self.extra = extra
-        self.stacktrace = traceback.format_exc()
+        self.stacktrace = stacktrace or traceback.format_exc()
 
     def __str__(self):
         return "{}: {}".format(errno.errorcode[self.code], self.message)
+
+
+class ServerLockProxy(object):
+    def __init__(self, conn, name):
+        self.conn = conn
+        self.name = name
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release()
+
+    def acquire(self, timeout=None):
+        return self.conn.call_sync('lock.acquire', self.name, timeout)
+
+    def release(self):
+        self.conn.call_sync('lock.release', self.name)
+
+    def is_set(self):
+        return self.conn.call_sync('lock.is_set', self.name)
 
 
 def populate_event_data(evt):
