@@ -111,7 +111,8 @@ class DiskProvider(Provider):
 
     @private
     def update_disk_cache(self, disk):
-        update_disk_cache(self.dispatcher, disk)
+        with self.dispatcher.get_lock('diskcache:{0}'.format(disk)):
+            update_disk_cache(self.dispatcher, disk)
 
 
 @accepts(str, str, h.object())
@@ -143,7 +144,7 @@ class DiskGPTFormatTask(Task):
             pass
 
         try:
-            def partition():
+            with self.dispatcher.get_lock('diskcache:{0}'.format(disk)):
                 system('/sbin/gpart', 'create', '-s', 'gpt', disk)
                 if swapsize > 0:
                     system('/sbin/gpart', 'add', '-a', str(blocksize), '-b', '128', '-s', '{0}M'.format(swapsize), '-t', 'freebsd-swap', disk)
@@ -153,11 +154,7 @@ class DiskGPTFormatTask(Task):
 
                 system('/sbin/gpart', 'bootcode', '-b', bootcode, disk)
 
-            self.dispatcher.exec_and_wait_for_event(
-                'system.device.mediachange',
-                lambda args: args['path'] == disk,
-                partition
-            )
+            self.dispatcher.call_sync('disks.update_disk_cache', disk)
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
 
@@ -684,7 +681,8 @@ def _init(dispatcher, plugin):
         if re.match(r'^/dev/(da|ada|vtbd)[0-9]+$', path):
             # Regenerate disk cache
             logger.info("New disk attached: {0}".format(path))
-            generate_disk_cache(dispatcher, path)
+            with dispatcher.get_lock('diskcache:{0}'.format(path)):
+                generate_disk_cache(dispatcher, path)
 
     def on_device_detached(args):
         path = args['path']
@@ -697,9 +695,11 @@ def _init(dispatcher, plugin):
 
     def on_device_mediachange(args):
         # Regenerate caches
-        logger.info('Updating disk cache for device %s', args['path'])
-        update_disk_cache(dispatcher, args['path'])
-        pass
+        path = args['path']
+        if re.match(r'^/dev/(da|ada|vtbd|multipath/multipath)[0-9]+$', path):
+            with dispatcher.get_lock('diskcache:{0}'.format(path)):
+                logger.info('Updating disk cache for device %s', args['path'])
+                update_disk_cache(dispatcher, args['path'])
 
     plugin.register_schema_definition('disk', {
         'type': 'object',
