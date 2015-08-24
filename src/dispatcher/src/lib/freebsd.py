@@ -25,7 +25,7 @@
 #
 #####################################################################
 
-import sysctl
+from bsd import sysctl
 from lib.system import system
 
 

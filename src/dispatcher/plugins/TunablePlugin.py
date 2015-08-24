@@ -32,7 +32,7 @@ from task import Task, Provider, TaskException, ValidationException, VerifyExcep
 from dispatcher.rpc import RpcException, accepts, description, returns
 from dispatcher.rpc import SchemaHelper as h
 from lib.system import SubprocessException, system
-import sysctl
+from bsd import sysctl
 
 logger = logging.getLogger('TunablePlugin')
 

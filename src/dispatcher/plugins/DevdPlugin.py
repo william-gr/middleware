@@ -29,8 +29,7 @@ import os
 import re
 import netif
 import time
-import geom
-from resources import Resource
+from bsd import geom
 from event import EventSource
 from task import Provider
 from dispatcher.rpc import accepts, returns, description

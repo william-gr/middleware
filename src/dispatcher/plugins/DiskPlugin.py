@@ -31,7 +31,7 @@ import errno
 import logging
 import gevent
 import gevent.monkey
-import geom
+from bsd import geom
 from gevent.lock import RLock
 from resources import Resource
 from datetime import datetime, timedelta
