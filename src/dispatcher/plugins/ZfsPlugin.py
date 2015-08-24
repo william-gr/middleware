@@ -337,8 +337,6 @@ class ZpoolDestroyTask(ZpoolBaseTask):
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
-        # self.dispatcher.unregister_resource('zpool:{0}'.format(name))
-
 
 @accepts(
     str,
@@ -780,7 +778,7 @@ def _init(dispatcher, plugin):
         guid = args['guid']
         zpool_sync_resources(dispatcher, args['pool'])
         dispatcher.dispatch_event('zfs.pool.changed', {
-            'operation': 'delete',
+            'operation': 'update',
             'ids': [guid]
         })
 
