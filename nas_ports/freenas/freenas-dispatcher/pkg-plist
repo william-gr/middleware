@@ -79,5 +79,6 @@
 /usr/local/etc/rc.d/dispatcher
 /usr/local/sbin/dispatcherd
 /usr/local/sbin/dispatcherctl
+/usr/local/libexec/taskproxy
 /usr/local/etc/middleware.conf
 
