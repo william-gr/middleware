@@ -535,18 +535,21 @@ class ZfsDatasetUmountTask(ZfsBaseTask):
 
 @accepts(str, str, h.object())
 class ZfsDatasetCreateTask(Task):
-    def verify(self, pool_name, path, type, params=None):
-        if not pool_exists(pool_name):
-            raise VerifyException('Pool {0} not found'.format(pool_name))
-
+    def check_type(self, type):
         try:
             self.type = getattr(libzfs.DatasetType, type)
         except AttributeError:
             raise VerifyException(errno.EINVAL, 'Invalid dataset type: {0}'.format(type))
 
+    def verify(self, pool_name, path, type, params=None):
+        if not pool_exists(pool_name):
+            raise VerifyException('Pool {0} not found'.format(pool_name))
+
+        self.check_type(type)
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, type, params=None):
+        self.check_type(type)
         try:
             params = params or {}
             sparse = False
