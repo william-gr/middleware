@@ -35,6 +35,7 @@ import threading
 import uuid
 import inspect
 import subprocess
+import bsd
 from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
@@ -89,6 +90,13 @@ class TaskExecutor(object):
             self.proc.terminate()
 
     def put_status(self, status):
+        # Try to collect rusage at this point, when process is still alive
+        try:
+            kinfo = bsd.kinfo_getproc(self.pid)
+            self.task.rusage = kinfo.rusage
+        except LookupError:
+            pass
+
         if status['status'] == 'FINISHED':
             self.result.set(status['result'])
 
@@ -170,6 +178,7 @@ class Task(object):
         self.parent = None
         self.result = None
         self.output = None
+        self.rusage = None
         self.executor = TaskExecutor(self.dispatcher.balancer, self)
         self.ended = threading.Event()
 
@@ -185,6 +194,7 @@ class Task(object):
             "result": self.result,
             "state": self.state,
             "output": self.output,
+            "rusage": self.rusage,
             "error": self.error
         }
 
