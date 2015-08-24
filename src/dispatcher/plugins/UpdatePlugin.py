@@ -634,13 +634,13 @@ class UpdateApplyTask(ProgressTask):
             ApplyUpdate(cache_dir, install_handler=handler.install_handler, force_reboot=True)
         except ManifestInvalidSignature as e:
             logger.debug('UpdateApplyTask Error: Cached manifest has invalid signature: %s', e)
-            TaskException(errno.EINVAL, 'Cached manifest has invalid signature: {0}'.format(str(e)))
+            raise TaskException(errno.EINVAL, 'Cached manifest has invalid signature: {0}'.format(str(e)))
         except UpdateBootEnvironmentException as e:
             logger.debug('UpdateApplyTask Boot Environment Error: {0}'.format(str(e)))
-            TaskException(errno.EAGAIN, str(e))
+            raise TaskException(errno.EAGAIN, str(e))
         except UpdatePackageException as e:
             logger.debug('UpdateApplyTask Package Error: {0}'.format(str(e)))
-            TaskException(errno.EAGAIN, str(e))
+            raise TaskException(errno.EAGAIN, str(e))
         except Exception as e:
             raise TaskException(
                 errno.EAGAIN, 'Got exception {0} while trying to Apply Updates'.format(str(e))
