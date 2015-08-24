@@ -567,7 +567,7 @@ class UpdateManualTask(ProgressTask):
             reg = RE_TAR.findall(line)
             if reg:
                 current = float(reg[-1])
-                percent = ((current / size) * 100
+                percent = ((current / size) * 100)
                 self.set_progress(percent / 3)
         temperr.close()
         proc.communicate()
@@ -651,6 +651,34 @@ class UpdateApplyTask(ProgressTask):
         self.set_progress(100)
 
 
+@description("Verify installation integrity")
+@accepts()
+class UpdateVerifyTask(ProgressTask):
+    def describe(self):
+        return "Verify installation integrity"
+
+    def verify(self):
+        return [update_resource_string]
+
+    def verify_handler(self, index, total, fname):
+        self.message = 'Verifying {0}'.format(fname)
+        self.set_progress(int((float(index) / float(total)) * 100.0))
+
+    def run(self):
+        try:
+            error_flag, ed, warn_flag, wl = Configuration.do_verify(self.verify_handler)
+        except Exception as e:
+            raise TaskException(
+                errno.EAGAIN, 'Got exception while verifying install: {0}'.format(str(e))
+            )
+        return {
+            'checksum': ed['checksum'],
+            'notfound': ed['notfound'],
+            'wrongtype': ed['wrongtype'],
+            'perm': wl,
+        }
+
+
 def _depends():
     return ['SystemDatasetPlugin']
 
@@ -724,6 +752,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("update.download", DownloadUpdateTask)
     plugin.register_task_handler("update.manual", UpdateManualTask)
     plugin.register_task_handler("update.update", UpdateApplyTask)
+    plugin.register_task_handler("update.verify", UpdateVerifyTask)
 
     # Register Event Types
     plugin.register_event_type('update.in_progress', schema=h.ref('update-progress'))
