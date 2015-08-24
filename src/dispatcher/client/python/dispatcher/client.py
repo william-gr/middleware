@@ -436,6 +436,7 @@ class Client(object):
 
     def exec_and_wait_for_event(self, event, match_fn, fn, timeout=None):
         done = Event()
+        self.subscribe_events(event)
         self.event_distribution_lock.acquire()
 
         try:
