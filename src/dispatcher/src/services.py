@@ -32,6 +32,7 @@ from gevent.lock import Semaphore
 from dispatcher.rpc import RpcService, RpcException, pass_sender, private
 from balancer import TaskExecutor
 from auth import ShellToken
+from task import TaskState
 from utils import first_or_default
 
 
@@ -318,6 +319,10 @@ class TaskService(RpcService):
 
         subtasks = map(self.__balancer.get_task, subtask_ids)
         self.__dispatcher.balancer.join_subtasks(*subtasks)
+
+        for i in subtasks:
+            if i.state != TaskState.FINISHED:
+                raise RpcException(errno.EFAULT, 'Subtask failed: {0}'.format(i.error['message']))
 
 
 class LockService(RpcService):
