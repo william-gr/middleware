@@ -27,6 +27,7 @@
 
 import os
 import errno
+import logging
 import libzfs
 from threading import Event
 from task import (Provider, Task, TaskStatus, TaskException,
@@ -37,6 +38,9 @@ from balancer import TaskState
 from resources import Resource
 from fnutils import first_or_default
 from fnutils.query import wrap
+
+
+logger = logging.getLogger('ZfsPlugin')
 
 
 @description("Provides information about ZFS pools")
@@ -1126,7 +1130,14 @@ def _init(dispatcher, plugin):
                 # Check if the volume name is also the same
                 if vol['name'] == pool_to_import.name:
                     opts = {}
-                    zfs.import_pool(pool_to_import, pool_to_import.name, opts)
+                    try:
+                        zfs.import_pool(pool_to_import, pool_to_import.name, opts)
+                    except libzfs.ZFSException, err:
+                        logger.error('Cannot import pool {0} <{1}>: {2}'.format(
+                            pool_to_import.name,
+                            vol['id'],
+                            str(err))
+                        )
                 else:
                     # What to do now??
                     # When in doubt log it!
@@ -1141,4 +1152,4 @@ def _init(dispatcher, plugin):
 
     except libzfs.ZFSException as err:
         # Log what happened
-        dispatcher.logger.error('ZfsPlugin init error: {0}'.format(str(err)))
+        logger.error('ZfsPlugin init error: {0}'.format(str(err)))
