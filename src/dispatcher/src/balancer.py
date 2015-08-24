@@ -146,6 +146,7 @@ class TaskExecutor(object):
             self.balancer.logger.debug('Started task #{0} as PID {1}'.format(self.task.id, self.pid))
         except OSError:
             self.result.set_exception(TaskException(errno.EFAULT, 'Cannot spawn task executor'))
+            return
 
         out, _ = self.proc.communicate()
         self.task.set_output(out)
