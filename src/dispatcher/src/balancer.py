@@ -34,6 +34,7 @@ import copy
 import threading
 import uuid
 import inspect
+import subprocess
 from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
@@ -127,13 +128,19 @@ class TaskExecutor(object):
 
     def executor(self):
         try:
-            self.proc = Popen([TASKPROXY_PATH, self.task.key], close_fds=True)
+            self.proc = Popen(
+                [TASKPROXY_PATH, self.task.key],
+                close_fds=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+
             self.pid = self.proc.pid
             self.balancer.logger.debug('Started task #{0} as PID {1}'.format(self.task.id, self.pid))
         except OSError:
             self.result.set_exception(TaskException(errno.EFAULT, 'Cannot spawn task executor'))
 
-        self.proc.wait()
+        out, _ = self.proc.communicate()
+        self.task.set_output(out)
         if not self.result.ready():
             self.balancer.logger.error('Executor process with PID {0} died abruptly with exit code {1}'.format(
                 self.proc.pid,
@@ -162,6 +169,7 @@ class Task(object):
         self.instance = None
         self.parent = None
         self.result = None
+        self.output = None
         self.executor = TaskExecutor(self.dispatcher.balancer, self)
         self.ended = threading.Event()
 
@@ -176,6 +184,7 @@ class Task(object):
             "args": remove_dots(self.args),
             "result": self.result,
             "state": self.state,
+            "output": self.output,
             "error": self.error
         }
 
@@ -254,6 +263,10 @@ class Task(object):
         if progress:
             self.progress = progress
             self.__emit_progress()
+
+    def set_output(self, output):
+        self.output = output
+        self.dispatcher.datastore.update('tasks', self.id, self)
 
     def progress_watcher(self):
         while True:

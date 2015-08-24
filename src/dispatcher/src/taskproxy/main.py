@@ -168,9 +168,5 @@ class Context(object):
 
 
 if __name__ == '__main__':
-    if "TASKPROXY_DEBUG" in os.environ:
-        sys.stdout = open('/var/tmp/taskproxy.{0}.log'.format(os.getpid()), 'w')
-        sys.stderr = sys.stdout
-
     ctx = Context()
     ctx.main()
