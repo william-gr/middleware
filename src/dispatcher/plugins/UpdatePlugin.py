@@ -676,6 +676,8 @@ class UpdateVerifyTask(ProgressTask):
             'notfound': ed['notfound'],
             'wrongtype': ed['wrongtype'],
             'perm': wl,
+            'error': error_flag,
+            'warn': warn_flag,
         }
 
 
