@@ -108,6 +108,17 @@ class ZpoolProvider(Provider):
             }
         }
 
+    @accepts(str, str)
+    @returns(h.ref('zfs-vdev'))
+    def vdev_by_guid(self, pool, guid):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            return pool.vdev_by_guid(int(guid))
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
+
+
     @accepts(str)
     @returns()
     def ensure_resilvered(self, name):
