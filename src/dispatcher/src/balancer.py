@@ -460,7 +460,7 @@ def serialize_error(err):
     ret = {
         'type': type(err).__name__,
         'message': err.message,
-        'stacktrace': err.stacktrace
+        'stacktrace': err.stacktrace if hasattr(err, 'stacktrace') else traceback.format_exc()
     }
 
     if isinstance(err, RpcException):

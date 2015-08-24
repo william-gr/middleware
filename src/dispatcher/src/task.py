@@ -95,7 +95,6 @@ class TaskAbortException(TaskException):
 
 
 class ValidationException(TaskException):
-
     def __init__(self, errors):
         extra = {'fields': {}}
         for name, code, message in errors:
