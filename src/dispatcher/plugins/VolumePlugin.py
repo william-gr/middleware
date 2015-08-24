@@ -27,7 +27,7 @@
 
 import errno
 import os
-from gevent.lock import RLock
+import logging
 from task import (Provider, Task, ProgressTask,
                   TaskException, VerifyException, query)
 from dispatcher.rpc import RpcException, description, accepts, returns
@@ -39,6 +39,7 @@ from fnutils.query import wrap
 
 
 VOLUMES_ROOT = '/volumes'
+logger = logging.getLogger('VolumePlugin')
 
 
 def flatten_datasets(root):
@@ -97,6 +98,7 @@ class VolumeProvider(Provider):
                 vol.update({
                     'description': config.get('properties.org\\.freenas:description.value'),
                     'topology': topology,
+                    'root_vdev': config['root_vdev'],
                     'status': config['status'],
                     'upgraded': is_upgraded(config),
                     'scan': config['scan'],
@@ -220,13 +222,24 @@ class VolumeProvider(Provider):
     @description("Returns Information about all the possible attributes of" +
                  " the Volume (name, guid, zfs properties, datasets, etc...)")
     @accepts(str)
-    @returns(h.ref('$zfs-pool'))
+    @returns(h.ref('zfs-pool'))
     def get_config(self, volume):
         return self.dispatcher.call_sync(
             'zfs.pool.query',
             [('name', '=', volume)],
             {'single': True}
         )
+
+    @accepts(str, str)
+    @returns(h.ref('zfs-vdev'))
+    def vdev_by_guid(self, volume, guid):
+        vdev = self.dispatcher.call_sync('zfs.pool.vdev_by_guid', volume, guid)
+        vdev['path'] = self.dispatcher.call_sync(
+            'disks.partition_to_disk',
+            vdev['path']
+        )
+
+        return vdev
 
     @description("Describes the various capacibilities of a Volumes given" +
                  "What type of Volume it is (example call it with 'zfs'")
@@ -604,6 +617,7 @@ def _init(dispatcher, plugin):
 
         if args['operation'] == 'delete':
             for i in args['ids']:
+                logger.info('Volume {0} is going away'.format(i))
                 dispatcher.datastore.delete('volumes', i)
 
         if args['operation'] == 'create':
@@ -613,6 +627,8 @@ def _init(dispatcher, plugin):
                     [('guid', '=', i)],
                     {'single': True}
                 )
+
+                logger.info('New volume {0} <{1}>'.format(pool['name'], i))
                 with dispatcher.get_lock('volumes'):
                     try:
                         dispatcher.datastore.insert('volumes', {
