@@ -1,5 +1,4 @@
 #!/bin/sh
 LIBDIR=/usr/local/lib/dispatcher/src
 export PYTHONPATH=$LIBDIR
-export DISPATCHERCLIENT_TYPE=GEVENT
 exec /usr/local/bin/python2.7 -u $LIBDIR/taskproxy/main.py $*
