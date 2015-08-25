@@ -71,7 +71,7 @@ class SupportProvider(Provider):
 
 
 @description("Submits a new support ticket")
-@accepts(h.ref('ticket'))
+@accepts(h.ref('support-ticket'))
 class SupportSubmitTask(Task):
     def describe(self, ticket):
         return 'Submitting ticket'
@@ -81,9 +81,55 @@ class SupportSubmitTask(Task):
 
     def run(self, ticket):
         try:
-            pass
+            version = self.dispatcher.call_sync('system.info.version')
+            sw_name = version.split('-')[0].lower()
+            data = {
+                'title': ticket['subject'],
+                'body': ticket['description'],
+                'version': version.split('-', 1)[-1],
+                'category': ticket['category'],
+                'type': ticket['type'],
+                'user': ticket['username'],
+                'password': ticket['password'],
+                'debug': ticket['debug'],
+            }
+
+            r = requests.post(
+                'https://%s/%s/api/v1.0/ticket' % (ADDRESS, sw_name),
+                data=json.dumps(data),
+                headers={'Content-Type': 'application/json'},
+                timeout=10,
+            )
+            data = r.json()
+            if r.status_code != 200:
+                logger.debug('Support Ticket failed (%d): %s', r.status_code, r.text)
+                raise TaskException(errno.EINVAL, 'ticket failed (0}: {1}'.format(r.status_code, r.text))
+
+            ticketid = data.get('ticketnum')
+
+            for attachment in ticket.get('attachments', []):
+                r = requests.post(
+                    'https://%s/%s/api/v1.0/ticket/attachment' % (ADDRESS, sw_name),
+                    data={
+                        'user': ticket['username'],
+                        'password': ticket['password'],
+                        'ticketnum': ticketid,
+                    },
+                    timeout=10,
+                    files={'file': open(attachment, 'rb')},
+                )
+
+        except simplejson.JSONDecodeError as e:
+            logger.debug("Failed to decode ticket attachment response: %s", r.text)
+            raise TaskException(errno.EINVAL, 'Failed to decode ticket response')
+        except requests.ConnectionError as e:
+            raise TaskException(errno.ENOTCONN, 'Connection failed: {0}'.format(str(e)))
+        except requests.Timeout as e:
+            raise TaskException(errno.ETIMEDOUT, 'Connection timed out: {0}'.format(str(e)))
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot submit support ticket: {0}'.format(str(e)))
+
+        return ticketid, data.get('message')
 
 
 def _depends():
@@ -101,8 +147,10 @@ def _init(dispatcher, plugin):
             'category': {'type': 'string'},
             'type': {'type': 'string'},
             'debug': {'type': 'boolean'},
+            'attachments': {'type': 'array', 'items': {'type': 'string'}},
         },
         'additionalProperties': False,
+        'required': ['username', 'password', 'subject', 'description', 'category', 'type', 'debug']
     })
 
     # Register events
