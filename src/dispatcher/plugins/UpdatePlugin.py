@@ -376,8 +376,8 @@ class UpdateProvider(Provider):
     def get_config(self):
         return {
             'train': self.dispatcher.configstore.get('update.train'),
-            'check_auto': self.dispatcher.configstore.get(
-                'update.check_auto'),
+            'check_auto': self.dispatcher.configstore.get('update.check_auto'),
+            'update_server': Configuration.Configuration().UpdateServerURL(),
         }
 
 
@@ -689,6 +689,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'train': {'type': 'string'},
             'check_auto': {'type': 'boolean'},
+            'update_server': {'type': 'string', 'readOnly': True},
         },
     })
 
