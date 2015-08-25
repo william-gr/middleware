@@ -118,7 +118,7 @@ class ZpoolProvider(Provider):
         try:
             zfs = libzfs.ZFS()
             pool = zfs.get(pool)
-            return pool.vdev_by_guid(int(guid))
+            return pool.vdev_by_guid(int(guid)).__getstate__()
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
