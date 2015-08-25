@@ -554,7 +554,12 @@ class VolumeUpgradeTask(Task):
         return ['disk:{0}'.format(d) for d in self.dispatcher.call_sync('volumes.get_volume_disks', name)]
 
     def run(self, name):
-        pass
+        vol = self.datastore.get_one('volumes', ('name', '=', name))
+        self.join_subtasks(self.run_subtask('zfs.pool.upgrade', name))
+        self.dispatcher.dispatch_event('volumes.changed', {
+            'operation': 'update',
+            'ids': [vol['id']]
+        })
 
 
 @description("Creates a dataset in an existing volume")
@@ -743,6 +748,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('volume.import_disk', VolumeDiskImportTask)
     plugin.register_task_handler('volume.detach', VolumeDetachTask)
     plugin.register_task_handler('volume.update', VolumeUpdateTask)
+    plugin.register_task_handler('volume.upgrade', VolumeUpgradeTask)
     plugin.register_task_handler('volume.dataset.create', DatasetCreateTask)
     plugin.register_task_handler('volume.dataset.delete', DatasetDeleteTask)
     plugin.register_task_handler('volume.dataset.update', DatasetConfigureTask)

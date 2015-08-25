@@ -473,6 +473,18 @@ class ZpoolOnlineDiskTask(ZpoolBaseTask):
             raise TaskException(errno.EFAULT, str(err))
 
 
+@accepts(str)
+class ZpoolUpgradeTask(ZpoolBaseTask):
+    def run(self, pool):
+        try:
+            zfs = libzfs.ZFS()
+            pool = zfs.get(pool)
+            pool.upgrade()
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
+
 @accepts(str, str, h.object())
 class ZpoolImportTask(Task):
     def verify(self, guid, name=None, properties=None):
@@ -1069,6 +1081,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.pool.replace', ZpoolReplaceTask)
     plugin.register_task_handler('zfs.pool.offline_disk', ZpoolOfflineDiskTask)
     plugin.register_task_handler('zfs.pool.online_disk', ZpoolOnlineDiskTask)
+    plugin.register_task_handler('zfs.pool.upgrade', ZpoolUpgradeTask)
 
     plugin.register_task_handler('zfs.pool.import', ZpoolImportTask)
     plugin.register_task_handler('zfs.pool.export', ZpoolExportTask)
