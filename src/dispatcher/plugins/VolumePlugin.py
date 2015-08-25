@@ -28,6 +28,10 @@
 import errno
 import os
 import logging
+import tempfile
+import shutil
+import bsd
+import bsd.kld
 from task import (Provider, Task, ProgressTask,
                   TaskException, VerifyException, query)
 from dispatcher.rpc import RpcException, description, accepts, returns
@@ -36,6 +40,7 @@ from utils import first_or_default
 from datastore import DuplicateKeyException
 from fnutils import include
 from fnutils.query import wrap
+from fnutils.copy import count_files, copytree
 
 
 VOLUMES_ROOT = '/volumes'
@@ -465,6 +470,53 @@ class VolumeImportTask(Task):
         })
 
 
+@description("Imports non-ZFS disk contents info existing volume")
+@accepts(str, str, str)
+class VolumeDiskImportTask(ProgressTask):
+    def verify(self, src, dest_path, fstype):
+        disk = self.dispatcher.call_sync('disks.partition_to_disk', src)
+        if not disk:
+            raise VerifyException(errno.ENOENT, "Partition {0} not found".format(src))
+
+        return ['disk:{0}'.format(disk)]
+
+    def run(self, src, dest_path, fstype):
+        if fstype == 'ntfs':
+            try:
+                bsd.kld.kldload('/boot/kernel/fuse.ko')
+            except OSError, err:
+                raise TaskException(err.errno, err.message)
+
+        src_mount = tempfile.mkdtemp()
+
+        try:
+            bsd.nmount(source=src, fspath=src_mount, fstype=fstype)
+        except OSError, err:
+            raise TaskException(err.errno, "Cannot mount disk: {0}".format(str(err))
+
+        def callback(srcfile, dstfile):
+            self.set_progress(self.copied / self.nfiles * 100, "Copying {0}".format(os.path.basename(srcfile)))
+
+        self.set_progress(0, "Counting files...")
+        self.nfiles = count_files(src_mount)
+        self.copied = 0
+        failures = []
+
+        try:
+            copytree(src_mount, dest_path, progress_callback=callback)
+        except shutil.Error, err:
+            failures = err.message
+
+        try:
+            bsd.unmount(src_mount, bsd.MountFlags.FORCE)
+        except OSError:
+            pass
+
+        bsd.kld.kldunload('fuse')
+        os.rmdir(src_mount)
+        return failures
+
+
 @description("Exports active volume")
 @accepts(str)
 class VolumeDetachTask(Task):
@@ -682,6 +734,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('volume.create_auto', VolumeAutoCreateTask)
     plugin.register_task_handler('volume.destroy', VolumeDestroyTask)
     plugin.register_task_handler('volume.import', VolumeImportTask)
+    plugin.register_task_handler('volume.import_disk', VolumeDiskImportTask)
     plugin.register_task_handler('volume.detach', VolumeDetachTask)
     plugin.register_task_handler('volume.update', VolumeUpdateTask)
     plugin.register_task_handler('volume.dataset.create', DatasetCreateTask)
