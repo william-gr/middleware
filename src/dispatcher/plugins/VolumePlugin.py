@@ -498,7 +498,7 @@ class VolumeDiskImportTask(ProgressTask):
         try:
             bsd.nmount(source=src, fspath=src_mount, fstype=fstype)
         except OSError, err:
-            raise TaskException(err.errno, "Cannot mount disk: {0}".format(str(err))
+            raise TaskException(err.errno, "Cannot mount disk: {0}".format(str(err)))
 
         def callback(srcfile, dstfile):
             self.set_progress(self.copied / self.nfiles * 100, "Copying {0}".format(os.path.basename(srcfile)))
