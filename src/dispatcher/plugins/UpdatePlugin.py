@@ -115,7 +115,7 @@ class CheckUpdateHandler(object):
         return output
 
 
-def check_updates(dispatcher, cache_dir=None, check_now=False):
+def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
     "Utility function to just check for Updates"
     update_cache.invalidate('updateAvailable')
     update_cache.invalidate('updateNotes')
@@ -126,7 +126,7 @@ def check_updates(dispatcher, cache_dir=None, check_now=False):
     conf = Configuration.Configuration()
     update_ops = None
     handler = CheckUpdateHandler()
-    train = dispatcher.configstore.get('update.train')
+    train = configstore.get('update.train')
     notes = None
     notice = None
 
@@ -266,7 +266,7 @@ def generate_update_cache(dispatcher, cache_dir=None):
                 os.makedirs(cache_dir)
     update_cache.put('cache_dir', cache_dir)
     try:
-        check_updates(dispatcher, cache_dir=cache_dir)
+        check_updates(dispatcher, dispatcher.configstore, cache_dir=cache_dir)
     except Exception as e:
         # What to do now?
         logger.debug('generate_update_cache (UpdatePlugin) falied because of: %s', e)
@@ -411,14 +411,8 @@ class UpdateConfigureTask(Task):
 
     def run(self, props):
 
-        self.dispatcher.configstore.set(
-            'update.train',
-            props.get('train'),
-        )
-        self.dispatcher.configstore.set(
-            'update.check_auto',
-            props.get('check_auto'),
-        )
+        self.configstore.set('update.train', props.get('train'))
+        self.configstore.set('update.check_auto', props.get('check_auto'))
         self.dispatcher.dispatch_event('update.changed', {
             'operation': 'update',
         })
@@ -448,7 +442,8 @@ class CheckUpdateTask(Task):
     def run(self):
         try:
             check_updates(
-                self.dispatcher, cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True
+                self.dispatcher, self.configstore,
+                cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True,
             )
         except UpdateManifestNotFound:
             raise TaskException(errno.ENETUNREACH, 'Update server could not be reached')
@@ -487,7 +482,7 @@ class DownloadUpdateTask(ProgressTask):
         self.message = 'Downloading Updates...'
         self.set_progress(0)
         handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
-        train = self.dispatcher.configstore.get('update.train')
+        train = self.configstore.get('update.train')
         cache_dir = update_cache.get('cache_dir')
         if cache_dir is None:
             try:
