@@ -367,7 +367,9 @@ class UpdateProvider(Provider):
     @accepts()
     @returns(str)
     def get_current_train(self):
-        return self.dispatcher.configstore.get('update.train')
+        conf = Configuration.Configuration()
+        conf.LoadTrainsConfig()
+        return conf.CurrentTrain()
 
     @accepts()
     @returns(h.ref('update'))
