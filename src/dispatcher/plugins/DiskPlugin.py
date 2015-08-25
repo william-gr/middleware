@@ -488,8 +488,8 @@ def generate_partitions_list(gpart):
 
     for p in gpart.providers:
         paths = [os.path.join("/dev", p.name)]
-        label = p.config['label']
-        uuid = p.config['rawuuid']
+        label = p.config.get('label')
+        uuid = p.config.get('rawuuid')
 
         if label:
             paths.append(os.path.join("/dev/gpt", label))
