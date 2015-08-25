@@ -226,7 +226,10 @@ class QueryDict(dict):
     def __init__(self, *args, **kwargs):
         super(QueryDict, self).__init__(*args, **kwargs)
         for k, v in self.items():
-                self[k] = wrap(v)
+            if isinstance(k, basestring):
+                k = k.replace('.', r'\.')
+
+            self[k] = wrap(v)
 
     def __getitem__(self, item):
         if not isinstance(item, basestring):
