@@ -76,6 +76,7 @@
 /usr/local/lib/dispatcher/plugins/BootPlugin.py
 /usr/local/lib/dispatcher/plugins/NTPPlugin.py
 /usr/local/lib/dispatcher/plugins/TunablePlugin.py
+/usr/local/lib/dispatcher/plugins/SupportPlugin.py
 /usr/local/libexec/dispatcher/notify-pam
 /usr/local/etc/rc.d/dispatcher
 /usr/local/sbin/dispatcherd
