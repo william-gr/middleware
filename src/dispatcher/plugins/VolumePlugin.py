@@ -32,8 +32,8 @@ import tempfile
 import shutil
 import bsd
 import bsd.kld
-from task import (Provider, Task, ProgressTask,
-                  TaskException, VerifyException, query)
+from lib.system import system, SubprocessException
+from task import Provider, Task, ProgressTask, TaskException, VerifyException, query
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from utils import first_or_default
@@ -473,14 +473,20 @@ class VolumeImportTask(Task):
 @description("Imports non-ZFS disk contents info existing volume")
 @accepts(str, str, str)
 class VolumeDiskImportTask(ProgressTask):
-    def verify(self, src, dest_path, fstype):
+    def verify(self, src, dest_path, fstype=None):
         disk = self.dispatcher.call_sync('disks.partition_to_disk', src)
         if not disk:
             raise VerifyException(errno.ENOENT, "Partition {0} not found".format(src))
 
         return ['disk:{0}'.format(disk)]
 
-    def run(self, src, dest_path, fstype):
+    def run(self, src, dest_path, fstype=None):
+        if not fstype:
+            try:
+                fstype, _ = system('/usr/sbin/fstyp', src)
+            except SubprocessException:
+                raise TaskException(errno.EINVAL, 'Cannot figure out filesystem type')
+
         if fstype == 'ntfs':
             try:
                 bsd.kld.kldload('/boot/kernel/fuse.ko')
