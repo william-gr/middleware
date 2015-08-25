@@ -235,6 +235,9 @@ class QueryDict(dict):
         if not isinstance(item, basestring):
             return super(QueryDict, self).__getitem__(item)
 
+        if super(QueryDict, self).__contains__(item):
+            return super(QueryDict, self).__getitem__(item)
+
         left, right = partition(item)
 
         if not right:
