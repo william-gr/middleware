@@ -26,6 +26,7 @@
 #####################################################################
 
 
+from mako import exceptions
 from mako.template import Template
 from datastore.config import ConfigStore
 
@@ -49,8 +50,14 @@ class MakoTemplateRenderer(object):
         }
 
     def render_template(self, path):
-        tmpl = Template(filename=path)
-        return tmpl.render(**self.get_template_context())
+        try:
+            tmpl = Template(filename=path)
+            return tmpl.render(**self.get_template_context())
+        except:
+            self.context.logger.debug('Failed to render mako template: {0}'.format(
+                exceptions.text_error_template().render()
+            ))
+            raise
 
 
 
