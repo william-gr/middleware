@@ -721,7 +721,9 @@
         "name": "accounts"
       },
       "AB7F43FF-F122-4392-96A7-66791B334271": {
-        "dependencies": [],
+        "dependencies": [
+          "file:rc.conf"
+        ],
         "name": "services"
       },
       "B5EF4F4C-6E9C-45E7-B5B6-73A8CD7F7199": {
