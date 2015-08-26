@@ -259,7 +259,7 @@ class UpdateHandler(object):
 def generate_update_cache(dispatcher, cache_dir=None):
     if cache_dir is None:
         try:
-            cache_dir = dispatcher.rpc.call_sync('system-dataset.request_directory', 'update')
+            cache_dir = dispatcher.call_sync('system-dataset.request_directory', 'update')
         except RpcException:
             cache_dir = '/var/tmp/update'
             if not os.path.exists(cache_dir):
@@ -486,7 +486,7 @@ class DownloadUpdateTask(ProgressTask):
         cache_dir = update_cache.get('cache_dir')
         if cache_dir is None:
             try:
-                cache_dir = self.dispatcher.rpc.call_sync(
+                cache_dir = self.dispatcher.call_sync(
                     'system-dataset.request_directory', 'update'
                 )
             except RpcException:
@@ -621,7 +621,7 @@ class UpdateApplyTask(ProgressTask):
         cache_dir = update_cache.get('cache_dir')
         if cache_dir is None:
             try:
-                cache_dir = self.dispatcher.rpc.call_sync(
+                cache_dir = self.dispatcher.call_sync(
                     'system-dataset.request_directory', 'update'
                 )
             except RpcException:
