@@ -227,7 +227,7 @@ class DiskInstallBootloaderTask(Task):
             raise TaskException(errno.EFAULT, 'Cannot install GRUB: {0}'.format(err.err))
 
 
-@accepts(str, bool)
+@accepts(str, h.ref('disk-erase-method'))
 class DiskEraseTask(Task):
     def __init__(self, dispatcher):
         super(DiskEraseTask, self).__init__(dispatcher)
@@ -235,13 +235,13 @@ class DiskEraseTask(Task):
         self.mediasize = 0
         self.remaining = 0
 
-    def verify(self, disk, erase_data=False):
+    def verify(self, disk, erase_method=None):
         if not get_disk_by_path(disk):
             raise VerifyException(errno.ENOENT, "Disk {0} not found".format(disk))
 
         return ['disk:{0}'.format(disk)]
 
-    def run(self, disk, erase_data=False):
+    def run(self, disk, erase_method=None):
         try:
             system('/sbin/zpool', 'labelclear', '-f', disk)
             generate_disk_cache(self.dispatcher, disk)
@@ -250,20 +250,32 @@ class DiskEraseTask(Task):
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot erase disk: {0}'.format(err.err))
 
-        if erase_data:
-            diskinfo = diskinfo_cache.get(disk)
-            fd = open(disk, 'w')
-            zeros = b'\0' * (1024 * 1024)
+        if not erase_method:
+            erase_method = 'QUICK'
+
+        zeros = b'\0' * (1024 * 1024)
+        diskinfo = diskinfo_cache.get(disk)
+        fd = open(disk, 'w')
+
+        if erase_method == 'QUICK':
+            fd.write(zeros)
+            fd.seek(diskinfo['mediasize'] - len(zeros))
+            fd.write(zeros)
+            fd.flush()
+
+        if erase_method in ('ZEROS', 'RANDOM'):
             self.mediasize = diskinfo['mediasize']
             self.remaining = self.mediasize
             self.started = True
 
             while self.remaining > 0:
-                amount = min(len(zeros), self.remaining)
-                fd.write(zeros[:amount])
+                garbage = zeros if erase_method == 'ZEROS' else os.urandom(1024 * 1024)
+                amount = min(len(garbage), self.remaining)
+                fd.write(garbage[:amount])
                 fd.flush()
                 self.remaining -= amount
 
+        fd.close()
         generate_disk_cache(self.dispatcher, disk)
 
     def get_status(self):
@@ -804,6 +816,11 @@ def _init(dispatcher, plugin):
             'type': {'type': 'string'},
             'label': {'type': 'string'}
         }
+    })
+
+    plugin.register_schema_definition('disk-erase-method', {
+        'type': 'string',
+        'enum': ['QUICK', 'ZEROS', 'RANDOM']
     })
 
     dispatcher.require_collection('disks', ttl_index='delete_at')
