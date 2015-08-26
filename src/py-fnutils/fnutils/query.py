@@ -40,7 +40,9 @@ operators_table = {
     '<': lambda x, y: x < y,
     '>=': lambda x, y: x >= y,
     '<=': lambda x, y: x <= y,
-    '~': lambda x, y: re.match(x, y)
+    '~': lambda x, y: re.match(x, y),
+    'in': lambda x, y: y in x,
+    'nin': lambda x, y: y not in x
 }
 
 
