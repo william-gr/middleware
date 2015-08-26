@@ -15,6 +15,7 @@ etc_start()
 	#/usr/local/sbin/dispatcherctl call etcd.generation.generate_all
 
 	# Generate just the groups we are currently using
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"services"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"accounts"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"localtime"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"nginx"'
