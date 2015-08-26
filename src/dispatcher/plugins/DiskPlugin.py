@@ -278,7 +278,7 @@ class DiskEraseTask(Task):
     str,
     h.all_of(
         h.ref('disk'),
-        h.no(h.required('name', 'serial', 'description', 'mediasize', 'status'))
+        h.no(h.required('name', 'serial', 'path', 'id', 'mediasize', 'status'))
     )
 )
 class DiskConfigureTask(Task):
@@ -677,8 +677,8 @@ def purge_disk_cache(dispatcher, path):
 
 
 def persist_disk(dispatcher, disk):
-    ds_disk = dispatcher.datastore.get_by_id('disks', disk['id'])
-    dispatcher.datastore.upsert('disks', disk['id'], {
+    ds_disk = dispatcher.datastore.get_by_id('disks', disk['id']) or {}
+    ds_disk.update({
         'lunid': disk['lunid'],
         'path': disk['path'],
         'mediasize': disk['mediasize'],
@@ -688,6 +688,7 @@ def persist_disk(dispatcher, disk):
         'delete_at': None
     })
 
+    dispatcher.datastore.upsert('disks', disk['id'], ds_disk)
     dispatcher.dispatch_event('disks.changed', {
         'operation': 'create' if not ds_disk else 'update',
         'ids': [disk['id']]
