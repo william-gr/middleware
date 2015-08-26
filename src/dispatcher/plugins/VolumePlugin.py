@@ -138,6 +138,9 @@ class VolumeProvider(Provider):
                 except RpcException:
                     pass
 
+            if self.datastore.exists('volumes', ('id', '=', pool['guid'])):
+                continue
+
             result.append({
                 'id': str(pool['guid']),
                 'name': pool['name'],
