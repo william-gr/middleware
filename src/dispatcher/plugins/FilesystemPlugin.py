@@ -51,28 +51,51 @@ class FilesystemProvider(Provider):
             except OSError:
                 continue
 
-            if stat.S_ISDIR(st.st_mode):
-                typ = 'DIRECTORY'
-                size = None
-            elif stat.S_ISLNK(st.st_mode):
-                typ = 'LINK'
-                size = None
-            else:
-                typ = 'FILE'
-                size = st.st_size
-
             item = {
                 'name': i,
-                'type': typ,
+                'type': get_type(st),
+                'size': st.st_size,
                 'modified': st.st_mtime
             }
-
-            if size is not None:
-                item['size'] = size
 
             result.append(item)
 
         return result
+
+    @accepts(str)
+    @returns(h.ref('stat'))
+    def stat(self, path):
+        try:
+            st = os.stat(path)
+        except OSError, err:
+            raise RpcException(err.errno, str(err))
+
+        return {
+            'path': path,
+            'type': get_type(st),
+            'atime': st.st_atime,
+            'mtime': st.st_mtime,
+            'ctime': st.st_ctime,
+            'uid': st.st_uid,
+            'gid': st.st_gid,
+            'permissions': {
+                'user': {
+                    'read': st.st_mode & stat.S_IRUSR,
+                    'write': st.st_mode & stat.S_IWUSR,
+                    'execute': st.st_mode & stat.S_IXUSR
+                },
+                'group': {
+                    'read': st.st_mode & stat.S_IRGRP,
+                    'write': st.st_mode & stat.S_IWGRP,
+                    'execute': st.st_mode & stat.S_IXGRP
+                },
+                'others': {
+                    'read': st.st_mode & stat.S_IROTH,
+                    'write': st.st_mode & stat.S_IWOTH,
+                    'execute': st.st_mode & stat.S_IXOTH
+                },
+            }
+        }
 
     @pass_sender
     @accepts(str)
@@ -148,7 +171,49 @@ class UploadFileTask(Task):
         return TaskStatus(percentage)
 
 
+def get_type(st):
+    if stat.S_ISDIR(st.st_mode):
+        return 'DIRECTORY'
+
+    elif stat.S_ISLNK(st.st_mode):
+        return 'LINK'
+
+    else:
+        return 'FILE'
+
+
 def _init(dispatcher, plugin):
+    plugin.register_schema_definition('stat', {
+        'type': 'object',
+        'properties': {
+            'path': {'type': 'string'},
+            'type': {'type', 'string'},
+            'size': {'type': 'integer'},
+            'atime': {'type': 'string'},
+            'mtime': {'type': 'string'},
+            'ctime': {'type': 'string'},
+            'uid': {'type': 'integer'},
+            'gid': {'type': 'integer'},
+            'permissions': {
+                'type': 'object',
+                'properties': {
+                    'owner': {'$ref': 'permissions-tuple'},
+                    'group': {'$ref': 'permissions-tuple'},
+                    'others': {'$ref': 'permissions-tuple'}
+                }
+            }
+        }
+    })
+
+    plugin.register_schema_definition('permissions-tuple', {
+        'type': 'object',
+        'properties': {
+            'read': {'type': 'boolean'},
+            'write': {'type': 'boolean'},
+            'execute': {'type': 'boolean'}
+        }
+    })
+
     plugin.register_provider('filesystem', FilesystemProvider)
     plugin.register_task_handler('file.download', DownloadFileTask)
     plugin.register_task_handler('file.upload', UploadFileTask)
