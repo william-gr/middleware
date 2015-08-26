@@ -33,6 +33,7 @@ import shutil
 import bsd
 import bsd.kld
 from lib.system import system, SubprocessException
+from lib.freebsd import fstyp
 from task import Provider, Task, ProgressTask, TaskException, VerifyException, query
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
@@ -45,15 +46,6 @@ from fnutils.copy import count_files, copytree
 
 VOLUMES_ROOT = '/volumes'
 logger = logging.getLogger('VolumePlugin')
-
-
-def flatten_datasets(root):
-    for ds in root['children']:
-        for c in flatten_datasets(ds):
-            yield c
-
-    del root['children']
-    yield root
 
 
 @description("Provides access to volumes information")
@@ -147,6 +139,35 @@ class VolumeProvider(Provider):
                 'topology': topology,
                 'status': pool['status']
             })
+
+        return result
+
+    @returns(h.array(h.ref('importable-disk')))
+    def find_media(self):
+        result = []
+
+        for disk in wrap(self.dispatcher.call_sync('disks.query', [('path', 'in', self.get_available_disks())])):
+            # Try whole disk first
+            typ, label = fstyp(disk['path'])
+            if typ:
+                result.append({
+                    'path': disk['path'],
+                    'size': disk['mediasize'],
+                    'fstype': typ,
+                    'label': label or disk['description']
+                })
+                continue
+
+            for part in disk['status.partitions']:
+                path = part['paths'][0]
+                typ, label = fstyp(path)
+                if typ:
+                    result.append({
+                        'path': path,
+                        'size': part['mediasize'],
+                        'fstype': typ,
+                        'label': label or disk['description']
+                    })
 
         return result
 
@@ -585,7 +606,7 @@ class DatasetCreateTask(Task):
 
         if params and 'share_type' in params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-                'org+freenas:share_type': {'value': params['share_type']}
+                'org.freenas:share_type': {'value': params['share_type']}
             }))
 
         self.join_subtasks(self.run_subtask('zfs.mount', path))
@@ -639,6 +660,15 @@ class SnapshotDeleteTask(Task):
 
     def run(self, snapshot_name):
         pass
+
+
+def flatten_datasets(root):
+    for ds in root['children']:
+        for c in flatten_datasets(ds):
+            yield c
+
+    del root['children']
+    yield root
 
 
 def iterate_vdevs(topology):
@@ -739,6 +769,16 @@ def _init(dispatcher, plugin):
                 'type': 'string',
                 'enum': ['UNIX', 'MAC', 'WINDOWS']
             }
+        }
+    })
+
+    plugin.register_schema_definition('importable-disk', {
+        'type': 'object',
+        'properties': {
+            'path': {'type': 'string'},
+            'fstype': {'type': 'string'},
+            'size': {'type': 'integer'},
+            'label': {'type': 'string'}
         }
     })
 

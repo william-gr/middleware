@@ -26,11 +26,24 @@
 #####################################################################
 
 from bsd import sysctl
-from lib.system import system
+from lib.system import system, SubprocessException
 
 
 def get_sysctl(name):
     return sysctl.sysctlbyname(name)
+
+
+def fstyp(device):
+    try:
+        out, _ = system('/usr/sbin/fstyp', '-l', device)
+        ret = out.strip().split()
+        if len(ret) == 1:
+            return ret[0], None
+
+        return ret
+    except SubprocessException:
+        return None, None
+
 
 def sockstat(only_connected=False, ports=None):
     args = ['/usr/bin/sockstat', '-4']
