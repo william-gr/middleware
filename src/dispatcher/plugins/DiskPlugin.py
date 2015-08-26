@@ -27,6 +27,7 @@
 
 import os
 import re
+import enum
 import errno
 import logging
 import gevent
@@ -55,6 +56,13 @@ multipaths = -1
 diskinfo_cache = CacheStore()
 logger = logging.getLogger('DiskPlugin')
 diskinfo_cache_lock = RLock()
+
+
+class AcousticLevel(enum.IntEnum):
+    DISABLED = 0
+    MINIMUM = 1
+    MEDIUM = 64
+    MAXIMUM = 127
 
 
 class DiskProvider(Provider):
@@ -113,6 +121,22 @@ class DiskProvider(Provider):
     def update_disk_cache(self, disk):
         with self.dispatcher.get_lock('diskcache:{0}'.format(disk)):
             update_disk_cache(self.dispatcher, disk)
+
+    @private
+    def configure_disk(self, id):
+        disk = self.datastore.get_by_id('disks', id)
+        acc_level = getattr(AcousticLevel, disk.get('acoustic_level', 'DISABLED')).value
+        powermgmt = disk.get('apm_mode', 0)
+        system('/usr/local/sbin/ataidle', '-P', str(powermgmt), '-A', str(acc_level), disk['path'])
+
+        if disk.get('standby_mode'):
+            standby_mode = str(disk['standby_mode'])
+            gevent.spawn_later(60, lambda: system(
+                '/usr/local/sbin/ataidle',
+                '-I',
+                standby_mode,
+                disk['path']
+            ))
 
 
 @accepts(str, str, h.object())
@@ -258,43 +282,45 @@ class DiskEraseTask(Task):
     )
 )
 class DiskConfigureTask(Task):
-    def verify(self, path, updated_fields):
-        disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
+    def verify(self, id, updated_fields):
+        disk = self.datastore.get_by_id('disks', id)
 
         if not disk:
-            raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
+            raise VerifyException(errno.ENOENT, 'Disk {0} not found'.format(id))
 
-        if not self.dispatcher.call_sync('disks.is_online', path):
+        if not self.dispatcher.call_sync('disks.is_online', disk['path']):
             raise VerifyException(errno.EINVAL, 'Cannot configure offline disk')
 
-        return ['disk:{0}'.format(os.path.basename(path))]
+        return ['disk:{0}'.format(disk['path'])]
 
-    def run(self, path, updated_fields):
-        disk = self.datastore.query('disks', ('path', '=', path))
+    def run(self, id, updated_fields):
+        disk = self.datastore.get_by_id('disks', id)
         disk.update(updated_fields)
         self.datastore.update('disks', disk['id'], disk)
 
+        if {'standby_mode', 'apm_mode', 'acoustic_level'} & set(updated_fields):
+            self.dispatcher.call_sync('disks.configure_disk', id)
+
         if 'smart' in updated_fields:
-            self.dispatcher.call_sync('service.reload', 'smartd')
+            self.dispatcher.call_sync('services.reload', 'smartd')
 
 
 @description("Deletes offline disk configuration from database")
 @accepts(str)
 class DiskDeleteTask(Task):
-    def verify(self, path):
-        disk = self.datastore.query('disks', ('path', '=', path), {'single': True})
+    def verify(self, id):
+        disk = self.datastore.get_by_id('disks', id)
 
         if not disk:
-            raise VerifyException(errno.ENOENT, 'Disk with path {0} not found'.format(path))
+            raise VerifyException(errno.ENOENT, 'Disk {0} not found'.format(id))
 
-        if self.dispatcher.call_sync('disks.is_online', path):
+        if self.dispatcher.call_sync('disks.is_online', disk['path']):
             raise VerifyException(errno.EINVAL, 'Cannot delete online disk')
 
-        return ['disk:{0}'.format(os.path.basename(path))]
+        return ['disk:{0}'.format(os.path.basename(disk['path']))]
 
-    def run(self, path):
-        disk = self.datastore.query('disks', ('path', '=', path))
-        self.datastore.delete('disks', disk['id'])
+    def run(self, id):
+        self.datastore.delete('disks', id)
 
 
 def get_twcli(controller):
@@ -611,6 +637,7 @@ def generate_disk_cache(dispatcher, path):
 
     diskinfo_cache.put(identifier, disk)
     update_disk_cache(dispatcher, path)
+    dispatcher.call_sync('disks.configure_disk', identifier)
 
     logger.info('Added <%s> (%s) to disk cache', identifier, disk['description'])
     diskinfo_cache_lock.release()
