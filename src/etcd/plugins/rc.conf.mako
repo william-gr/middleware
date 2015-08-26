@@ -1,7 +1,8 @@
 <%
     adv_config = dispatcher.call_sync('system.advanced.get_config')
+    gen_config = dispatcher.call_sync('system.general.get_config')
 %>\
-hostname="${config.get("system.hostname")}"
+hostname="${gen_config["hostname"]}"
 local_startup="/usr/local/etc/rc.d"
 early_late_divider="*"
 root_rw_mount="YES"
@@ -63,6 +64,10 @@ ntpd_sync_on_start="YES"
 ##        ${svc['rcng']['rc-scripts']}_enable="YES"
 ##    % endif
 ##% endfor
+
+% if gen_config['console_keymap']:
+keymap="${gen_config['console_keymap']}"
+% endif
 
 % for ctl in dispatcher.call_sync('tunables.query', [('type', '=', 'RC')]):
 % if ctl.get('enabled', True):
