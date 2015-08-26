@@ -54,9 +54,9 @@ early_late_divider="*"
 syscache_enable="YES"
 appcafe_enable="YES"
 
+collectd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
-
 ## Selectively disable this for now
 ##% for svc in ds.query("service_definitions"):
 ##    % if config.get("service.{0}.enable".format(svc["name"])):
