@@ -354,8 +354,8 @@ class ZpoolDestroyTask(ZpoolBaseTask):
     )
 )
 class ZpoolExtendTask(ZpoolBaseTask):
-    def __init__(self, dispatcher):
-        super(ZpoolExtendTask, self).__init__(dispatcher)
+    def __init__(self, dispatcher, datastore):
+        super(ZpoolExtendTask, self).__init__(dispatcher, datastore)
         self.pool = None
         self.started = False
 
