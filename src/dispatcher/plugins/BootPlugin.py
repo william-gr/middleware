@@ -36,9 +36,6 @@ sys.path.append('/usr/local/lib')
 from freenasOS.Update import ListClones, FindClone, RenameClone, ActivateClone, DeleteClone, CreateClone
 
 
-boot_pool_name = None
-
-
 class BootEnvironmentsProvider(Provider):
     def query(self, filter=None, params=None):
         def extend(obj):
@@ -105,6 +102,7 @@ class BootEnvironmentsDelete(Task):
 
 class BootAttachDisk(ProgressTask):
     def verify(self, guid, disk):
+        boot_pool_name = self.configstore.get('system.boot_pool_name')
         return ['zpool:{0}'.format(boot_pool_name), 'disk:{0}'.format(disk)]
 
     def run(self, guid, disk):
@@ -113,6 +111,7 @@ class BootAttachDisk(ProgressTask):
         self.set_progress(30)
 
         # Attach disk to the pool
+        boot_pool_name = self.configstore.get('system.boot_pool_name')
         self.join_subtasks(self.run_subtask('zfs.pool.extend', boot_pool_name, None, [{
             'target_guid': guid,
             'vdev': {
@@ -141,8 +140,6 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
-    global boot_pool_name
-
     plugin.register_schema_definition('boot-environment', {
         'type': 'object',
         'properties': {
@@ -164,5 +161,3 @@ def _init(dispatcher, plugin):
 
     plugin.register_task_handler('boot.attach_disk', BootAttachDisk)
     plugin.register_task_handler('boot.detach_disk', BootDetachDisk)
-
-    boot_pool_name = dispatcher.configstore.get('system.boot_pool_name')
