@@ -28,6 +28,7 @@
 import errno
 import logging
 from dispatcher.rpc import RpcService, RpcException
+from datastore.config import ConfigStore
 
 
 class TaskState(object):
@@ -45,6 +46,7 @@ class Task(object):
     def __init__(self, dispatcher, datastore):
         self.dispatcher = dispatcher
         self.datastore = datastore
+        self.configstore = ConfigStore(datastore)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @classmethod
