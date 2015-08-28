@@ -454,6 +454,24 @@ class Client(object):
         done.wait(timeout=timeout)
         self.unregister_event_handler(event, handler)
 
+    def test_or_wait_for_event(self, event, match_fn, initial_condition_fn, timeout=None):
+        done = Event()
+        self.subscribe_events(event)
+        self.event_distribution_lock.acquire()
+
+        if initial_condition_fn():
+            self.event_distribution_lock.release()
+            return
+
+        def handler(args):
+            if match_fn(args):
+                done.set()
+
+        self.register_event_handler(event, handler)
+        self.event_distribution_lock.release()
+        done.wait(timeout=timeout)
+        self.unregister_event_handler(event, handler)
+
     def get_lock(self, name):
         self.call_sync('lock.init', name)
         return rpc.ServerLockProxy(self, name)
