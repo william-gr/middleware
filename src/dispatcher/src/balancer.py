@@ -188,6 +188,7 @@ class Task(object):
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
+            "user": self.user,
             "resources": self.resources,
             "session": self.session_id,
             "name": self.name,
