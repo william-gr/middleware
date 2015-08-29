@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# $FreeBSD$
+#
+
+# PROVIDE: schedulerd
+# REQUIRE: datastore dispatcher
+# BEFORE: FILESYSTEMS
+
+. /etc/rc.subr
+
+name="schedulerd"
+rcvar="schedulerd_enable"
+pidfile="/var/run/schedulerd.pid"
+command="/usr/sbin/daemon"
+start_precmd="prestart"
+
+prestart()
+{
+    rc_flags="-P ${pidfile} -f -r /usr/local/sbin/schedulerd ${rc_flags}"
+}
+
+load_rc_config $name
+run_rc_command $*
