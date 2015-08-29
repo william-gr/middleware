@@ -66,6 +66,10 @@ class MongodbDatastore(object):
             'timestamp': lambda v: dateutil.parser.parse(v)
         }
 
+    @property
+    def client(self):
+        return self.conn
+
     def _predicate(self, *args):
         if len(args) == 2:
             return self._joint_predicate(*args)
