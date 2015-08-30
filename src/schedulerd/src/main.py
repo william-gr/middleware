@@ -52,6 +52,11 @@ def job(*args, **kwargs):
     if result['state'] != 'FINISHED':
         pass
 
+    context.datastore.insert('calendar_task_runs', {
+        'id': kwargs['id'],
+        'task_id': result['id']
+    })
+
 
 class ManagementService(RpcService):
     def __init__(self, context):
@@ -121,7 +126,9 @@ class Context(object):
             'id': {'type': 'string'},
             'name': {'type': 'string'},
             'args': {'type': 'array'},
+            'status': {'$ref': 'calendar-task-status'},
             'schedule': {
+                'coalesce': {'type': ['boolean', 'null']},
                 'year': {'type': ['string', 'null']},
                 'month': {'type': ['string', 'null']},
                 'day': {'type': ['string', 'null']},
@@ -130,6 +137,16 @@ class Context(object):
                 'hour': {'type': ['string', 'null']},
                 'minute': {'type': ['string', 'null']},
                 'second': {'type': ['string', 'null']}
+            }
+        })
+
+        self.client.register_schema('calendar-task-status', {
+            'type': 'object',
+            'properties': {
+                'next_run_time': {'type': 'string'},
+                'last_run_status': {'type': 'string'},
+                'current_run_status': {'type': ['string', 'null']},
+                'current_run_progress': {'type': ['object', 'null']}
             }
         })
 
