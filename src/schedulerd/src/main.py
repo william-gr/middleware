@@ -48,14 +48,7 @@ context = None
 
 
 def job(*args, **kwargs):
-    result = wrap(context.client.call_task_sync(*args))
-    if result['state'] != 'FINISHED':
-        pass
-
-    context.datastore.insert('calendar_task_runs', {
-        'id': kwargs['id'],
-        'task_id': result['id']
-    })
+    return context.run_job(*args, **kwargs)
 
 
 class ManagementService(RpcService):
@@ -65,7 +58,40 @@ class ManagementService(RpcService):
     @private
     def query(self, filter=None, params=None):
         def serialize(job):
-            return job.__getstate__()
+            last_task = None
+            current_task = None
+            current_progress = None
+            schedule = {f.name: f for f in job.trigger.fields}
+            schedule['coalesce'] = job.coalesce
+
+            last_run = self.context.datastore.query(
+                'schedulerd.runs',
+                ('job_id', '=', job.id),
+                sort='created_at',
+                single=True
+            )
+
+            if last_run:
+                last_task = self.context.datastore.get_by_id('tasks', last_run['task_id'])
+
+            if job.id in self.context.active_tasks:
+                current_task_id = self.context.active_tasks[job.id]
+                current_task = self.context.client.call_sync('task.status', current_task_id)
+                if 'progress' in current_task:
+                    current_progress = current_task['progress']
+
+            return {
+                'id': job.id,
+                'name': job.args[0],
+                'args': job.args[1:],
+                'status': {
+                    'next_run_time': job.next_run_time,
+                    'last_run_status': last_task['state'] if last_task else None,
+                    'current_run_status': current_task['state'] if current_task else None,
+                    'current_run_progress': current_progress
+                },
+                'schedule': schedule
+            }
 
         return wrap(map(serialize, self.context.scheduler.get_jobs())).query(*(filter or []), **(params or {}))
 
@@ -77,6 +103,7 @@ class ManagementService(RpcService):
             trigger='cron',
             id=task_id,
             args=[task['name']] + task['args'],
+            kwargs={'id': task_id},
             **task['schedule'])
 
     @private
@@ -96,6 +123,7 @@ class Context(object):
         self.configstore = None
         self.client = None
         self.scheduler = None
+        self.active_tasks = {}
 
     def init_datastore(self):
         try:
@@ -162,6 +190,20 @@ class Context(object):
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
+
+    def run_job(self, *args, **kwargs):
+        tid = self.client.submit_task(*args)
+        self.active_tasks[kwargs['id']] = tid
+        self.client.call_sync('task.wait', tid, timeout=None)
+        result = self.client.call_sync('task.status', tid)
+        if result['state'] != 'FINISHED':
+            pass
+
+        del self.active_tasks[kwargs['id']]
+        self.datastore.insert('schedulerd.runs', {
+            'job_id': kwargs['id'],
+            'task_id': result['id']
+        })
 
     def parse_config(self, filename):
         try:
