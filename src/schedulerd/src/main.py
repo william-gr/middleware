@@ -104,15 +104,20 @@ class ManagementService(RpcService):
             id=task_id,
             args=[task['name']] + task['args'],
             kwargs={'id': task_id},
-            **task['schedule'])
+            **task['schedule']
+        )
 
     @private
     def delete(self, job_id):
-        pass
+        self.context.scheduler.remove_job(job_id)
 
     @private
-    def update(self, job_id, job):
-        pass
+    def update(self, job_id, task):
+        self.context.scheduler.modify_job(
+            job_id,
+            args=[task['name']] + task['args'],
+            **task['schedule']
+        )
 
 
 class Context(object):
