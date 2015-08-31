@@ -106,7 +106,7 @@ class ConfigStore(object):
     def list_children(self, key=None):
         if key is None:
             return self.__datastore.query('config', wrap=False)
-        return self.__datastore.query('config', ('id', '~', key + '.*'), wrap=False)
+        return self.__datastore.query('config', ('id', '~', key + '\..*'), wrap=False)
 
     def children_dict(self, root):
         result = {}
