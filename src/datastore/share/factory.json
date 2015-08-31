@@ -992,5 +992,17 @@
       "pkey-type": "uuid",
       "name": "ntpservers"
     }
+  },
+  {
+    "metadata": {
+      "name": "schedulerd.runs",
+      "migration": "keep",
+      "pkey-type": "uuid",
+      "attributes": {
+        "type": "log"
+      }
+    },
+    "data": {
+    }
   }
 ]
