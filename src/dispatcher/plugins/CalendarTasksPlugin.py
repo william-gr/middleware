@@ -39,7 +39,7 @@ class CalendarTasksProvider(Provider):
 @accepts(
     h.all_of(
         h.ref('calendar-task'),
-        h.no(h.required('status', 'id'))
+        h.no(h.required('status'))
     )
 )
 @returns(str)
@@ -58,7 +58,7 @@ class CreateCalendarTask(Task):
     str,
     h.all_of(
         h.ref('calendar-task'),
-        h.no(h.required('status', 'id'))
+        h.no(h.required('status'))
     )
 )
 class UpdateCalendarTask(Task):
