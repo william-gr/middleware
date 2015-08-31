@@ -567,6 +567,15 @@
   {
     "data": {
       "service.afp.enable": false,
+      "service.afp.guest": false,
+      "service.afp.guest_user": null,
+      "service.afp.bind_addresses": null,
+      "service.afp.connections_limit": 50,
+      "service.afp.homedir_enable": false,
+      "service.afp.homedir_path": null,
+      "service.afp.homedir_name": null,
+      "service.afp.dbpath": null,
+      "service.afp.auxiliary": null,
       "service.nfs.enable": false,
       "service.devd.enable": true,
       "service.syslog.enable": true,

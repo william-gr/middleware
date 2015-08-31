@@ -77,7 +77,7 @@ def _init(dispatcher, plugin):
                 'items': {'type': 'string'},
             },
             'connections_limit': {'type': 'integer'},
-            'homedir': {'type': 'boolean'},
+            'homedir_enable': {'type': 'boolean'},
             'homedir_path': {'type': 'string'},
             'homedir_name': {'type': 'string'},
             'dbpath': {'type': 'string'},
