@@ -117,6 +117,10 @@ class DeleteAFPShareTask(Task):
         })
 
 
+def _depends():
+    return ['AFPPlugin']
+
+
 def _metadata():
     return {
         'type': 'sharing',
@@ -163,4 +167,3 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.afp.update", UpdateAFPShareTask)
     plugin.register_task_handler("share.afp.delete", DeleteAFPShareTask)
     plugin.register_provider("shares.afp", AFPSharesProvider)
-    plugin.register_resource(Resource('service:afp'), ['system'])
