@@ -421,7 +421,7 @@ class VolumeDestroyTask(Task):
 class VolumeUpdateTask(Task):
     def verify(self, name, updated_params):
         topology = updated_params.get('topology')
-        return ['disk:{0}'.format(i) for i, _ in get_disks(self.dispatcher, topology)]
+        return ['disk:{0}'.format(i) for i, _ in get_disks(topology)]
 
     def run(self, name, updated_params):
         if 'topology' in updated_params:
