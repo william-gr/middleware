@@ -82,6 +82,7 @@ class ManagementService(RpcService):
 
             return {
                 'id': job.id,
+                'description': job.name,
                 'name': job.args[0],
                 'args': job.args[1:],
                 'status': {
@@ -97,7 +98,7 @@ class ManagementService(RpcService):
 
     @private
     def add(self, task):
-        task_id = str(uuid.uuid4())
+        task_id = max(filter(lambda j: int(j.id), self.context.scheduler.get_jobs())) + 1
         self.context.scheduler.add_job(
             job,
             trigger='cron',
@@ -159,6 +160,7 @@ class Context(object):
             'id': {'type': 'string'},
             'name': {'type': 'string'},
             'args': {'type': 'array'},
+            'description': {'type': 'string'},
             'status': {'$ref': 'calendar-task-status'},
             'schedule': {
                 'coalesce': {'type': ['boolean', 'null']},
