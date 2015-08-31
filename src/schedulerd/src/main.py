@@ -98,12 +98,16 @@ class ManagementService(RpcService):
 
     @private
     def add(self, task):
-        ids = filter(lambda j: int(j.id), self.context.scheduler.get_jobs())
-        task_id = max(ids) if ids else 1
+        if 'id' not in task:
+            ids = filter(lambda j: int(j.id), self.context.scheduler.get_jobs())
+            task_id = 'task{0}'.format(max(ids) if ids else 1)
+        else:
+            task_id = task['id']
+
         self.context.scheduler.add_job(
             job,
             trigger='cron',
-            id=str(task_id),
+            id=task_id,
             args=[task['name']] + task['args'],
             kwargs={'id': task_id},
             **task['schedule']
