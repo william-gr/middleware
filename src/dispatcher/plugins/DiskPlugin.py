@@ -42,7 +42,7 @@ from cam import CamDevice
 from cache import CacheStore
 from lib.geom import confxml
 from lib.system import system, SubprocessException
-from task import Provider, Task, TaskStatus, TaskException, VerifyException, query
+from task import Provider, Task, ProgressTask, TaskStatus, TaskException, VerifyException, query
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 
@@ -63,6 +63,13 @@ class AcousticLevel(enum.IntEnum):
     MINIMUM = 1
     MEDIUM = 64
     MAXIMUM = 127
+
+
+class SelfTestType(enum.Enum):
+    SHORT = 'short'
+    LONG = 'long'
+    CONVEYANCE = 'conveyance'
+    OFFLINE = 'offline'
 
 
 class DiskProvider(Provider):
@@ -333,6 +340,31 @@ class DiskDeleteTask(Task):
 
     def run(self, id):
         self.datastore.delete('disks', id)
+
+
+@description("Performs SMART test on disk")
+@accepts(str, h.ref('disk-selftest-type'))
+class DiskTestTask(ProgressTask):
+    def verify(self, id, test_type):
+        disk = diskinfo_cache.get(id)
+        if not disk:
+            raise VerifyException(errno.ENOENT, 'Disk {0} not found'.format(id))
+
+        return ['disk:{0}'.format(disk['path'])]
+
+    def handle_progress(self, progress):
+        self.set_progress(progress)
+
+    def run(self, id, test_type):
+        disk = self.dispatcher.call_sync('disks.query', [('id', '=', id)], {'single': True})
+        if not disk:
+            raise TaskException(errno.ENOENT, 'Disk {0} not found'.format(id))
+
+        dev = Device(disk['path'])
+        dev.run_selftest_and_wait(
+            getattr(SelfTestType, test_type).value,
+            progress_handler=self.handle_progress
+        )
 
 
 def get_twcli(controller):
@@ -823,6 +855,11 @@ def _init(dispatcher, plugin):
         'enum': ['QUICK', 'ZEROS', 'RANDOM']
     })
 
+    plugin.register_schema_definition('disk-selftest-type', {
+        'type': 'string',
+        'enum': SelfTestType.__members__.keys()
+    })
+
     dispatcher.require_collection('disks', ttl_index='delete_at')
     plugin.register_provider('disks', DiskProvider)
     plugin.register_event_handler('system.device.attached', on_device_attached)
@@ -834,6 +871,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('disks.install_bootloader', DiskInstallBootloaderTask)
     plugin.register_task_handler('disks.configure', DiskConfigureTask)
     plugin.register_task_handler('disks.delete', DiskDeleteTask)
+    plugin.register_task_handler('disks.test', DiskTestTask)
 
     plugin.register_event_type('disks.changed')
 
