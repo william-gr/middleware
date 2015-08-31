@@ -154,14 +154,14 @@ def migrate_collection(dump, directory, force=False):
     if metadata['migration'] != 'replace' and directory and os.path.isdir(directory):
         apply_migrations(name, directory, force)
 
-    if metadata['migration'] == 'keep':
-        return
-
     if metadata['migration'] == 'replace':
         ds.collection_delete(name)
 
     if not ds.collection_exists(name):
         ds.collection_create(name, metadata['pkey-type'], metadata['attributes'])
+
+    if metadata['migration'] == 'keep':
+        return
 
     for key, row in data.items():
         pkey = int(key) if integer else key
