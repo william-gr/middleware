@@ -25,11 +25,14 @@
 #
 #####################################################################
 import errno
+import logging
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from resources import Resource
 from task import Task, Provider, TaskException
+
+logger = logging.getLogger('AFPPlugin')
 
 
 @description('Provides info about AFP service configuration')
@@ -78,10 +81,10 @@ def _init(dispatcher, plugin):
             },
             'connections_limit': {'type': 'integer'},
             'homedir_enable': {'type': 'boolean'},
-            'homedir_path': {'type': 'string'},
-            'homedir_name': {'type': 'string'},
-            'dbpath': {'type': 'string'},
-            'auxiliary': {'type': 'string'},
+            'homedir_path': {'type': ['string', 'null']},
+            'homedir_name': {'type': ['string', 'null']},
+            'dbpath': {'type': ['string', 'null']},
+            'auxiliary': {'type': ['string', 'null']},
 
         },
         'additionalProperties': False,
