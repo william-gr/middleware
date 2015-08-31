@@ -12,11 +12,14 @@ fsck_y_enable="YES"
 synchronous_dhclient="YES"
 
 # middleware10
+dispatcher_enable="YES"
 dispatcher_flags="--log-level=DEBUG"
+datastore_enable="YES"
 datastore_dbdir="/data"
 datastore_driver="mongodb"
-etcd_flags="/etc"
-#Disabling syslog_ng
+etcd_enable="YES"
+etcd_flags="-c /usr/local/etc/middleware.conf /etc"
+networkd_enable="YES"
 syslogd_enable="NO"
 syslog_ng_enable="YES"
 # turbo boost
