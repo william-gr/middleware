@@ -568,7 +568,7 @@
     "data": {
       "service.afp.enable": false,
       "service.afp.guest": false,
-      "service.afp.guest_user": null,
+      "service.afp.guest_user": "nobody",
       "service.afp.bind_addresses": null,
       "service.afp.connections_limit": 50,
       "service.afp.homedir_enable": false,
