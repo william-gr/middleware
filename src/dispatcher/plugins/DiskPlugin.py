@@ -499,10 +499,6 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
         ret = {
             'is_multipath': True,
             'path': os.path.join('/dev/multipath', nodename),
-            'multipath': {
-                'node': nodename,
-                'members': [path]
-            }
         }
     elif disk:
         logger.info("Device node %s is another path to disk <%s> (%s)", path, disk['id'], disk['description'])
@@ -518,13 +514,10 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
                 logger.warning('Cannot attach {0} to multipath: {0}'.format(path, e.err))
                 return
 
+            nodename = disk['multipath.node']
             ret = {
                 'is_multipath': True,
                 'path': os.path.join('/dev/multipath', disk['multipath.node']),
-                'multipath': {
-                    'node': disk['multipath.node'],
-                    'members': disk['multipath.members'] + [path],
-                }
             }
         else:
             # Create new multipath
@@ -552,12 +545,11 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
             ret = {
                 'is_multipath': True,
                 'path': os.path.join('/dev/multipath', nodename),
-                'multipath': {
-                    'node': nodename,
-                    'members': [disk['path'], path],
-                }
             }
 
+    geom.scan()
+    gmultipath = geom.geom_by_name('MULTIPATH', nodename)
+    ret['multipath'] = generate_multipath_info(gmultipath)
     return ret
 
 
@@ -586,6 +578,16 @@ def generate_partitions_list(gpart):
         }
 
 
+def generate_multipath_info(gmultipath):
+    return {
+        'status': gmultipath.config['State'],
+        'mode': gmultipath.config['Mode'],
+        'uuid': gmultipath.config['UUID'],
+        'node': gmultipath.name,
+        'members': {os.path.join('/dev', c.provider.name): c.config['State'] for c in gmultipath.consumers}
+    }
+
+
 def update_disk_cache(dispatcher, path):
     geom.scan()
     name = os.path.basename(path)
@@ -612,7 +614,7 @@ def update_disk_cache(dispatcher, path):
 
     provider = gdisk.provider
     partitions = list(generate_partitions_list(gpart))
-    identifier = device_to_identifier(name, serial)
+    identifier = device_to_identifier(gdisk.name, serial)
     data_part = first_or_default(lambda x: x['type'] == 'freebsd-zfs', partitions)
     data_uuid = data_part["uuid"] if data_part else None
     swap_part = first_or_default(lambda x: x['type'] == 'freebsd-swap', partitions)
@@ -635,9 +637,7 @@ def update_disk_cache(dispatcher, path):
     })
 
     if gmultipath:
-        disk['multipath.status'] = gmultipath.config['State']
-        disk['multipath.mode'] = gmultipath.config['Mode']
-        disk['multipath.uuid'] = gmultipath.config['UUID']
+        disk['multipath'] = generate_multipath_info(gmultipath)
 
     # Purge old cache entry if identifier has changed
     if old_id != identifier:
