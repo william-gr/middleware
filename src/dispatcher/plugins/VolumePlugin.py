@@ -436,9 +436,16 @@ class VolumeUpdateTask(Task):
 
         if 'name' in updated_params:
             # Renaming pool. Need to export and import again using different name
+            new_name = updated_params['name']
             self.join_subtasks(self.run_subtask('zfs.pool.export', name))
-            self.join_subtasks(self.run_subtask('zfs.pool.import', volume['id'], updated_params['name']))
-            volume['name'] = name
+            self.join_subtasks(self.run_subtask('zfs.pool.import', volume['id'], new_name))
+
+            # Rename mountpoint
+            self.join_subtasks(self.run_subtask('zfs.configure', new_name, new_name, {
+                'mountpoint': {'value': '/volumes/{0}'.format(new_name)}
+            }))
+
+            volume['name'] = new_name
             self.datastore.update('volumes', volume['id'], volume)
 
         if 'topology' in updated_params:
