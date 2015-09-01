@@ -156,7 +156,12 @@ class ZfsDatasetProvider(Provider):
 class ZfsSnapshotProvider(Provider):
     @query('zfs-snapshot')
     def query(self, filter=None, params=None):
-        pass
+        try:
+            zfs = libzfs.ZFS()
+            result = map(lambda o: o.__getstate__(recursive=False), list(zfs.snapshots))
+            return wrap(result).query(*(filter or []), **(params or {}))
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
 
 
 @description("Scrubs ZFS pool")
@@ -1025,6 +1030,17 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('dataset-type', {
         'type': 'string',
         'enum': ['FILESYSTEM', 'VOLUME']
+    })
+
+    plugin.register_schema_definition('zfs-snapshot', {
+        'type': 'object',
+        'properties': {
+            'pool': {'type': 'string'},
+            'dataset': {'type': 'string'},
+            'name': {'type': 'string'},
+            'holds': {'type': 'object'},
+            'properties': {'type': 'object'}
+        }
     })
 
     plugin.register_schema_definition('zfs-property', {

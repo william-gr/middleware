@@ -215,8 +215,7 @@ class VolumeProvider(Provider):
     def get_volume_disks(self, name):
         result = []
         for dev in self.dispatcher.call_sync('zfs.pool.get_disks', name):
-            result.append(self.dispatcher.call_sync('disks.partition_to_disk',
-                                                    dev))
+            result.append(self.dispatcher.call_sync('disks.partition_to_disk', dev))
 
         return result
 
@@ -280,6 +279,37 @@ class VolumeProvider(Provider):
             return self.dispatcher.call_sync('zfs.pool.get_capabilities')
 
         raise RpcException(errno.EINVAL, 'Invalid volume type')
+
+
+class SnapshotProvider(Provider):
+    def query(self, filter=None, params=None):
+        boot_pool = self.configstore.get('system.boot_pool_name')
+
+        def extend(snapshot):
+            left, _, name = snapshot['name'].partition('@')
+            pool, _, dataset = left.partition('/')
+
+            if pool == boot_pool:
+                return None
+
+            return {
+                'pool': pool,
+                'dataset': dataset,
+                'name': name,
+                'properties': include(
+                    snapshot['properties'],
+                    'used', 'available', 'compression', 'atime', 'dedup',
+                    'quota', 'refquota', 'reservation', 'refreservation',
+                    'casesensitivity', 'volsize', 'volblocksize',
+                ),
+                'holds': snapshot['holds']
+            }
+
+        return wrap(self.dispatcher.call_sync('zfs.snapshot.query')).query(
+            *(filter or []),
+            callback=extend,
+            **(params or {})
+        )
 
 
 @description("Creates new volume")
@@ -815,6 +845,7 @@ def _init(dispatcher, plugin):
 
     dispatcher.require_collection('volumes')
     plugin.register_provider('volumes', VolumeProvider)
+    plugin.register_provider('volumes.snapshots', SnapshotProvider)
     plugin.register_task_handler('volume.create', VolumeCreateTask)
     plugin.register_task_handler('volume.create_auto', VolumeAutoCreateTask)
     plugin.register_task_handler('volume.destroy', VolumeDestroyTask)
