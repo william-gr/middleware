@@ -86,6 +86,7 @@ class ServiceInfoProvider(Provider):
             if pid is not None:
                 entry['pid'] = pid
 
+            entry['builtin'] = i['builtin']
             return entry
 
         return self.datastore.query('service_definitions', *(filter or []), callback=extend, **(params or {}))
