@@ -418,7 +418,7 @@ class GroupUpdateTask(Task):
             errors.append(('name', code, message))
 
         # Check if there is another group with same name being renamed to
-        if self.datastore.exists('groups', ('name', '=', group['name']), ('name', '!=', id)):
+        if self.datastore.exists('groups', ('name', '=', group['name']), ('id', '!=', id)):
             errors.append(
                 ("name", errno.EEXIST, 'Group {0} already exists'.format(group['name']))
             )
