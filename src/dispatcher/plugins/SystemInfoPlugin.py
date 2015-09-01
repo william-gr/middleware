@@ -349,7 +349,7 @@ class SystemAdvancedConfigureTask(Task):
                 rc = True
 
             if 'motd' in props:
-                cs.set('motd', props['motd'])
+                cs.set('system.motd', props['motd'])
                 self.dispatcher.call_sync('etcd.generation.generate_file', 'motd')
 
             if 'boot_scrub_internal' in props:
