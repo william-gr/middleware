@@ -26,11 +26,12 @@
 #####################################################################
 import errno
 import logging
+import os
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from resources import Resource
-from task import Task, Provider, TaskException
+from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('AFPPlugin')
 
@@ -50,6 +51,18 @@ class AFPConfigureTask(Task):
         return 'Configuring AFP service'
 
     def verify(self, afp):
+
+        errors = []
+        dbpath = afp.get('dbpath')
+        if dbpath:
+            if not os.path.exists(dbpath):
+                errors.append(('dbpath', errno.EEXIST, 'Path does not exist'))
+            elif not os.path.isdir(dbpath):
+                errors.append(('dbpath', errno.EINVAL, 'Path is not a directory'))
+
+        if errors:
+            raise ValidationException(errors)
+
         return ['system']
 
     def run(self, afp):
