@@ -61,12 +61,13 @@ appcafe_enable="YES"
 collectd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
-## Selectively disable this for now
-##% for svc in ds.query("service_definitions"):
-##    % if config.get("service.{0}.enable".format(svc["name"])):
-##        ${svc['rcng']['rc-scripts']}_enable="YES"
-##    % endif
-##% endfor
+
+# Selectively enable services for now
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp'])):
+    % if config.get("service.{0}.enable".format(svc["name"])):
+${svc['rcng']['rc-scripts']}_enable="YES"
+    % endif
+% endfor
 
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
