@@ -93,13 +93,14 @@ class VolumeProvider(Provider):
                             pass
 
                 vol.update({
-                    'description': config.get('properties.org\\.freenas:description.value'),
+                    'description': config.get('root_dataset.properties.org\\.freenas:description.value'),
                     'topology': topology,
                     'root_vdev': config['root_vdev'],
                     'status': config['status'],
                     'upgraded': is_upgraded(config),
                     'scan': config['scan'],
                     'properties': config['properties'],
+                    'mountpoint': config['root_dataset.properties.mountpoint.value'],
                     'datasets': map(extend_dataset, flatten_datasets(config['root_dataset']))
                 })
 
