@@ -134,16 +134,25 @@ class DiskProvider(Provider):
         disk = self.datastore.get_by_id('disks', id)
         acc_level = getattr(AcousticLevel, disk.get('acoustic_level', 'DISABLED')).value
         powermgmt = disk.get('apm_mode', 0)
-        system('/usr/local/sbin/ataidle', '-P', str(powermgmt), '-A', str(acc_level), disk['path'])
+        try:
+            system('/usr/local/sbin/ataidle', '-P', str(powermgmt), '-A', str(acc_level), disk['path'])
+        except SubprocessException, err:
+            logger.warning('Cannot configure power management for disk {0}: {1}'.format(id, err.err))
 
         if disk.get('standby_mode'):
+            def configure_standby(mode):
+                try:
+                    system(
+                        '/usr/local/sbin/ataidle',
+                        '-I',
+                        mode,
+                        disk['path']
+                    )
+                except SubprocessException, err:
+                    logger.warning('Cannot configure standby mode for disk {0}: {1}', id, err.err)
+
             standby_mode = str(disk['standby_mode'])
-            gevent.spawn_later(60, lambda: system(
-                '/usr/local/sbin/ataidle',
-                '-I',
-                standby_mode,
-                disk['path']
-            ))
+            gevent.spawn_later(60, configure_standby, standby_mode)
 
 
 @accepts(str, str, h.object())
