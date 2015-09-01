@@ -389,8 +389,7 @@ class VolumeAutoCreateTask(Task):
 class VolumeDestroyTask(Task):
     def verify(self, name):
         if not self.datastore.exists('volumes', ('name', '=', name)):
-            raise VerifyException(errno.ENOENT,
-                                  'Volume {0} not found'.format(id))
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(id))
 
         try:
             disks = self.dispatcher.call_sync('volumes.get_volume_disks', name)
@@ -420,10 +419,28 @@ class VolumeDestroyTask(Task):
 @accepts(str, h.ref('volume'))
 class VolumeUpdateTask(Task):
     def verify(self, name, updated_params):
+        if not self.datastore.exists('volumes', ('name', '=', name)):
+            raise VerifyException(errno.ENOENT, 'Volume {0} not found'.format(name))
+
         topology = updated_params.get('topology')
+        if not topology:
+            disks = self.dispatcher.call_sync('volumes.get_volume_disks', name)
+            return ['disk:{0}'.format(d) for d in disks]
+
         return ['disk:{0}'.format(i) for i, _ in get_disks(topology)]
 
     def run(self, name, updated_params):
+        volume = self.datastore.get_one('volumes', ('name', '=', name))
+        if not volume:
+            raise TaskException(errno.ENOENT, 'Volume {0} not found'.format(name))
+
+        if 'name' in updated_params:
+            # Renaming pool. Need to export and import again using different name
+            self.join_subtasks(self.run_subtask('zfs.pool.export', name))
+            self.join_subtasks(self.run_subtask('zfs.pool.import', volume['id'], updated_params['name']))
+            volume['name'] = name
+            self.datastore.update('volumes', volume['id'], volume)
+
         if 'topology' in updated_params:
             new_vdevs = {}
             updated_vdevs = {}
@@ -716,13 +733,19 @@ def _init(dispatcher, plugin):
                 logger.info('Volume {0} is going away'.format(i))
                 dispatcher.datastore.delete('volumes', i)
 
-        if args['operation'] == 'create':
+        if args['operation'] in ('create', 'update'):
             for i in args['ids']:
+                if args['operation'] == 'update' and dispatcher.datastore.exists('volumes', ('id', '=', i)):
+                    continue
+
                 pool = dispatcher.call_sync(
                     'zfs.pool.query',
                     [('guid', '=', i)],
                     {'single': True}
                 )
+
+                if not pool:
+                    continue
 
                 logger.info('New volume {0} <{1}>'.format(pool['name'], i))
                 with dispatcher.get_lock('volumes'):

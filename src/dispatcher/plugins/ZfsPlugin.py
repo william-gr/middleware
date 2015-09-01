@@ -484,7 +484,6 @@ class ZpoolUpgradeTask(ZpoolBaseTask):
             raise TaskException(errno.EFAULT, str(err))
 
 
-
 @accepts(str, str, h.object())
 class ZpoolImportTask(Task):
     def verify(self, guid, name=None, properties=None):
