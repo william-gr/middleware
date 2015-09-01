@@ -107,6 +107,15 @@ def matches(obj, *rules):
     return not fail
 
 
+def filter_and_map(fn, items):
+    for i in items:
+        result = fn(i)
+        if result is None:
+            continue
+
+        yield result
+
+
 def partition(s):
     res = re.split(r'(?<!\\)\.', s, maxsplit=1)
     left = res[0].replace(r'\.', '.')
@@ -213,7 +222,7 @@ class QueryList(list):
             return None
 
         if postprocess:
-            result = filter(postprocess, result)
+            result = list(filter_and_map(postprocess, result))
 
         if single:
             return result[0]
