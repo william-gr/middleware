@@ -50,21 +50,21 @@ class ServiceInfoProvider(Provider):
                     pid = int(fd.read().strip())
                 except IOError:
                     pid = None
-                    state = 'stopped'
+                    state = 'STOPPED'
                 except ValueError:
                     pid = None
-                    state = 'stopped'
+                    state = 'STOPPED'
                 else:
                     try:
                         os.kill(pid, 0)
                     except OSError:
-                        state = 'unknown'
+                        state = 'UNKNOWN'
                     else:
-                        state = 'running'
+                        state = 'RUNNING'
             elif 'rcng' in i and 'rc-scripts' in i['rcng']:
                 rc_scripts = i['rcng']['rc-scripts']
                 pid = None
-                state = 'running'
+                state = 'RUNNING'
                 try:
                     if type(rc_scripts) is unicode:
                         system("/usr/sbin/service", rc_scripts, 'onestatus')
@@ -73,10 +73,10 @@ class ServiceInfoProvider(Provider):
                         for x in rc_scripts:
                             system("/usr/sbin/service", x, 'onestatus')
                 except SubprocessException:
-                    state = 'stopped'
+                    state = 'STOPPED'
             else:
                 pid = None
-                state = 'unknown'
+                state = 'UNKNOWN'
 
             entry = {
                 'name': i['name'],
@@ -151,7 +151,7 @@ class ServiceInfoProvider(Provider):
 
         rc_scripts = svc['rcng']['rc-scripts']
 
-        if status['state'] != 'running':
+        if status['state'] != 'RUNNING':
             return
 
         try:
@@ -174,7 +174,7 @@ class ServiceInfoProvider(Provider):
 
         rc_scripts = svc['rcng']['rc-scripts']
 
-        if status['state'] != 'running':
+        if status['state'] != 'RUNNING':
             return
 
         try:
@@ -279,7 +279,7 @@ def _init(dispatcher, plugin):
             'pid': {'type': 'integer'},
             'state': {
                 'type': 'string',
-                'enum': ['running', 'stopped', 'unknown']
+                'enum': ['RUNNING', 'STOPPED', 'UNKNOWN']
             }
         }
     })
