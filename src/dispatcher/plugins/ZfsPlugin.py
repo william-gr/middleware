@@ -599,7 +599,7 @@ class ZfsSnapshotCreateTask(ZfsBaseTask):
         try:
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(path)
-            ds.snapshot(snapshot_name, {})
+            ds.snapshot('{0}@{1}'.format(path, snapshot_name), {})
 
             if recursive:
                 for child_ds in ds.children_recursive:

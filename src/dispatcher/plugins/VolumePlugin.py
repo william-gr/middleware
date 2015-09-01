@@ -701,11 +701,18 @@ class DatasetConfigureTask(Task):
 
 
 class SnapshotCreateTask(Task):
-    def verify(self, dataset_name, snapshot_name, recursive=False):
+    def verify(self, pool_name, dataset_name, snapshot_name, recursive=False):
+
         return ['zfs:{0}'.format(dataset_name)]
 
-    def run(self, dataset_name, snapshot_name, recursive=False):
-        pass
+    def run(self, pool_name, dataset_name, snapshot_name, recursive=False):
+        self.join_subtasks(self.run_subtask(
+            'zfs.create_snapshot',
+            pool_name,
+            dataset_name,
+            snapshot_name,
+            recursive
+        ))
 
 
 class SnapshotDeleteTask(Task):
