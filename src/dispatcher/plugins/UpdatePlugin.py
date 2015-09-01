@@ -380,6 +380,15 @@ class UpdateProvider(Provider):
             'update_server': Configuration.Configuration().UpdateServerURL(),
         }
 
+    @accepts()
+    @returns(str)
+    def check(self):
+        check_updates(
+            self.dispatcher, self.configstore,
+            cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True,
+        )
+        return self.get_update_ops()
+
 
 @description("Set the System Updater Cofiguration Settings")
 @accepts(h.ref('update'))
