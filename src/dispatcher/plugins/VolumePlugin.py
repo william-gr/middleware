@@ -286,8 +286,8 @@ class SnapshotProvider(Provider):
         boot_pool = self.configstore.get('system.boot_pool_name')
 
         def extend(snapshot):
-            left, _, name = snapshot['name'].partition('@')
-            pool, _, dataset = left.partition('/')
+            dataset, _, name = snapshot['name'].partition('@')
+            pool = dataset.partition('/')[0]
 
             if pool == boot_pool:
                 return None
@@ -702,7 +702,6 @@ class DatasetConfigureTask(Task):
 
 class SnapshotCreateTask(Task):
     def verify(self, pool_name, dataset_name, snapshot_name, recursive=False):
-
         return ['zfs:{0}'.format(dataset_name)]
 
     def run(self, pool_name, dataset_name, snapshot_name, recursive=False):
@@ -712,6 +711,19 @@ class SnapshotCreateTask(Task):
             dataset_name,
             snapshot_name,
             recursive
+        ))
+
+
+class SnapshotDeleteTask(Task):
+    def verify(self, pool_name, dataset_name, snapshot_name):
+        return ['zfs:{0}'.format(dataset_name)]
+
+    def run(self, pool_name, dataset_name, snapshot_name):
+        self.join_subtasks(self.run_subtask(
+            'zfs.delete_snapshot',
+            pool_name,
+            dataset_name,
+            snapshot_name,
         ))
 
 

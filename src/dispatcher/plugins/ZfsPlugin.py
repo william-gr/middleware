@@ -608,6 +608,16 @@ class ZfsSnapshotCreateTask(ZfsBaseTask):
             raise TaskException(errno.EFAULT, str(err))
 
 
+class ZfsSnapshotDeleteTask(ZfsBaseTask):
+    def run(self, pool_name, path, snapshot_name):
+        try:
+            zfs = libzfs.ZFS()
+            snap = zfs.get_snapshot('{0}@{1}'.format(path, snapshot_name))
+            snap.delete()
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
 class ZfsConfigureTask(ZfsBaseTask):
     def run(self, pool_name, name, properties):
         try:
@@ -1107,6 +1117,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.umount', ZfsDatasetUmountTask)
     plugin.register_task_handler('zfs.create_dataset', ZfsDatasetCreateTask)
     plugin.register_task_handler('zfs.create_snapshot', ZfsSnapshotCreateTask)
+    plugin.register_task_handler('zfs.delete_snapshot', ZfsSnapshotDeleteTask)
     plugin.register_task_handler('zfs.configure', ZfsConfigureTask)
     plugin.register_task_handler('zfs.destroy', ZfsDestroyTask)
     plugin.register_task_handler('zfs.rename', ZfsRenameTask)
