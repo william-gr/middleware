@@ -199,7 +199,7 @@ def main():
         sys.exit(1)
 
     # Open logfile
-    filename = '/var/log/dsmigrate.{0}.log'.format(os.getpid())
+    filename = '/var/tmp/dsmigrate.{0}.log'.format(os.getpid())
     try:
         logfile = open(filename, 'w')
     except OSError, err:
