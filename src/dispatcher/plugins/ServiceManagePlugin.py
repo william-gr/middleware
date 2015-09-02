@@ -24,17 +24,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-
 import os
 import errno
-from gevent import Timeout
-from watchdog import events
+import logging
+
 from task import Task, Provider, TaskException, VerifyException, query
 from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, private, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
+
+logger = logging.getLogger('ServiceManagePlugin')
 
 
 @description("Provides info about available services and their state")
@@ -119,7 +120,7 @@ class ServiceInfoProvider(Provider):
             if type(rc_scripts) is list:
                 for i in rc_scripts:
                     system("/usr/sbin/service", i, 'onestart')
-        except SubprocessException, e:
+        except SubprocessException:
             pass
 
     @private
@@ -139,7 +140,7 @@ class ServiceInfoProvider(Provider):
             if type(rc_scripts) is list:
                 for i in rc_scripts:
                     system("/usr/sbin/service", i, 'onestop')
-        except SubprocessException, e:
+        except SubprocessException:
             pass
 
     @private
@@ -162,7 +163,7 @@ class ServiceInfoProvider(Provider):
             if type(rc_scripts) is list:
                 for i in rc_scripts:
                     system("/usr/sbin/service", i, 'onereload')
-        except SubprocessException, e:
+        except SubprocessException:
             pass
 
     @private
@@ -185,7 +186,7 @@ class ServiceInfoProvider(Provider):
             if type(rc_scripts) is list:
                 for i in rc_scripts:
                     system("/usr/sbin/service", i, 'onerestart')
-        except SubprocessException, e:
+        except SubprocessException:
             pass
 
 
@@ -220,7 +221,7 @@ class ServiceManageTask(Task):
 
 
 @description("Updates configuration for services")
-@accepts(str,h.object())
+@accepts(str, h.object())
 class UpdateServiceConfigTask(Task):
     def describe(self, service, updated_fields):
         return "Updating configuration for service {0}".format(service)
@@ -232,7 +233,7 @@ class UpdateServiceConfigTask(Task):
                 errno.ENOENT,
                 'Service {0} not found'.format(service))
         for x in updated_fields:
-            if not self.dispatcher.configstore.exists(
+            if not self.configstore.exists(
                     'service.{0}.{1}'.format(service, x)):
                 raise VerifyException(
                     errno.ENOENT,
@@ -242,7 +243,7 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-        node = ConfigNode('service.{0}'.format(service), self.dispatcher.configstore)
+        node = ConfigNode('service.{0}'.format(service), self.configstore)
         node.update(updated_fields)
 
         self.dispatcher.dispatch_event('service.changed', {
