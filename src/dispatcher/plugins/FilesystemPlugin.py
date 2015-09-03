@@ -27,12 +27,17 @@
 
 
 import errno
+import pwd
+import grp
 import os
 import stat
+import bsd
+from bsd import acl
 from dispatcher.rpc import RpcException, description, accepts, returns, pass_sender, private
 from dispatcher.rpc import SchemaHelper as h
-from task import Provider, Task, TaskStatus
+from task import Provider, Task, TaskStatus, VerifyException, TaskException
 from auth import FileToken
+from fnutils.query import wrap
 
 
 @description("Provides informations filesystem structure")
@@ -67,8 +72,19 @@ class FilesystemProvider(Provider):
     def stat(self, path):
         try:
             st = os.stat(path)
+            acl = acl.ACL(path=path)
         except OSError, err:
             raise RpcException(err.errno, str(err))
+
+        try:
+            username = pwd.getpwuid(st.st_uid).pw_name
+        except KeyError:
+            username = None
+
+        try:
+            groupname = grp.getgrgid(st.st_gid).gr_name
+        except KeyError:
+            groupname = None
 
         return {
             'path': path,
@@ -77,23 +93,28 @@ class FilesystemProvider(Provider):
             'mtime': st.st_mtime,
             'ctime': st.st_ctime,
             'uid': st.st_uid,
+            'user': username,
             'gid': st.st_gid,
+            'group': groupname,
             'permissions': {
-                'user': {
-                    'read': st.st_mode & stat.S_IRUSR,
-                    'write': st.st_mode & stat.S_IWUSR,
-                    'execute': st.st_mode & stat.S_IXUSR
-                },
-                'group': {
-                    'read': st.st_mode & stat.S_IRGRP,
-                    'write': st.st_mode & stat.S_IWGRP,
-                    'execute': st.st_mode & stat.S_IXGRP
-                },
-                'others': {
-                    'read': st.st_mode & stat.S_IROTH,
-                    'write': st.st_mode & stat.S_IWOTH,
-                    'execute': st.st_mode & stat.S_IXOTH
-                },
+                'acls': acl.__getstate__(),
+                'modes': {
+                    'user': {
+                        'read': st.st_mode & stat.S_IRUSR,
+                        'write': st.st_mode & stat.S_IWUSR,
+                        'execute': st.st_mode & stat.S_IXUSR
+                    },
+                    'group': {
+                        'read': st.st_mode & stat.S_IRGRP,
+                        'write': st.st_mode & stat.S_IWGRP,
+                        'execute': st.st_mode & stat.S_IXGRP
+                    },
+                    'others': {
+                        'read': st.st_mode & stat.S_IROTH,
+                        'write': st.st_mode & stat.S_IWOTH,
+                        'execute': st.st_mode & stat.S_IXOTH
+                    },
+                }
             }
         }
 
@@ -171,6 +192,81 @@ class UploadFileTask(Task):
         return TaskStatus(percentage)
 
 
+@accepts(h.ref('file-permissions'))
+class SetPermissionsTask(Task):
+    def verify(self, path, permissions, recursive=False):
+        if not os.path.exists(path):
+            raise VerifyException(errno.ENOENT, 'Path {0} does not exist'.format(path))
+
+        if recursive and not os.path.isdir(path):
+            raise VerifyException(errno.EINVAL, 'Recursive specified, but {0} is not directory'.format(path))
+
+        return []
+
+    def run(self, path, permissions, recursive=False):
+        stat = self.dispatcher.call_sync('filesystem.stat', path)
+
+        if permissions.get('user') or permissions.get('group'):
+            user = permissions.get('user')
+            group = permissions.get('group')
+            uid = gid = -1
+
+            if user:
+                try:
+                    uid = pwd.getpwnam(user).pw_uid
+                except KeyError:
+                    raise TaskException(errno.ENOENT, 'User {0} not found'.format(user))
+
+            if group:
+                try:
+                    gid = grp.getgrnam(group).gr_gid
+                except KeyError:
+                    raise TaskException(errno.ENOENT, 'Group {0} not found'.format(group))
+
+            bsd.lchown(path, uid, gid, recursive)
+
+        if permissions.get('modes'):
+            bsd.lchmod(path, modes_to_oct(permissions['modes']), recursive)
+
+        if permissions.get('acl'):
+            a = acl.ACL()
+            a.__setstate__(permissions['acl'])
+
+
+def modes_to_oct(modes):
+    modes = wrap(modes)
+    result = 0
+
+    if modes['user.read']:
+        result &= stat.S_IRUSR
+
+    if modes['user.write']:
+        result &= stat.S_IWUSR
+
+    if modes['user.execute']:
+        result &= stat.S_IXUSR
+
+    if modes['group.read']:
+        result &= stat.S_IRGRP
+
+    if modes['group.write']:
+        result &= stat.S_IWGRP
+
+    if modes['group.execute']:
+        result &= stat.S_IXGRP
+
+    if modes['others.read']:
+        result &= stat.S_IROTH
+
+    if modes['others.write']:
+        result &= stat.S_IWOTH
+
+    if modes['others.execute']:
+        result &= stat.S_IXOTH
+
+    return result
+
+
 def get_type(st):
     if stat.S_ISDIR(st.st_mode):
         return 'DIRECTORY'
@@ -192,20 +288,31 @@ def _init(dispatcher, plugin):
             'atime': {'type': 'string'},
             'mtime': {'type': 'string'},
             'ctime': {'type': 'string'},
-            'uid': {'type': 'integer'},
-            'gid': {'type': 'integer'},
-            'permissions': {
-                'type': 'object',
+            'permissions': {'$ref': 'permissions'}
+        }
+    })
+
+    plugin.register_schema_definition('permissions', {
+        'type': 'object',
+        'properties': {
+            'user': {'type': 'string'},
+            'group': {'type': 'string'},
+            'modes': {
+                'type': ['object', 'null'],
                 'properties': {
-                    'owner': {'$ref': 'permissions-tuple'},
-                    'group': {'$ref': 'permissions-tuple'},
-                    'others': {'$ref': 'permissions-tuple'}
+                    'user': {'$ref': 'unix-mode-tuple'},
+                    'group': {'$ref': 'unix-mode-tuple'},
+                    'others': {'$ref': 'unix-mode-tuple'}
                 }
+            },
+            'acl': {
+                'type': ['array', 'null'],
+                'items': {'$ref': 'acl-entry'}
             }
         }
     })
 
-    plugin.register_schema_definition('permissions-tuple', {
+    plugin.register_schema_definition('unix-mode-tuple', {
         'type': 'object',
         'properties': {
             'read': {'type': 'boolean'},
@@ -214,6 +321,26 @@ def _init(dispatcher, plugin):
         }
     })
 
+    plugin.register_schema_definition('acl-entry', {
+        'type': 'object',
+        'properties': {
+            'tag': {
+                'type': 'string',
+                'enum': acl.ACLEntryTag.__members__.keys()
+            },
+            'type': {
+                'type': 'string',
+                'enum': acl.ACLEntryType.__members__.keys()
+            },
+            'id': {'type': ['string', 'null']},
+            'name': {'type': ['string', 'null']},
+            'perms': {'type': 'object'},
+            'flags': {'type': 'object'},
+            'text': {'type': ['string', 'null']}
+        }
+    })
+
     plugin.register_provider('filesystem', FilesystemProvider)
     plugin.register_task_handler('file.download', DownloadFileTask)
     plugin.register_task_handler('file.upload', UploadFileTask)
+    plugin.register_task_handler('file.set_permissions', SetPermissionsTask)
