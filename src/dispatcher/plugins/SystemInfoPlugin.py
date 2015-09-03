@@ -209,7 +209,7 @@ class SystemUIProvider(Provider):
             protocol.append('HTTPS')
 
         return {
-            'webui_procotol': protocol,
+            'webui_protocol': protocol,
             'webui_listen': self.configstore.get(
                 'service.nginx.listen',
             ),
