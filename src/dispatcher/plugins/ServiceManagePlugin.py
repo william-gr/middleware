@@ -246,6 +246,9 @@ class UpdateServiceConfigTask(Task):
         node = ConfigNode('service.{0}'.format(service), self.configstore)
         node.update(updated_fields)
 
+        if service_def.get('etcd-group'):
+            self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
+
         self.dispatcher.dispatch_event('service.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
