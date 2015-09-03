@@ -231,7 +231,16 @@ class SetPermissionsTask(Task):
         if permissions.get('acl'):
             a = acl.ACL()
             a.__setstate__(permissions['acl'])
+            if not recursive:
+                a.apply(path)
+                return
 
+            for root, dirs, files in os.walk(path):
+                for n in files:
+                    a.apply(file=os.path.join(root, n))
+
+                for n in dirs:
+                    a.apply(file=os.path.join(root, n))
 
 def modes_to_oct(modes):
     modes = wrap(modes)
