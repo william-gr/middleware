@@ -49,7 +49,7 @@ import gevent
 import gevent.monkey
 import gevent.socket
 from gevent.server import StreamServer
-from dispatcher.client import Client, ClientError, ClientType, thread_type
+from dispatcher.client import Client, ClientError, ClientType, _thread_type
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
@@ -314,7 +314,15 @@ class Main(object):
             sys.exit(1)
 
     def init_database(self):
-        directory = self.client.call_sync('system-dataset.request_directory', 'statd')
+        # adding this try/except till system-dataset plugin is added back in in full fidelity
+        # just a hack (since that directory's data will not persist)
+        # Please remove this when system-dataset plugin is added back in
+        try:
+            directory = self.client.call_sync('system-dataset.request_directory', 'statd')
+        except RpcException:
+            directory = '/var/tmp/statd'
+            if not os.path.exists(directory):
+                os.makedirs(directory)
         self.hdf = tables.open_file(os.path.join(directory, DEFAULT_DBFILE), mode='a')
         if not hasattr(self.hdf.root, 'stats'):
             self.hdf.create_group('/', 'stats')
