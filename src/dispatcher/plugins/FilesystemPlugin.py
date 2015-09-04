@@ -226,7 +226,11 @@ class SetPermissionsTask(Task):
             bsd.lchown(path, uid, gid, recursive)
 
         if permissions.get('modes'):
-            bsd.lchmod(path, modes_to_oct(permissions['modes']), recursive)
+            modes = permissions['modes']
+            if isinstance(modes, dict):
+                modes = modes_to_oct(modes)
+
+            bsd.lchmod(path, modes, recursive)
 
         if permissions.get('acl'):
             a = acl.ACL()
@@ -308,7 +312,7 @@ def _init(dispatcher, plugin):
             'user': {'type': 'string'},
             'group': {'type': 'string'},
             'modes': {
-                'type': ['object', 'null'],
+                'type': ['object', 'integer', 'null'],
                 'properties': {
                     'user': {'$ref': 'unix-mode-tuple'},
                     'group': {'$ref': 'unix-mode-tuple'},
