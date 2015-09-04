@@ -833,6 +833,14 @@
         "etcd-group": "afp",
         "name": "afp"
       },
+      "DE07173C-FCAA-47CE-A044-FACEF514581F": {
+        "rcng": {
+          "rc-scripts": "samba_server"
+        },
+        "builtin": false,
+        "etcd-group": "samba",
+        "name": "cifs"
+      },
       "FFD1EA3F-36E3-4CFA-8A1E-9BADA0DEFB76": {
         "rcng": {
           "rc-scripts": "ntpd"

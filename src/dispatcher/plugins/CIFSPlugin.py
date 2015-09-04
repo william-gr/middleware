@@ -57,7 +57,7 @@ class CIFSConfigureTask(Task):
             node = ConfigNode('service.cifs', self.configstore)
             node.update(cifs)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'cifs')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'samba')
             self.dispatcher.call_sync('services.reload', 'cifs')
             self.dispatcher.dispatch_event('service.cifs.changed', {
                 'operation': 'updated',
