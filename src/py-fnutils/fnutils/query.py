@@ -276,10 +276,11 @@ class QueryDict(dict):
         left, right = partition(item)
 
         if not right:
-            return super(QueryDict, self).__contains__(item)
+            return super(QueryDict, self).__contains__(left)
 
-        tmp = self.get(left)
-        if not tmp:
+        try:
+            tmp = self[left]
+        except KeyError:
             return False
 
         return right in tmp
