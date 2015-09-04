@@ -150,6 +150,7 @@ def poll(task_id, server=DEFAULT_SERVER):
     if 'progress' in result:
         pass
 
+
 @argh.arg('--server')
 @argh.arg('--timeout')
 def wait_server(server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT):
