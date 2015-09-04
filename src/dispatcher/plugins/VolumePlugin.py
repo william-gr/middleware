@@ -45,6 +45,11 @@ from fnutils.copy import count_files, copytree
 
 
 VOLUMES_ROOT = '/volumes'
+DEFAULT_ACLS = [
+    {'text': 'owner@:rwxpDdaARWcCos:fd:allow'},
+    {'text': 'group@:rwxpDdaARWcCos:fd:allow'},
+    {'text': 'everyone@:rxaRc:fd:allow'}
+]
 logger = logging.getLogger('VolumePlugin')
 
 
@@ -73,7 +78,8 @@ class VolumeProvider(Provider):
                     'quota', 'refquota', 'reservation', 'refreservation',
                     'casesensitivity', 'volsize', 'volblocksize',
                 ),
-                'share_type': ds.get('properties.org\\.freenas:share_type.value')
+                'share_type': ds.get('properties.org\\.freenas:share_type.value'),
+                'permissions_type':  ds.get('properties.org\\.freenas:permissions_type.value'),
             }
 
         def extend(vol):
@@ -174,17 +180,19 @@ class VolumeProvider(Provider):
 
     @accepts(str)
     @returns(str)
-    def resolve_path(self, path):
-        volname, _, rest = path.partition(':')
+    def resolve_path(self, volname, path):
         volume = self.query([('name', '=', volname)], {'single': True})
         if not volume:
-            raise RpcException(errno.ENOENT,
-                               'Volume {0} not found'.format(volname))
+            raise RpcException(errno.ENOENT, 'Volume {0} not found'.format(volname))
 
-        return os.path.join(volume['mountpoint'], rest)
+        return os.path.join(volume['mountpoint'], path)
 
-    @description(
-        "Extracts volume name, dataset name and relative path from full path")
+    @accepts(str, str)
+    @returns(str)
+    def get_dataset_path(self, volname, dsname):
+        return os.path.join('/volumes', dsname)
+
+    @description("Extracts volume name, dataset name and relative path from full path")
     @accepts(str)
     @returns(h.tuple(str, str, str))
     def decode_path(self, path):
@@ -293,6 +301,7 @@ class SnapshotProvider(Provider):
                 return None
 
             return {
+                'id': snapshot['name'],
                 'pool': pool,
                 'dataset': dataset,
                 'name': name,
@@ -352,13 +361,15 @@ class VolumeCreateTask(ProgressTask):
                     self.dispatcher,
                     volume['topology']
                 )
-
             ))
 
             self.join_subtasks(self.run_subtask(
                 'zfs.configure',
                 name, name,
-                {'org.freenas:share_type': {'value': 'UNIX'}}
+                {
+                    'org.freenas:share_type': {'value': 'UNIX'},
+                    'org.freenas:permissions_type': {'value': 'PERM'}
+                }
             ))
 
             self.set_progress(60)
@@ -659,10 +670,15 @@ class DatasetCreateTask(Task):
             {k: v['value'] for k, v in params['properties'].items()} if params else {}
         ))
 
-        if params and 'share_type' in params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
-                'org.freenas:share_type': {'value': params['share_type']}
-            }))
+        if params:
+            props = {}
+            if 'share_type' in params:
+                props['org.freenas:share_type'] = {'value': params['share_type']}
+
+            if 'permissions_type' in params:
+                props['org.freenas:permissions_type'] = {'value': params['permissions_type']}
+
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, props))
 
         self.join_subtasks(self.run_subtask('zfs.mount', path))
 
@@ -690,7 +706,27 @@ class DatasetConfigureTask(Task):
 
         return ['zpool:{0}'.format(pool_name)]
 
+    def switch_to_acl(self, pool_name, path):
+        fs_path = self.dispatcher.call_sync('volumes.get_dataset_path', pool_name, path)
+        self.join_subtasks(
+            self.run_subtask('zfs.configure', pool_name, path, {
+                'aclmode': {'value': 'restricted'},
+                'org.freenas:permissions_type': {'value': 'ACL'}
+            }),
+            self.run_subtask('file.set_permissions', fs_path, {
+                'acl': DEFAULT_ACLS
+            }, True)
+        )
+
+    def switch_to_chmod(self, pool_name, path):
+        self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
+            'aclmode': {'value': 'passthrough'},
+            'org.freenas:permissions_type': {'value': 'PERMS'}
+        }))
+
     def run(self, pool_name, path, updated_params):
+        ds = wrap(self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', path)], {'single': True}))
+
         if 'properties' in updated_params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, updated_params['properties']))
 
@@ -698,6 +734,23 @@ class DatasetConfigureTask(Task):
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
                 'org.freenas:share_type': {'value': updated_params['share_type']}
             }))
+
+        if 'permissions_type' in updated_params:
+            share_typ = ds['properties.org\\.freenas:share_type.value']
+            oldtyp = ds['properties.org\\.freenas:permissions_type.value']
+            typ = updated_params['permissions_type']
+
+            if share_typ == 'WINDOWS' and typ == 'PERMS':
+                raise TaskException(errno.EINVAL, 'Cannot use unix permissions with Windows share type')
+
+            if share_typ == 'MAC' and typ == 'ACL':
+                raise TaskException(errno.EINVAL, 'Cannot use acls with Mac share type')
+
+            if oldtyp != 'ACL' and typ == 'ACL':
+                self.switch_to_acl(pool_name, path)
+
+            if oldtyp != 'PERMS' and typ == 'PERMS':
+                self.switch_to_chmod(pool_name, path)
 
 
 class SnapshotCreateTask(Task):
@@ -848,6 +901,10 @@ def _init(dispatcher, plugin):
             'share_type': {
                 'type': 'string',
                 'enum': ['UNIX', 'MAC', 'WINDOWS']
+            },
+            'permissions_type': {
+                'type': 'string',
+                'enum': ['PERM', 'ACL']
             }
         }
     })

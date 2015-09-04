@@ -242,6 +242,7 @@ class SetPermissionsTask(Task):
                 for n in dirs:
                     a.apply(file=os.path.join(root, n))
 
+
 def modes_to_oct(modes):
     modes = wrap(modes)
     result = 0
