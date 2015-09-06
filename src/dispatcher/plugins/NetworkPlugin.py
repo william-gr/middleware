@@ -93,7 +93,7 @@ class NetworkConfigureTask(Task):
         return ['system']
 
     def run(self, settings):
-        node = ConfigNode('network', self.dispatcher.configstore)
+        node = ConfigNode('network', self.configstore)
         node.update(settings)
 
         try:
@@ -155,8 +155,8 @@ class ConfigureInterfaceTask(Task):
             # 1. Check whether DHCP is enabled on other interfaces
             # 2. Check whether DHCP configures default route and/or DNS server addresses
             dhcp_used = self.datastore.exists('network.interfaces', ('dhcp', '=', True), ('id' '!=', name))
-            dhcp_global = self.dispatcher.configstore.get('network.dhcp.assign_gateway') or \
-                self.dispatcher.configstore.get('network.dhcp.assign_dns')
+            dhcp_global = self.configstore.get('network.dhcp.assign_gateway') or \
+                self.configstore.get('network.dhcp.assign_dns')
 
             if dhcp_used and dhcp_global:
                 raise TaskException(errno.ENXIO, 'DHCP is already configured on another interface')
