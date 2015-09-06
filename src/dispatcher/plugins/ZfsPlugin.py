@@ -877,7 +877,7 @@ def _init(dispatcher, plugin):
                 'type': 'array',
                 'items': {'$ref': 'zfs-vdev'},
             },
-            'logs': {
+            'log': {
                 'type': 'array',
                 'items': {'$ref': 'zfs-vdev'},
             },
