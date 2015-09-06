@@ -510,13 +510,9 @@ class ConfigurationService(RpcService):
             try:
                 iface.remove_address(addr)
             except:
-                raise RpcException(
-                    errno.ENXIO,
-                    "Interface {0} could not be downed because address {1} could not be removed".format(
-                        name,
-                        addr
-                    )
-                )
+                # Continue anyway
+                pass
+            
         iface.down()
 
 
