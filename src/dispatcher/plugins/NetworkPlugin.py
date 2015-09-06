@@ -150,6 +150,8 @@ class ConfigureInterfaceTask(Task):
         return ['system']
 
     def run(self, name, updated_fields):
+        task = 'networkd.configuration.configure_interface'
+
         if updated_fields.get('dhcp'):
             # Check for DHCP inconsistencies
             # 1. Check whether DHCP is enabled on other interfaces
@@ -174,11 +176,16 @@ class ConfigureInterfaceTask(Task):
                     i['broadcast'] = str(calculate_broadcast(i['address'], i['netmask']))
 
         entity = self.datastore.get_by_id('network.interfaces', name)
+
+        if 'enabled' in updated_fields:
+            if entity['enabled'] and not updated_fields['enabled']:
+                task = 'networkd.configuration.down_interface'
+
         entity.update(updated_fields)
         self.datastore.update('network.interfaces', name, entity)
 
         try:
-            self.dispatcher.call_sync('networkd.configuration.configure_interface', name)
+            self.dispatcher.call_sync(task, name)
         except RpcException:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
 
