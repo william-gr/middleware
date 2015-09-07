@@ -72,7 +72,7 @@ class FilesystemProvider(Provider):
     def stat(self, path):
         try:
             st = os.stat(path)
-            acl = acl.ACL(path=path)
+            a = acl.ACL(file=path)
         except OSError, err:
             raise RpcException(err.errno, str(err))
 
@@ -97,7 +97,7 @@ class FilesystemProvider(Provider):
             'gid': st.st_gid,
             'group': groupname,
             'permissions': {
-                'acls': acl.__getstate__(),
+                'acls': a.__getstate__(),
                 'modes': {
                     'user': {
                         'read': st.st_mode & stat.S_IRUSR,
@@ -192,7 +192,7 @@ class UploadFileTask(Task):
         return TaskStatus(percentage)
 
 
-@accepts(h.ref('file-permissions'))
+@accepts(str, h.ref('permissions'), bool)
 class SetPermissionsTask(Task):
     def verify(self, path, permissions, recursive=False):
         if not os.path.exists(path):
