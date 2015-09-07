@@ -780,15 +780,6 @@ class SnapshotDeleteTask(Task):
         ))
 
 
-class SnapshotDeleteTask(Task):
-    def verify(self, snapshot_name):
-        ds, snap = snapshot_name.split('@')
-        return ['zfs:{0}'.format(ds)]
-
-    def run(self, snapshot_name):
-        pass
-
-
 def flatten_datasets(root):
     for ds in root['children']:
         for c in flatten_datasets(ds):
