@@ -53,12 +53,11 @@ DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 def convert_aliases(entity):
     for i in entity.get('aliases', []):
         addr = netif.InterfaceAddress()
+        iface = ipaddress.ip_interface(u'{0}/{1}'.format(i['address'], i['netmask']))
         addr.af = getattr(netif.AddressFamily, i.get('type', 'INET'))
         addr.address = ipaddress.ip_address(i['address'])
-        addr.netmask = ipaddress.ip_address(i['netmask'])
-        addr.broadcast = ipaddress.ip_interface(u'{0}/{1}'.format(i['address'], i['netmask']))\
-            .network\
-            .broadcast_address
+        addr.netmask = iface.netmask
+        addr.broadcast = iface.network.broadcast_address
 
         if i.get('broadcast'):
             addr.broadcast = ipaddress.ip_address(i['broadcast'])
@@ -512,7 +511,7 @@ class ConfigurationService(RpcService):
             except:
                 # Continue anyway
                 pass
-            
+
         iface.down()
 
 
