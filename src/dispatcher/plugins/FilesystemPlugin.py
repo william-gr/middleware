@@ -204,8 +204,6 @@ class SetPermissionsTask(Task):
         return []
 
     def run(self, path, permissions, recursive=False):
-        stat = self.dispatcher.call_sync('filesystem.stat', path)
-
         if permissions.get('user') or permissions.get('group'):
             user = permissions.get('user')
             group = permissions.get('group')
@@ -309,8 +307,8 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('permissions', {
         'type': 'object',
         'properties': {
-            'user': {'type': 'string'},
-            'group': {'type': 'string'},
+            'user': {'type': ['string', 'null']},
+            'group': {'type': ['string', 'null']},
             'modes': {
                 'type': ['object', 'integer', 'null'],
                 'properties': {
