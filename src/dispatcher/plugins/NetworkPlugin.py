@@ -422,7 +422,7 @@ def _init(dispatcher, plugin):
                 ]
             },
             'address': {'type': 'string'},
-            'netmask': {'type': 'string'},
+            'netmask': {'type': 'integer'},
             'broadcast': {'type': ['string', 'null']}
         }
     })
