@@ -313,7 +313,7 @@ class MongodbDatastore(object):
             return
 
         if timestamp:
-            t = time.time()
+            t = datetime.now()
             obj['updated-at'] = t
 
             if not self.get_by_id(collection, pkey):
