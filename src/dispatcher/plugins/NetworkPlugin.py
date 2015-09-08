@@ -319,17 +319,22 @@ class AddRouteTask(Task):
         return ['system']
 
     def run(self, route):
-        id = self.datastore.insert('network.routes', route)
+        self.datastore.insert('network.routes', route)
+        try:
+            self.dispatcher.call_sync('networkd.configuration.configure_routes')
+        except RpcException:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+
         self.dispatcher.dispatch_event('network.route.changed', {
             'operation': 'create',
-            'ids': [id]
+            'ids': [route['id']]
         })
 
 
 @description("Updates static route in the system")
 @accepts(str, h.ref('network-route'))
 class UpdateRouteTask(Task):
-    def verify(self, name, route):
+    def verify(self, name, updated_fields):
         if not self.datastore.exists('network.routes', ('id', '=', name)):
             raise VerifyException(errno.ENOENT, 'Route {0} does not exists'.format(name))
 
@@ -339,6 +344,10 @@ class UpdateRouteTask(Task):
         route = self.datastore.get_one('network.routes', ('id', '=', name))
         route.update(updated_fields)
         self.datastore.update('network.routes', name, updated_fields)
+        try:
+            self.dispatcher.call_sync('networkd.configuration.configure_routes')
+        except RpcException:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
 
         self.dispatcher.dispatch_event('network.route.changed', {
             'operation': 'update',
@@ -356,8 +365,13 @@ class DeleteRouteTask(Task):
         return ['system']
 
     def run(self, name):
+        try:
+            self.dispatcher.call_sync('networkd.configuration.configure_routes')
+        except RpcException:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+
         self.dispatcher.dispatch_event('network.route.changed', {
-            'operation': 'update',
+            'operation': 'delete',
             'ids': [None]
         })
 
