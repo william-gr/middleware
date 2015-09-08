@@ -155,8 +155,24 @@ class QueryList(list):
             if item.isdigit():
                 return super(QueryList, self).__getitem__(int(item))
 
-            left, sep, right = item.partition('.')
+            left, right = partition(item)
             return super(QueryList, self).__getitem__(left)[right]
+
+        return super(QueryList, self).__getitem__(item)
+
+    def __contains__(self, item):
+        if isinstance(item, basestring):
+            if item.isdigit():
+                return super(QueryList, self).__getitem__(int(item))
+
+            left, right = partition(key)
+
+            try:
+                tmp = self[left]
+            except KeyError:
+                return False
+
+            return right in tmp
 
         return super(QueryList, self).__getitem__(item)
 
@@ -167,7 +183,7 @@ class QueryList(list):
             if key.isdigit():
                 super(QueryList, self).__setitem__(int(key), value)
 
-            left, sep, right = key.partition('.')
+            left, right = partition(key)
             self[left][right] = value
 
         super(QueryList, self).__setitem__(key, value)
