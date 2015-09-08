@@ -365,6 +365,7 @@ class DeleteRouteTask(Task):
         return ['system']
 
     def run(self, name):
+        self.datastore.delete('network.routes', name)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
         except RpcException, e:
