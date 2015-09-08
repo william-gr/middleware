@@ -169,7 +169,7 @@ class QueryList(list):
 
             try:
                 tmp = self[left]
-            except KeyError:
+            except IndexError:
                 return False
 
             return right in tmp
