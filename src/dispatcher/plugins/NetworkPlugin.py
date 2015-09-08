@@ -322,8 +322,8 @@ class AddRouteTask(Task):
         self.datastore.insert('network.routes', route)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException:
-            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {
             'operation': 'create',
@@ -346,8 +346,8 @@ class UpdateRouteTask(Task):
         self.datastore.update('network.routes', name, route)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException:
-            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {
             'operation': 'update',
@@ -367,8 +367,8 @@ class DeleteRouteTask(Task):
     def run(self, name):
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException:
-            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {
             'operation': 'delete',
