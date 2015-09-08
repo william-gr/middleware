@@ -369,6 +369,7 @@ def _depends():
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('network-interface', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'type': {'$ref': 'network-interface-type'},
             'id': {'type': 'string'},
@@ -412,6 +413,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('network-interface-alias', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'type': {
                 'type': 'string',
@@ -428,8 +430,9 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('network-route', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
-            'name': {'type': 'string'},
+            'id': {'type': 'string'},
             'type': {'type': 'string', 'enum': ['INET', 'INET6']},
             'network': {'type': 'string'},
             'netmask': {'type': 'integer'},
@@ -447,6 +450,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('network-config', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'gateway': {
                 'type': 'object',

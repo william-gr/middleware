@@ -163,7 +163,7 @@ class QueryList(list):
     def __contains__(self, item):
         if isinstance(item, basestring):
             if item.isdigit():
-                return super(QueryList, self).__getitem__(int(item))
+                return super(QueryList, self).__contains__(int(item))
 
             left, right = partition(item)
 
