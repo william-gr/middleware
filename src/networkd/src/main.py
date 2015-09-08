@@ -52,7 +52,7 @@ DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
 def cidr_to_netmask(cidr):
     iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
-    return str(iface.netmask)
+    return unicode(str(iface.netmask))
 
 def convert_aliases(entity):
     for i in entity.get('aliases', []):
@@ -337,14 +337,17 @@ class ConfigurationService(RpcService):
 
         for i in self.datastore.query('network.interfaces'):
             self.logger.info('Configuring interface {0}...'.format(i['id']))
-            self.configure_interface(i['id'])
+            try:
+                self.configure_interface(i['id'])
+            except BaseException, e:
+                self.logger.warning('Cannot configure {0}: {1}'.format(i['id'], str(e)))
 
         # Are there any orphaned interfaces?
         for name, iface in netif.list_interfaces().items():
             if not name.startswith(('vlan', 'lagg', 'bridge')):
                 continue
 
-            if not self.datastore.exists(name):
+            if not self.datastore.exists('network.interfaces', ('id', '=', name)):
                 netif.destroy_interface(name)
 
         self.configure_routes()
@@ -446,7 +449,7 @@ class ConfigurationService(RpcService):
         if entity.get('type') == 'LAGG':
             lagg = entity.get('lagg')
             if lagg:
-                iface.protocol = getattr(netif.AggregationProtocol, lagg['protocol'])
+                iface.protocol = getattr(netif.AggregationProtocol, lagg.get('protocol', 'FAILOVER'))
 
                 for i in lagg['ports']:
                     iface.add_port(i)
