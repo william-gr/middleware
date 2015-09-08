@@ -302,7 +302,7 @@ class ConfigurationService(RpcService):
             if name not in ifaces.keys() and not self.datastore.exists('network.interfaces', name):
                 return name
 
-        return RpcException(errno.EBUSY, 'No free interfaces left')
+        raise RpcException(errno.EBUSY, 'No free interfaces left')
 
     def query_interfaces(self):
         return netif.list_interfaces()
@@ -573,7 +573,7 @@ class Main:
 
         # Remove unplugged NICs from DB
         for i in self.datastore.query('network.interfaces', ('id', 'nin', existing)):
-            self.datastore.remove('network.interfaces', i['id'])
+            self.datastore.delete('network.interfaces', i['id'])
 
     def parse_config(self, filename):
         try:
