@@ -160,21 +160,18 @@ class QueryList(list):
 
         return super(QueryList, self).__getitem__(item)
 
-    def __contains__(self, item):
-        if isinstance(item, basestring):
-            if item.isdigit():
-                return super(QueryList, self).__contains__(int(item))
+    def contains_path(self, item):
+        if item.isdigit():
+            return int(item) < len(self)
 
-            left, right = partition(item)
+        left, right = partition(item)
 
-            try:
-                tmp = self[left]
-            except IndexError:
-                return False
+        try:
+            tmp = self[left]
+        except IndexError:
+            return False
 
-            return right in tmp
-
-        return super(QueryList, self).__getitem__(item)
+        return tmp.contains_path(right)
 
     def __setitem__(self, key, value):
         value = wrap(value)
@@ -285,6 +282,9 @@ class QueryDict(dict):
 
         self[left][right] = value
 
+    def contains_path(self, item):
+        return item in self
+
     def __contains__(self, item):
         if not isinstance(item, basestring):
             return super(QueryDict, self).__contains__(item)
@@ -299,7 +299,7 @@ class QueryDict(dict):
         except KeyError:
             return False
 
-        return right in tmp
+        return tmp.contains_path(right)
 
     def get(self, k, d=None):
         return self[k] if k in self else d
