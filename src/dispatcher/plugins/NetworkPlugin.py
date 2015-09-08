@@ -343,7 +343,7 @@ class UpdateRouteTask(Task):
     def run(self, name, updated_fields):
         route = self.datastore.get_one('network.routes', ('id', '=', name))
         route.update(updated_fields)
-        self.datastore.update('network.routes', name, updated_fields)
+        self.datastore.update('network.routes', name, route)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
         except RpcException:
