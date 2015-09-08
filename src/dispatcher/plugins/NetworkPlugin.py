@@ -510,10 +510,10 @@ def _init(dispatcher, plugin):
     plugin.register_provider('network.hosts', HostsProvider)
 
     plugin.register_task_handler('network.configure', NetworkConfigureTask)
-    plugin.register_task_handler('network.hosts.add', AddHostTask)
+    plugin.register_task_handler('network.hosts.create', AddHostTask)
     plugin.register_task_handler('network.hosts.update', UpdateHostTask)
     plugin.register_task_handler('network.hosts.delete', DeleteHostTask)
-    plugin.register_task_handler('network.routes.add', AddRouteTask)
+    plugin.register_task_handler('network.routes.create', AddRouteTask)
     plugin.register_task_handler('network.routes.update', UpdateRouteTask)
     plugin.register_task_handler('network.routes.delete', DeleteRouteTask)
     plugin.register_task_handler('network.interface.up', InterfaceUpTask)
