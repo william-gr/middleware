@@ -445,10 +445,11 @@ class ConfigurationService(RpcService):
         # Configure protocol and member ports for a LAGG
         if entity.get('type') == 'LAGG':
             lagg = entity.get('lagg')
-            iface.protocol = getattr(netif.AggregationProtocol, lagg['protocol'])
+            if lagg:
+                iface.protocol = getattr(netif.AggregationProtocol, lagg['protocol'])
 
-            for i in lagg['ports']:
-                iface.add_port(i)
+                for i in lagg['ports']:
+                    iface.add_port(i)
 
         if entity.get('dhcp'):
             self.logger.info('Trying to acquire DHCP lease on interface {0}...'.format(name))
