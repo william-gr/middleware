@@ -165,7 +165,7 @@ class QueryList(list):
             if item.isdigit():
                 return super(QueryList, self).__getitem__(int(item))
 
-            left, right = partition(key)
+            left, right = partition(item)
 
             try:
                 tmp = self[left]
