@@ -51,6 +51,13 @@ def extend(d, d2):
     return ret
 
 
+def force_none(v):
+    if not v:
+        return None
+
+    return v
+
+
 def materialized_paths_to_tree(lst, separator='.'):
     result = {'children': {}, 'path': []}
 
