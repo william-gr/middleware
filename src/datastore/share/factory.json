@@ -682,7 +682,9 @@
       "network.dns.search": [],
       "network.http_proxy": null,
       "network.dhcp.assign_gateway": true,
-      "network.dhcp.assign_dns": true
+      "network.dhcp.assign_dns": true,
+      "network.netwait.enabled": false,
+      "network.netwait.addresses": []
     },
     "metadata": {
       "attributes": {

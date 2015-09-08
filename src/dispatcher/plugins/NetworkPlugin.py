@@ -46,8 +46,7 @@ class NetworkProvider(Provider):
     @returns(h.array(str))
     def get_my_ips(self):
         ips = []
-        ifaces = self.dispatcher.call_sync(
-                     'networkd.configuration.query_interfaces')
+        ifaces = self.dispatcher.call_sync('networkd.configuration.query_interfaces')
         for i, v in ifaces.iteritems():
             if 'LOOPBACK' in v['flags']:
                 continue
@@ -468,6 +467,16 @@ def _init(dispatcher, plugin):
                 'properties': {
                     'assign_gateway': {'type': 'boolean'},
                     'assign_dns': {'type': 'boolean'}
+                }
+            },
+            'netwait': {
+                'type': 'object',
+                'properties': {
+                    'enabled': {'type': 'boolean'},
+                    'addresses': {
+                        'type': 'array',
+                        'items': {'type': 'string'}
+                    }
                 }
             }
         }
