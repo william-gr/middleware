@@ -50,6 +50,10 @@ from fnutils.query import wrap
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
 
+def cidr_to_netmask(cidr):
+    iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
+    return str(iface.netmask)
+
 def convert_aliases(entity):
     for i in entity.get('aliases', []):
         addr = netif.InterfaceAddress()
@@ -76,9 +80,10 @@ def convert_route(entity):
         entity['network'] = '0.0.0.0'
         entity['netmask'] = '0.0.0.0'
 
+    netmask = cidr_to_netmask(entity['netmask'])
     r = netif.Route(
         entity['network'],
-        entity['netmask'],
+        netmask,
         entity.get('gateway'),
         entity.get('interface')
     )
