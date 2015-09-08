@@ -299,7 +299,7 @@ class ConfigurationService(RpcService):
         ifaces = netif.list_interfaces()
         for i in range(0, 999):
             name = '{0}{1}'.format(type_map[type], i)
-            if name not in ifaces.keys() and not self.datastore.exists('network.interfaces', name):
+            if name not in ifaces.keys() and not self.datastore.exists('network.interfaces', ('id', '=', name)):
                 return name
 
         raise RpcException(errno.EBUSY, 'No free interfaces left')
@@ -430,16 +430,17 @@ class ConfigurationService(RpcService):
         # If it's VLAN, configure parent and tag
         if entity.get('type') == 'VLAN':
             vlan = entity.get('vlan')
-            parent = vlan.get('parent')
-            tag = vlan.get('tag')
+            if vlan:
+                parent = vlan.get('parent')
+                tag = vlan.get('tag')
 
-            if parent and tag:
-                try:
-                    tag = int(tag)
-                    iface.unconfigure()
-                    iface.configure(parent, tag)
-                except Exception, e:
-                    self.logger.warn('Failed to configure VLAN interface {0}: {1}'.format(name, str(e)))
+                if parent and tag:
+                    try:
+                        tag = int(tag)
+                        iface.unconfigure()
+                        iface.configure(parent, tag)
+                    except Exception, e:
+                        self.logger.warn('Failed to configure VLAN interface {0}: {1}'.format(name, str(e)))
 
         # Configure protocol and member ports for a LAGG
         if entity.get('type') == 'LAGG':
