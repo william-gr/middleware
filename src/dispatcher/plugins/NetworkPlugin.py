@@ -458,7 +458,7 @@ def _init(dispatcher, plugin):
             'dns': {
                 'type': 'object',
                 'properties': {
-                    'servers': {'type': 'array'},
+                    'addresses': {'type': 'array'},
                     'search': {'type': 'array'}
                 }
             },
