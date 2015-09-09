@@ -473,6 +473,13 @@ class ConfigurationService(RpcService):
             self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
             iface.add_address(i)
 
+        # nd6 stuff
+        if entity.get('rtadv', False):
+            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.ACCEPT_RTADV
+
+        if entity.get('noipv6', False):
+            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.IFDISABLED
+
         if entity.get('mtu'):
             iface.mtu = entity['mtu']
 

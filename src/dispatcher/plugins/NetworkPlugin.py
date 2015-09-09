@@ -388,6 +388,8 @@ def _init(dispatcher, plugin):
             'name': {'type': 'string'},
             'enabled': {'type': 'boolean'},
             'dhcp': {'type': 'boolean'},
+            'rtadv': {'type': 'boolean'},
+            'noipv6': {'type': 'boolean'},
             'mtu': {'type': ['integer', 'null']},
             'media': {'type': ['string', 'null']},
             'mediaopts': {'$ref': 'network-interface-mediaopts'},
