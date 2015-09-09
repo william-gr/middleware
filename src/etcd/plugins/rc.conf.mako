@@ -68,6 +68,14 @@ ntpd_sync_on_start="YES"
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
 % endfor
+% if config.get("service.cifs.enable"):
+samba_server_enable="YES"
+##% if ! dirsrv_enabled domaincontroller
+smbd_enable="YES"
+nmbd_enable="YES"
+winbindd_enable="YES"
+##% endif
+% endif
 
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
