@@ -237,18 +237,15 @@ class InterfaceDownTask(Task):
 
 
 @description("Adds host entry to the database")
-@accepts(str, str)
+@accepts(h.ref('network-host'))
 class AddHostTask(Task):
-    def verify(self, name, address):
-        if self.datastore.exists('network.hosts', ('id', '=', name)):
-            raise VerifyException(errno.EEXIST, 'Host entry {0} already exists'.format(name))
+    def verify(self, host):
+        if self.datastore.exists('network.hosts', ('id', '=', host['id'])):
+            raise VerifyException(errno.EEXIST, 'Host entry {0} already exists'.format(host['id']))
         return ['system']
 
-    def run(self, name, address):
-        self.datastore.insert('network.hosts', {
-            'id': name,
-            'address': address
-        })
+    def run(self, host):
+        self.datastore.insert('network.hosts', host)
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
@@ -257,22 +254,22 @@ class AddHostTask(Task):
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'create',
-            'ids': [name]
+            'ids': [host['id']]
         })
 
 
 @description("Updates host entry in the database")
-@accepts(str, str)
+@accepts(str, h.ref('network-host'))
 class UpdateHostTask(Task):
-    def verify(self, name, address):
-        if not self.datastore.exists('network.hosts', ('id', '=', name)):
-            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(name))
+    def verify(self, id, updated_fields):
+        if not self.datastore.exists('network.hosts', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(id))
 
         return ['system']
 
-    def run(self, name, address):
-        host = self.datastore.get_one('network.hosts', ('id', '=', name))
-        host['address'] = address
+    def run(self, id, updated_fields):
+        host = self.datastore.get_one('network.hosts', ('id', '=', id))
+        host.update(updated_fields)
         self.datastore.update('network.hosts', host['id'], host)
 
         try:
@@ -282,21 +279,21 @@ class UpdateHostTask(Task):
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'update',
-            'ids': [name]
+            'ids': [id]
         })
 
 
 @description("Deletes host entry from the database")
 @accepts(str)
 class DeleteHostTask(Task):
-    def verify(self, name):
-        if not self.datastore.exists('network.hosts', ('id', '=', name)):
-            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(name))
+    def verify(self, id):
+        if not self.datastore.exists('network.hosts', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(id))
 
         return ['system']
 
-    def run(self, name):
-        self.datastore.delete('network.hosts', name)
+    def run(self, id):
+        self.datastore.delete('network.hosts', id)
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
@@ -305,7 +302,7 @@ class DeleteHostTask(Task):
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'delete',
-            'ids': [name]
+            'ids': [id]
         })
 
 
@@ -457,9 +454,10 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('network-host', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
+            'id': {'type': 'string'},
             'address': {'type': 'string'},
-            'name': {'type': 'string'}
         }
     })
 
