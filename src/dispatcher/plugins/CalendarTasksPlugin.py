@@ -86,6 +86,6 @@ class DeleteCalendarTask(Task):
 
 def _init(dispatcher, plugin):
     plugin.register_provider('calendar_tasks', CalendarTasksProvider)
-    plugin.register_task_hander('calendar_tasks.create', CreateCalendarTask)
-    plugin.register_task_hander('calendar_tasks.update', UpdateCalendarTask)
-    plugin.register_task_hander('calendar_tasks.delete', DeleteCalendarTask)
+    plugin.register_task_handler('calendar_tasks.create', CreateCalendarTask)
+    plugin.register_task_handler('calendar_tasks.update', UpdateCalendarTask)
+    plugin.register_task_handler('calendar_tasks.delete', DeleteCalendarTask)
