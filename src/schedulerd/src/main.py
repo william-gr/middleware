@@ -243,6 +243,7 @@ class Context(object):
         self.init_datastore()
         self.init_scheduler()
         self.init_dispatcher()
+        self.register_schemas()
         self.client.wait_forever()
 
 
