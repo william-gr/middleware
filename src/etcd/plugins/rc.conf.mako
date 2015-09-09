@@ -20,6 +20,7 @@ datastore_driver="mongodb"
 etcd_enable="YES"
 etcd_flags="-c /usr/local/etc/middleware.conf /etc"
 networkd_enable="YES"
+schedulerd_enable="YES"
 syslogd_enable="NO"
 syslog_ng_enable="YES"
 # turbo boost
