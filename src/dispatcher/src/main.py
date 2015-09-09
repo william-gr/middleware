@@ -285,8 +285,8 @@ class Dispatcher(object):
         self.balancer = None
         self.datastore = None
         self.auth = None
-        self.ws_server = None
-        self.http_server = None
+        self.ws_servers = []
+        self.http_servers = []
         self.pidfile = None
         self.use_tls = False
         self.certfile = None
@@ -490,7 +490,8 @@ class Dispatcher(object):
             # If there's no timestamp, assume event fired right now
             args['timestamp'] = time.time()
 
-        self.ws_server.broadcast_event(name, args)
+        for srv in self.ws_servers:
+            srv.broadcast_event(name, args)
 
         if name in self.event_handlers:
             for h in self.event_handlers[name]:
@@ -895,16 +896,15 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         password = data['password']
         lifetime = self.dispatcher.configstore.get("server.token_lifetime")
         self.resource = data.get('resource', None)
-        client_addr, client_port = self.ws.handler.client_address
+        client_addr, client_port = self.ws.handler.client_address[:2]
 
         user = self.dispatcher.auth.get_user(username)
 
         if user is None:
-            self.emit_rpc_error(id, errno.EACCES,
-                                "Incorrect username or password")
+            self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
             return
 
-        if client_addr == '127.0.0.1':
+        if client_addr in ('127.0.0.1', '::1'):
             # If client is connecting from localhost, omit checking password
             # and instead verify his username using sockstat(1). Also make
             # token lifetime None for such users (as we do not want their
@@ -1017,7 +1017,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         greenlet.start()
 
     def open_session(self):
-        client_addr, client_port = self.ws.handler.client_address
+        client_addr, client_port = self.ws.handler.client_address[:2]
         self.session_id = self.dispatcher.datastore.insert('sessions', {
             'started-at': time.time(),
             'address': client_addr,
@@ -1317,20 +1317,23 @@ def run(d, args):
     gevent.signal(signal.SIGINT, d.die)
 
     # WebSockets server
+    kwargs = {}
     if d.use_tls:
-        s = Server(('', args.p), ServerResource({
-            '/socket': ServerConnection,
-            '/shell': ShellConnection,
-            '/api': ApiHandler(d)
-        }, dispatcher=d), certfile=d.certfile, keyfile=d.keyfile)
-    else:
-        s = Server(('', args.p), ServerResource({
-            '/socket': ServerConnection,
-            '/shell': ShellConnection,
-            '/api': ApiHandler(d)
-        }, dispatcher=d))
+        kwargs = {'certfile': d.certfile, 'keyfile': d.keyfile}
 
-    d.ws_server = s
+    s4 = Server(('', args.p), ServerResource({
+        '/socket': ServerConnection,
+        '/shell': ShellConnection,
+        '/api': ApiHandler(d)
+    }, dispatcher=d), **kwargs)
+
+    s6 = Server(('::', args.p), ServerResource({
+        '/socket': ServerConnection,
+        '/shell': ShellConnection,
+        '/api': ApiHandler(d)
+    }, dispatcher=d), **kwargs)
+
+    d.ws_servers = [s4, s6]
     d.port = args.p
     d.init()
 
@@ -1339,20 +1342,21 @@ def run(d, args):
         from frontend import frontend
 
         frontend.dispatcher = d
-        if d.use_tls:
-            http_server = WSGIServer(('', args.s), frontend.app, certfile=d.certfile, keyfile=d.keyfile)
-        else:
-            http_server = WSGIServer(('', args.s), frontend.app)
+        http_server4 = WSGIServer(('', args.s), frontend.app, **kwargs)
+        http_server6 = WSGIServer(('::', args.s), frontend.app, **kwargs)
 
-        gevent.spawn(http_server.serve_forever)
+        d.http_servers = [http_server4, http_server6]
+        for i in d.http_servers:
+            gevent.spawn(i.serve_forever)
+
         logging.info('Frontend server listening on port %d', args.s)
 
-    serv_thread = gevent.spawn(s.serve_forever)
+    serv_threads = [gevent.spawn(s4.serve_forever), gevent.spawn(s6.serve_forever)]
 
     d.discover_plugins()
     d.load_plugins()
     d.start()
-    gevent.joinall(d.threads + [serv_thread])
+    gevent.joinall(d.threads + serv_threads)
 
 
 def main():
