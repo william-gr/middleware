@@ -22,8 +22,6 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "freenasUI.settings"
 from django.db.models.loading import cache
 cache.get_apps()
 
-from django.db.models import Q
-
 from freenasUI.common.freenasldap import (
     FreeNAS_ActiveDirectory,
     FLAGS_DBINIT
@@ -59,7 +57,6 @@ from freenasUI.directoryservice.utils import get_idmap_object
 from freenasUI.middleware.notifier import notifier
 
 from freenasUI.services.models import (
-    CIFS,
     DomainController
 )
 from freenasUI.sharing.models import CIFS_Share
@@ -100,16 +97,8 @@ def smb4_get_system_SID():
 
 
 def smb4_get_database_SID():
-    SID = None
-
-    try:
-        cifs = CIFS.objects.all()[0]
-        if cifs:
-            SID = cifs.cifs_SID
-    except:
-        SID = None
-
-    return SID
+    cifs = dispatcher.call_sync('service.cifs.get_config')
+    return cifs['sid'] or None
 
 
 def smb4_set_system_SID(SID):
@@ -127,20 +116,8 @@ def smb4_set_system_SID(SID):
 
 
 def smb4_set_database_SID(SID):
-    ret = False
-    if not SID:
-        return ret
-
-    try:
-        cifs = CIFS.objects.all()[0]
-        cifs.cifs_SID = SID
-        cifs.save()
-        ret = True
-
-    except:
-        ret = False
-
-    return ret
+    task = dispatcher.call_task_sync('service.cifs.configure', {'sid': SID})
+    return task['state'] == 'FINISHED'
 
 
 def smb4_set_SID():
@@ -482,7 +459,7 @@ def set_idmap_rfc2307_secret():
             if not line:
                 continue
             print line
- 
+
     ret = True
     if p.returncode != 0:
         print >> sys.stderr, "Failed to set idmap secret!"
@@ -655,7 +632,7 @@ def set_ldap_password():
 def add_ldap_conf(smb4_conf):
     try:
         ldap = LDAP.objects.all()[0]
-        cifs = CIFS.objects.all()[0]
+        cifs = dispatcher.call_sync('service.cifs.get_config')
     except:
         return
 
@@ -669,7 +646,7 @@ def add_ldap_conf(smb4_conf):
         )
     )
 
-    ldap_workgroup = cifs.cifs_srv_workgroup.upper()
+    ldap_workgroup = cifs['workgroup'].upper()
 
     confset2(smb4_conf, "ldap admin dn = %s", ldap.ldap_binddn)
     confset2(smb4_conf, "ldap suffix = %s", ldap.ldap_basedn)
@@ -686,7 +663,7 @@ def add_ldap_conf(smb4_conf):
     confset1(smb4_conf, "ldap passwd sync = yes")
     confset1(smb4_conf, "ldapsam:trusted = yes")
 
-    set_netbiosname(smb4_conf, cifs.cifs_srv_netbiosname)
+    set_netbiosname(smb4_conf, cifs['netbiosname'])
     confset2(smb4_conf, "workgroup = %s", ldap_workgroup)
     confset1(smb4_conf, "domain logons = yes")
 
@@ -755,14 +732,14 @@ def add_activedirectory_conf(smb4_conf):
 def add_domaincontroller_conf(smb4_conf):
     try:
         dc = DomainController.objects.all()[0]
-        cifs = CIFS.objects.all()[0]
+        cifs = dispatcher.call_sync('service.cifs.get_config')
     except:
         return
 
     # server_services = get_server_services()
     # dcerpc_endpoint_servers = get_dcerpc_endpoint_servers()
 
-    set_netbiosname(smb4_conf, cifs.cifs_srv_netbiosname)
+    set_netbiosname(smb4_conf, cifs['netbiosname'])
     confset2(smb4_conf, "workgroup = %s", dc.dc_domain.upper())
     confset2(smb4_conf, "realm = %s", dc.dc_realm)
     confset2(smb4_conf, "dns forwarder = %s", dc.dc_dns_forwarder)
@@ -774,8 +751,8 @@ def add_domaincontroller_conf(smb4_conf):
     #    string.join(dcerpc_endpoint_servers, ',').rstrip(','))
 
     ipv4_addrs = []
-    if cifs.cifs_srv_bindip:
-        for i in cifs.cifs_srv_bindip:
+    if cifs['bind_addresses']:
+        for i in cifs['bind_addresses']:
             try:
                 socket.inet_aton(i)
                 ipv4_addrs.append(i)
@@ -818,16 +795,16 @@ def generate_smb4_tdb(smb4_tdb):
 
 def generate_smb4_conf(smb4_conf, role):
     try:
-        cifs = CIFS.objects.all()[0]
+        cifs = dispatcher.call_sync('service.cifs.get_config')
     except:
         return
 
-    if not cifs.cifs_srv_guest:
-        cifs.cifs_srv_guest = 'ftp'
-    if not cifs.cifs_srv_filemask:
-        cifs.cifs_srv_filemask = "0666"
-    if not cifs.cifs_srv_dirmask:
-        cifs.cifs_srv_dirmask = "0777"
+    if not cifs['guest_user']:
+        cifs['guest_user'] = 'ftp'
+    if not cifs['filemask']:
+        cifs['filemask'] = "0666"
+    if not cifs['dirmask']:
+        cifs['dirmask'] = "0777"
 
     # standard stuff... should probably do this differently
     confset1(smb4_conf, "[global]", space=0)
@@ -837,12 +814,11 @@ def generate_smb4_conf(smb4_conf, role):
 
     confset2(smb4_conf, "server min protocol = %s", cifs.cifs_srv_min_protocol)
     confset2(smb4_conf, "server max protocol = %s", cifs.cifs_srv_max_protocol)
-    if cifs.cifs_srv_bindip:
+    if cifs['bind_addresses']:
         interfaces = []
 
-        bindips = string.join(cifs.cifs_srv_bindip, ' ')
         if role != 'dc':
-            bindips = "127.0.0.1 %s" % bindips
+            bindips = "127.0.0.1 %s" % ' '.join(cifs['bind_addresses'])
 
         n = notifier()
         bindips = bindips.split()
@@ -878,7 +854,7 @@ def generate_smb4_conf(smb4_conf, role):
     confset2(smb4_conf, "max open files = %d",
              long(get_sysctl('kern.maxfilesperproc')) - 25)
 
-    if cifs.cifs_srv_syslog:
+    if cifs['syslog']:
         confset1(smb4_conf, "syslog only = yes")
         confset1(smb4_conf, "syslog = 1")
 
@@ -887,11 +863,9 @@ def generate_smb4_conf(smb4_conf, role):
     confset1(smb4_conf, "printcap name = /dev/null")
     confset1(smb4_conf, "disable spoolss = yes")
     confset1(smb4_conf, "getwd cache = yes")
-    confset2(smb4_conf, "guest account = %s",
-             cifs.cifs_srv_guest.encode('utf8'))
+    confset2(smb4_conf, "guest account = %s", cifs['guest_user'].encode('utf8'))
     confset1(smb4_conf, "map to guest = Bad User")
-    confset2(smb4_conf, "obey pam restrictions = %s",
-             "yes" if cifs.cifs_srv_obey_pam_restrictions else "no")
+    confset2(smb4_conf, "obey pam restrictions = %s", "yes" if cifs['obey_pam_restrictions'] else "no")
     confset1(smb4_conf, "directory name cache size = 0")
     confset1(smb4_conf, "kernel change notify = no")
 
@@ -899,35 +873,28 @@ def generate_smb4_conf(smb4_conf, role):
              "panic action = /usr/local/libexec/samba/samba-backtrace")
     confset1(smb4_conf, "nsupdate command = /usr/local/bin/samba-nsupdate -g")
 
-    confset2(smb4_conf, "server string = %s", cifs.cifs_srv_description)
+    confset2(smb4_conf, "server string = %s", cifs['description'])
     confset1(smb4_conf, "ea support = yes")
     confset1(smb4_conf, "store dos attributes = yes")
     confset1(smb4_conf, "lm announce = yes")
-    confset2(smb4_conf, "hostname lookups = %s",
-             "yes" if cifs.cifs_srv_hostlookup else False)
-    confset2(smb4_conf, "unix extensions = %s",
-             "no" if not cifs.cifs_srv_unixext else False)
-    confset2(smb4_conf, "time server = %s",
-             "yes" if cifs.cifs_srv_timeserver else False)
-    confset2(smb4_conf, "null passwords = %s",
-             "yes" if cifs.cifs_srv_nullpw else False)
-    confset2(smb4_conf, "acl allow execute always = %s",
-             "true" if cifs.cifs_srv_allow_execute_always else "false")
+    confset2(smb4_conf, "hostname lookups = %s", "yes" if cifs['hostlookup'] else False)
+    confset2(smb4_conf, "unix extensions = %s", "no" if not cifs['unixext'] else False)
+    confset2(smb4_conf, "time server = %s", "yes" if cifs['time_server'] else False)
+    confset2(smb4_conf, "null passwords = %s", "yes" if cifs['empty_password'] else False)
+    confset2(smb4_conf, "acl allow execute always = %s", "true" if cifs['execute_always'] else "false")
     confset1(smb4_conf, "acl check permissions = true")
     confset1(smb4_conf, "dos filemode = yes")
-    confset2(smb4_conf, "multicast dns register = %s",
-             "yes" if cifs.cifs_srv_zeroconf else "no")
+    confset2(smb4_conf, "multicast dns register = %s", "yes" if cifs['zeroconf'] else "no")
 
     if not smb4_ldap_enabled():
-        confset2(smb4_conf, "domain logons = %s",
-                 "yes" if cifs.cifs_srv_domain_logons else "no")
+        confset2(smb4_conf, "domain logons = %s", "yes" if cifs['domain_logons'] else "no")
 
-    if (cifs.cifs_srv_localmaster and not nt4_enabled()
+    if (cifs['local_master'] and not nt4_enabled()
             and not activedirectory_enabled()):
         confset2(smb4_conf, "local master = %s",
-                 "yes" if cifs.cifs_srv_localmaster else "no")
+                 "yes" if cifs['local_master'] else "no")
 
-    idmap = get_idmap_object(DS_TYPE_CIFS, cifs.id, 'tdb')
+    idmap = get_idmap_object(DS_TYPE_CIFS, cifs['id'], 'tdb')
     configure_idmap_backend(smb4_conf, idmap, None)
 
     if role == 'auto':
@@ -957,8 +924,8 @@ def generate_smb4_conf(smb4_conf, role):
 
     elif role == 'standalone':
         confset1(smb4_conf, "server role = standalone")
-        set_netbiosname(smb4_conf, cifs.cifs_srv_netbiosname)
-        confset2(smb4_conf, "workgroup = %s", cifs.cifs_srv_workgroup.upper())
+        set_netbiosname(smb4_conf, cifs['netbiosname'])
+        confset2(smb4_conf, "workgroup = %s", cifs['workgroup'].upper())
         confset1(smb4_conf, "security = user")
 
     if role != 'dc':
@@ -966,16 +933,16 @@ def generate_smb4_conf(smb4_conf, role):
         confset1(smb4_conf, "smb passwd file = /var/etc/private/smbpasswd")
         confset1(smb4_conf, "private dir = /var/etc/private")
 
-    confset2(smb4_conf, "create mask = %s", cifs.cifs_srv_filemask)
-    confset2(smb4_conf, "directory mask = %s", cifs.cifs_srv_dirmask)
+    confset2(smb4_conf, "create mask = %s", cifs['filemask'])
+    confset2(smb4_conf, "directory mask = %s", cifs['dirmask'])
     confset1(smb4_conf, "client ntlmv2 auth = yes")
-    confset2(smb4_conf, "dos charset = %s", cifs.cifs_srv_doscharset)
-    confset2(smb4_conf, "unix charset = %s", cifs.cifs_srv_unixcharset)
+    confset2(smb4_conf, "dos charset = %s", cifs['dos_charset'])
+    confset2(smb4_conf, "unix charset = %s", cifs['unix_charset'])
 
-    if cifs.cifs_srv_loglevel and cifs.cifs_srv_loglevel is not True:
-        confset2(smb4_conf, "log level = %s", cifs.cifs_srv_loglevel)
+    if cifs['log_level'] and cifs['log_level'] is not True:
+        confset2(smb4_conf, "log level = %s", cifs['log_level'])
 
-    for line in cifs.cifs_srv_smb_options.split('\n'):
+    for line in cifs['auxiliary'].split('\n'):
         confset1(smb4_conf, line)
 
 
@@ -1359,11 +1326,8 @@ def get_groups():
     users = dispatcher.call_sync('users.query')
     groups = dispatcher.call_sync('groups.query')
 
-    return {g['name']: map(lambda m:
-        first_or_default(lambda u: 
-            u['id'] == m, users)['username'],
-            g['members']
-        )
+    return {
+        g['name']: map(lambda m: first_or_default(lambda u: u['id'] == m, users)['username'], g['members'])
         for g in groups
     }
 
