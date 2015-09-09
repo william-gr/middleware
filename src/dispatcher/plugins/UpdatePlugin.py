@@ -36,7 +36,7 @@ import re
 import tempfile
 from resources import Resource
 from cache import CacheStore
-from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
+from dispatcher.rpc import RpcException, description, accepts, returns, private, SchemaHelper as h
 from gevent import subprocess
 from task import Provider, Task, ProgressTask, TaskException, VerifyException
 
@@ -117,11 +117,9 @@ class CheckUpdateHandler(object):
 
 def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
     "Utility function to just check for Updates"
-    update_cache.invalidate('updateAvailable')
-    update_cache.invalidate('updateNotes')
-    update_cache.invalidate('updateNotice')
-    update_cache.invalidate('updateOperations')
-    update_cache.invalidate('changelog')
+    update_cache_invalidate_list = [
+        'updateAvailable', 'updateNotes', 'updateNotice', 'updateOperations', 'changelog']
+    dispatcher.call_sync('update.update_cache_invalidate', update_cache_invalidate_list)
 
     conf = Configuration.Configuration()
     update_ops = None
@@ -137,11 +135,14 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
             cache_dir=None if check_now else cache_dir,
         )
     except Exception:
-        update_cache.put('updateAvailable', False)
-        update_cache.put('updateNotes', None)
-        update_cache.put('updateNotice', None)
-        update_cache.put('updateOperations', update_ops)
-        update_cache.put('changelog', '')
+        update_cache_put_value_dict = {
+            'updateAvailable': False,
+            'updateNotes': None,
+            'updateNotice': None,
+            'updateOperations': update_ops,
+            'changelog': ''
+        }
+        dispatcher.call_sync('update.update_cache_putter', update_cache_put_value_dict)
         raise
 
     if update:
@@ -159,11 +160,14 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
         logger.debug("No update available")
         changelog = None
 
-    update_cache.put('updateAvailable', True if update else False)
-    update_cache.put('updateOperations', update_ops)
-    update_cache.put('changelog', changelog)
-    update_cache.put('updateNotes', notes)
-    update_cache.put('updateNotice', notice)
+    update_cache_put_value_dict = {
+            'updateAvailable': True if update else False,
+            'updateNotes': notes,
+            'updateNotice': notice,
+            'updateOperations': update_ops,
+            'changelog': changelog
+        }
+    dispatcher.call_sync('update.update_cache_putter', update_cache_put_value_dict)
 
 
 class UpdateHandler(object):
@@ -380,14 +384,19 @@ class UpdateProvider(Provider):
             'update_server': Configuration.Configuration().UpdateServerURL(),
         }
 
-    @accepts()
-    @returns(str)
-    def check(self):
-        check_updates(
-            self.dispatcher, self.configstore,
-            cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True,
-        )
-        return self.get_update_ops()
+    @private
+    @accepts(h.array(str))
+    @returns()
+    def update_cache_invalidate(self, value_list):
+        for item in value_list:
+            update_cache.invalidate(item)
+
+    @private
+    @accepts(h.object())
+    @returns()
+    def update_cache_putter(self, value_dict):
+        for key, value in value_dict.iteritems():
+            update_cache.put(key, value)
 
 
 @description("Set the System Updater Cofiguration Settings")
