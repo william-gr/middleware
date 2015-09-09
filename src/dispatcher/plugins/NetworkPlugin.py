@@ -469,6 +469,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'gateway': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'ipv4': {'type': ['string', 'null']},
                     'ipv6': {'type': ['string', 'null']}
@@ -476,6 +477,7 @@ def _init(dispatcher, plugin):
             },
             'dns': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'addresses': {'type': 'array'},
                     'search': {'type': 'array'}
@@ -483,6 +485,7 @@ def _init(dispatcher, plugin):
             },
             'dhcp': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'assign_gateway': {'type': 'boolean'},
                     'assign_dns': {'type': 'boolean'}
@@ -490,6 +493,7 @@ def _init(dispatcher, plugin):
             },
             'netwait': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'enabled': {'type': 'boolean'},
                     'addresses': {
