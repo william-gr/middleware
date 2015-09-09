@@ -26,10 +26,10 @@
 #####################################################################
 import errno
 import logging
-import os
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from lib.system import system, SubprocessException
 from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('CIFSPlugin')
@@ -74,6 +74,26 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
+
+    def set_cifs_sid():
+        cifs = dispatcher.call_sync('service.cifs.get_config')
+        if not cifs['sid']:
+            try:
+                sid = system('/usr/local/bin/net', 'getlocalsid')[0]
+                if ':' in sid:
+                    sid = sid.split(':', 1)[1].strip(' ').strip('\n')
+                    if sid:
+                        dispatcher.configstore.set('service.cifs.sid', sid)
+                        cifs['sid'] = sid
+            except SubprocessException:
+                logger.error('Failed to get local sid', exc_info=True)
+        try:
+            logger.info('sid %r %r', cifs['sid'], type(cifs['sid']))
+            if cifs['sid']:
+                system('/usr/local/bin/net', 'setlocalsid', cifs['sid'])
+        except SubprocessException as err:
+            logger.error('Failed to set local sid: {0}'.format(err.output))
+
     # Register schemas
     PROTOCOLS = [
         'CORE',
@@ -128,3 +148,5 @@ def _init(dispatcher, plugin):
 
     # Register tasks
     plugin.register_task_handler("service.cifs.configure", CIFSConfigureTask)
+
+    set_cifs_sid()
