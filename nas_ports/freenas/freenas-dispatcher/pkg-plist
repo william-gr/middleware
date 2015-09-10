@@ -80,6 +80,7 @@
 /usr/local/lib/dispatcher/plugins/AFPPlugin.py
 /usr/local/lib/dispatcher/plugins/CIFSPlugin.py
 /usr/local/lib/dispatcher/plugins/CalendarTasksPlugin.py
+/usr/local/lib/dispatcher/plugins/IPMIPlugin.py
 /usr/local/libexec/dispatcher/notify-pam
 /usr/local/etc/rc.d/dispatcher
 /usr/local/sbin/dispatcherd
