@@ -26,7 +26,6 @@
 #####################################################################
 
 import gevent
-import time
 import logging
 import traceback
 import errno
@@ -36,6 +35,7 @@ import uuid
 import inspect
 import subprocess
 import bsd
+from datetime import datetime
 from dispatcher import validator
 from dispatcher.rpc import RpcException
 from gevent.queue import Queue
@@ -263,11 +263,11 @@ class Task(object):
             self.error = error
 
         if state == TaskState.EXECUTING:
-            self.started_at = time.time()
+            self.started_at = datetime.now()
             event['started_at'] = self.started_at
 
         if state == TaskState.FINISHED:
-            self.finished_at = time.time()
+            self.finished_at = datetime.now()
             event['finished_at'] = self.finished_at
             event['result'] = self.result
 
@@ -357,7 +357,7 @@ class Balancer(object):
         task = Task(self.dispatcher, name)
         task.user = sender.user.name
         task.session_id = sender.session_id
-        task.created_at = time.time()
+        task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = copy.deepcopy(args)
         task.state = TaskState.CREATED
@@ -374,7 +374,7 @@ class Balancer(object):
 
     def run_subtask(self, parent, name, args):
         task = Task(self.dispatcher, name)
-        task.created_at = time.time()
+        task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = args
         task.state = TaskState.CREATED
