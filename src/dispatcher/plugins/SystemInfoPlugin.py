@@ -34,6 +34,7 @@ import time
 import netif
 import bsd
 
+from bsd import devinfo
 from datastore import DatastoreException
 from datetime import datetime
 from dateutil import tz, parser
@@ -184,11 +185,13 @@ class SystemAdvancedProvider(Provider):
     @accepts()
     @returns(h.array(str))
     def serial_ports(self):
-        return filter(
-            lambda y: bool(y),
-            system(
-                "/usr/sbin/devinfo -u | grep uart | grep 0x | cut -d- -f 1 | awk '{print $1}'",
-                shell=True)[0].strip('\n').split('\n'))
+        ports = []
+        for devices in devinfo.DevInfo().resource_managers['I/O ports'].values():
+            for dev in devices:
+                if not dev.name.startswith('uart'):
+                    continue
+                ports.append(hex(int(dev.start)))
+        return ports
 
 
 @description("Provides informations about UI system settings")
