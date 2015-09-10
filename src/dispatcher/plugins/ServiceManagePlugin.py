@@ -227,8 +227,7 @@ class UpdateServiceConfigTask(Task):
         return "Updating configuration for service {0}".format(service)
 
     def verify(self, service, updated_fields):
-        if not self.datastore.exists('service_definitions',
-                                     ('name', '=', service)):
+        if not self.datastore.exists('service_definitions', ('name', '=', service)):
             raise VerifyException(
                 errno.ENOENT,
                 'Service {0} not found'.format(service))

@@ -395,6 +395,7 @@ def _init(dispatcher, plugin):
             'mediaopts': {'$ref': 'network-interface-mediaopts'},
             'capabilities': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'add': {'$ref': 'network-interface-capabilities'},
                     'del': {'$ref': 'network-interface-capabilities'},
@@ -406,6 +407,7 @@ def _init(dispatcher, plugin):
             },
             'vlan': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'parent': {'type': 'string'},
                     'tag': {'type': 'integer'}
@@ -413,6 +415,7 @@ def _init(dispatcher, plugin):
             },
             'lagg': {
                 'type': 'object',
+                'additionalProperties': False,
                 'properties': {
                     'protocol': {'$ref': 'network-aggregation-protocols'},
                     'ports': {
