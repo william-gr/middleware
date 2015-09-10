@@ -104,7 +104,7 @@ class ConfigureIPMITask(Task):
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipsrc', 'dhcp')
             else:
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipsrc', 'static')
-                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'addr', config['address'])
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipaddr', config['address'])
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'netmask', cidr_to_netmask(config['netmask']))
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'defgw', 'ipaddr', config['gateway'])
 
