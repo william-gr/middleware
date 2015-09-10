@@ -31,7 +31,7 @@ import errno
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
-from task import Provider, Task, TaskException
+from task import Provider, Task, TaskException, VerifyException
 from lib.system import system, SubprocessException
 
 
@@ -46,14 +46,33 @@ IPMI_ATTR_MAP = {
 
 
 class IPMIProvider(Provider):
+    @accepts()
+    @returns(bool)
     def is_ipmi_loaded(self):
         return os.path.exists('/dev/ipmi0')
+
+    @accepts()
+    @returns(h.array(int))
+    def channels(self):
+        ret = []
+        for i in range(1, 17):
+            try:
+                system('/usr/local/bin/ipmitool', 'lan', 'print', str(i))
+            except SubprocessException:
+                continue
+
+            ret.append(i)
+
+        return ret
 
     @accepts(int)
     @returns(h.ref('ipmi-configuration'))
     def get_config(self, channel):
         if not self.is_ipmi_loaded():
             raise RpcException(errno.ENXIO, 'The IPMI device could not be found')
+
+        if channel not in self.dispatcher.call_sync('ipmi.channels'):
+            raise RpcException(errno.ENXIO, 'Invalid channel')
 
         try:
             out, err = system('/usr/local/bin/ipmitool', 'lan', 'print', str(channel))
@@ -69,9 +88,20 @@ class IPMIProvider(Provider):
 
 
 @accepts(h.ref('ipmi-configuration'))
+@description("Configures IPMI module")
 class ConfigureIPMITask(Task):
-    def run(self, updated_params):
-        pass
+    def verify(self, channel, updated_params):
+        if not self.dispatcher.call_sync('ipmi.is_ipmi_loaded'):
+            raise VerifyException(errno.ENXIO, 'No IPMI module loaded')
+
+        if channel not in self.dispatcher.call_sync('ipmi.channels'):
+            raise VerifyException(errno.ENXIO, 'Invalid channel')
+
+        return ['system']
+
+    def run(self, channel, updated_params):
+        config = self.dispatcher.call_sync('ipmi.get_config', channel)
+        config.update(updated_params)
 
 
 def _init(dispatcher, plugin):
