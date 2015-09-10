@@ -54,6 +54,7 @@ def cidr_to_netmask(cidr):
     iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
     return unicode(str(iface.netmask))
 
+
 def convert_aliases(entity):
     for i in entity.get('aliases', []):
         addr = netif.InterfaceAddress()
