@@ -167,7 +167,7 @@ def _init(dispatcher, plugin):
             'unixext': {'type': 'boolean'},
             'zeroconf': {'type': 'boolean'},
             'hostlookup': {'type': 'boolean'},
-            'min_protocol': {'type': 'string', 'enum': PROTOCOLS},
+            'min_protocol': {'type': ['string', 'null'], 'enum': [None] + PROTOCOLS},
             'max_protocol': {'type': 'string', 'enum': PROTOCOLS},
             'execute_always': {'type': 'boolean'},
             'obey_pam_restrictions': {'type': 'boolean'},
