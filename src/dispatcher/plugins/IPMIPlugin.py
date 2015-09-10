@@ -28,6 +28,7 @@
 import os
 import re
 import errno
+import ipaddress
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
@@ -45,6 +46,9 @@ IPMI_ATTR_MAP = {
 }
 
 
+channels = []
+
+
 class IPMIProvider(Provider):
     @accepts()
     @returns(bool)
@@ -54,16 +58,7 @@ class IPMIProvider(Provider):
     @accepts()
     @returns(h.array(int))
     def channels(self):
-        ret = []
-        for i in range(1, 17):
-            try:
-                system('/usr/local/bin/ipmitool', 'lan', 'print', str(i))
-            except SubprocessException:
-                continue
-
-            ret.append(i)
-
-        return ret
+        return channels
 
     @accepts(int)
     @returns(h.ref('ipmi-configuration'))
@@ -87,7 +82,7 @@ class IPMIProvider(Provider):
         return ret
 
 
-@accepts(h.ref('ipmi-configuration'))
+@accepts(int, h.ref('ipmi-configuration'))
 @description("Configures IPMI module")
 class ConfigureIPMITask(Task):
     def verify(self, channel, updated_params):
@@ -102,6 +97,7 @@ class ConfigureIPMITask(Task):
     def run(self, channel, updated_params):
         config = self.dispatcher.call_sync('ipmi.get_config', channel)
         config.update(updated_params)
+        channel = str(channel)
 
         try:
             if config['dhcp']:
@@ -109,7 +105,7 @@ class ConfigureIPMITask(Task):
             else:
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipsrc', 'static')
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'addr', config['address'])
-                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'netmask', config['netmask'])
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'netmask', cidr_to_netmask(config['netmask']))
                 system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'defgw', 'ipaddr', config['gateway'])
 
             vlanid = config['vlanid'] if config.get('vlanid') else 'off'
@@ -130,20 +126,42 @@ class ConfigureIPMITask(Task):
             raise TaskException(errno.EFAULT, 'Cannot configure IPMI channel {0}: {1}'.format(channel, err.err))
 
 
+def cidr_to_netmask(cidr):
+    iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
+    return str(iface.netmask)
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('ipmi-configuration', {
         'type': 'object',
         'additionalProperties': False,
         'properties': {
             'channel': {'type': 'integer'},
-            'password': {'type': 'string'},
+            'password': {
+                'type': 'string',
+                'maxLength': 20
+            },
             'dhcp': {'type': 'boolean'},
             'address': {'$ref': 'ipv4-address'},
-            'netmask': {'$ref': 'ipv4-address'},
-            'gateway': {'$ref': 'ipv4-address'},
-            'vlan_id': {'type': 'integer'}
+            'netmask': {'type': 'integer'},
+            'gateway': {
+                'anyOf': [
+                    {'$ref': 'ipv4-address'},
+                    {'type': 'null'}
+                ]
+            },
+            'vlan_id': {'type': ['integer', 'null']}
         }
     })
 
     plugin.register_provider('ipmi', IPMIProvider)
     plugin.register_task_handler('ipmi.configure', ConfigureIPMITask)
+
+    # Scan available channels
+    for i in range(1, 17):
+        try:
+            system('/usr/local/bin/ipmitool', 'lan', 'print', str(i))
+        except SubprocessException:
+            continue
+
+        channels.append(i)
