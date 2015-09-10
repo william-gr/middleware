@@ -944,7 +944,7 @@ def generate_smb4_conf(smb4_conf, role):
     if cifs['log_level'] and cifs['log_level'] is not True:
         confset2(smb4_conf, "log level = %s", cifs['log_level'])
 
-    for line in cifs['auxiliary'].split('\n'):
+    for line in (cifs['auxiliary'] or '').split('\n'):
         confset1(smb4_conf, line)
 
 
