@@ -103,19 +103,45 @@ class ConfigureIPMITask(Task):
         config = self.dispatcher.call_sync('ipmi.get_config', channel)
         config.update(updated_params)
 
+        try:
+            if config['dhcp']:
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipsrc', 'dhcp')
+            else:
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'ipsrc', 'static')
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'addr', config['address'])
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'netmask', config['netmask'])
+                system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'defgw', 'ipaddr', config['gateway'])
+
+            vlanid = config['vlanid'] if config.get('vlanid') else 'off'
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'vlan', 'id', vlanid)
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'access', 'on')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'auth', 'USER', 'MD2,MD5')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'auth', 'OPERATOR', 'MD2,MD5')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'auth', 'ADMIN', 'MD2,MD5')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'auth', 'CALLBACK', 'MD2,MD5')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'arp', 'respond', 'on')
+            system('/usr/local/bin/ipmitool', 'lan', 'set', channel, 'arp', 'generate', 'on')
+
+            if 'password' in updated_params:
+                system('/usr/local/bin/ipmitool', 'user', 'set', 'password', '2', updated_params['password'])
+                system('/usr/local/bin/ipmitool', 'user', 'enable', '2')
+
+        except SubprocessException, err:
+            raise TaskException(errno.EFAULT, 'Cannot configure IPMI channel {0}: {1}'.format(channel, err.err))
 
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('ipmi-configuration', {
         'type': 'object',
         'properties': {
-            'channel': {'type': 'number'},
+            'channel': {'type': 'integer'},
             'password': {'type': 'string'},
             'dhcp': {'type': 'boolean'},
-            'address': {'type': 'string'},
-            'netmask': {'type': 'string'},
-            'gateway': {'type': 'string'},
-            'vlan_id': {'type': 'number'}
+            'address': {'$ref': 'ipv4-address'},
+            'netmask': {'$ref': 'ipv4-address'},
+            'gateway': {'$ref': 'ipv4-address'},
+            'vlan_id': {'type': 'integer'}
         }
     })
 
     plugin.register_provider('ipmi', IPMIProvider)
+    plugin.register_task_handler('ipmi.configure', ConfigureIPMITask)
