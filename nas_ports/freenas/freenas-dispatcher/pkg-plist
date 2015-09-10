@@ -27,6 +27,7 @@
 /usr/local/lib/dispatcher/src/balancer.py
 /usr/local/lib/dispatcher/src/auth.py
 /usr/local/lib/dispatcher/src/services.py
+/usr/local/lib/dispatcher/src/schemas.py
 /usr/local/lib/dispatcher/src/resources.py
 /usr/local/lib/dispatcher/src/utils.py
 /usr/local/lib/dispatcher/src/taskproxy/main.py
