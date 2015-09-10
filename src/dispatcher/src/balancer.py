@@ -128,10 +128,13 @@ class TaskExecutor(object):
         self.balancer.task_exited(self.task)
 
     def abort(self):
+        self.balancer.logger.info("Trying to abort task #{0}".format(self.task.id))
         # Try to abort via RPC. If this fails, kill process
         try:
             self.conn.call_client_sync('taskproxy.abort')
         except RpcException, err:
+            self.balancer.logger.warning("Failed to abort task #{0} gracefully: {1}".format(self.task.id, str(err)))
+            self.balancer.logger.warning("Killing process {0}".format(self.pid))
             self.proc.terminate()
 
     def executor(self):
@@ -397,7 +400,7 @@ class Balancer(object):
             success = True
         else:
             try:
-                task.instance.abort()
+                task.executor.abort()
             except:
                 pass
         if success:

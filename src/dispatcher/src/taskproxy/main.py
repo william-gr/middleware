@@ -103,7 +103,13 @@ class TaskProxyService(RpcService):
         return self.context.instance.get_status()
 
     def abort(self):
-        pass
+        if not hasattr(self.context.instance, 'abort'):
+            raise RpcException(errno.ENOTSUP, 'Abort not supported')
+
+        try:
+            self.context.instance.abort()
+        except BaseException, err:
+            raise RpcException(errno.EFAULT, 'Cannot abort: {0}'.format(str(err)))
 
 
 class Context(object):
