@@ -896,7 +896,7 @@ def generate_smb4_conf(smb4_conf, role):
         confset2(smb4_conf, "local master = %s",
                  "yes" if cifs['local_master'] else "no")
 
-    idmap = get_idmap_object(DS_TYPE_CIFS, cifs['id'], 'tdb')
+    idmap = get_idmap_object(DS_TYPE_CIFS, 1, 'tdb')
     configure_idmap_backend(smb4_conf, idmap, None)
 
     if role == 'auto':
