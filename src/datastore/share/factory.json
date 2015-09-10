@@ -601,6 +601,7 @@
       "service.cifs.bind_addresses": null,
       "service.cifs.sid": null,
       "service.cifs.auxiliary": null,
+      "service.dyndns.enable": false,
       "service.nfs.enable": false,
       "service.devd.enable": true,
       "service.syslog.enable": true,
@@ -813,6 +814,12 @@
           "file:hosts"
         ],
         "name": "network"
+      },
+      "1399A99F-E63F-491D-B342-86D713C34013": {
+        "dependencies": [
+          "file:local/inadyn-mt.conf"
+        ],
+        "name": "dyndns"
       }
     },
     "metadata": {
@@ -944,6 +951,14 @@
         "pidfile": "/var/run/collectd.pid",
         "etcd-group": "collectd",
         "name": "collectd"
+      },
+      "7B488932-C09E-4336-A980-7FBA6DDD6228": {
+        "rcng": {
+          "rc-scripts": "inadyn-mt"
+        },
+        "builtin": false,
+        "etcd-group": "dyndns",
+        "name": "dyndns"
       }
     },
     "metadata": {
