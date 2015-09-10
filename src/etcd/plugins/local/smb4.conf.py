@@ -17,6 +17,8 @@ sys.path.extend([
 ])
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "freenasUI.settings"
+if 'DJANGO_LOGGING_DISABLE' not in os.environ:
+    os.environ['DJANGO_LOGGING_DISABLE'] = 'true'
 
 # Make sure to load all modules
 from django.db.models.loading import cache
@@ -812,8 +814,8 @@ def generate_smb4_conf(smb4_conf, role):
     if os.path.exists("/usr/local/etc/smbusers"):
         confset1(smb4_conf, "username map = /usr/local/etc/smbusers")
 
-    confset2(smb4_conf, "server min protocol = %s", cifs.cifs_srv_min_protocol)
-    confset2(smb4_conf, "server max protocol = %s", cifs.cifs_srv_max_protocol)
+    confset2(smb4_conf, "server min protocol = %s", cifs['min_protocol'])
+    confset2(smb4_conf, "server max protocol = %s", cifs['max_protocol'])
     if cifs['bind_addresses']:
         interfaces = []
 

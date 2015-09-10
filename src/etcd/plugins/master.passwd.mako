@@ -5,6 +5,8 @@
         sys.path.append('/usr/local/www')
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'freenasUI.settings')
+    if 'DJANGO_LOGGING_DISABLE' not in os.environ:
+        os.environ['DJANGO_LOGGING_DISABLE'] = 'true'
 
     # Make sure to load all modules
     from django.db.models.loading import cache
