@@ -26,6 +26,7 @@
 #####################################################################
 import errno
 import logging
+import re
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
@@ -33,6 +34,11 @@ from lib.system import system, SubprocessException
 from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('CIFSPlugin')
+
+
+def validate_netbios_name(netbiosname):
+    regex = re.compile(r"^[a-zA-Z0-9\.\-_!@#\$%^&\(\)'\{\}~]{1,15}$")
+    return regex.match(netbiosname)
 
 
 @description('Provides info about CIFS service configuration')
@@ -50,8 +56,27 @@ class CIFSConfigureTask(Task):
         return 'Configuring CIFS service'
 
     def verify(self, cifs):
-
         errors = []
+
+        node = ConfigNode('service.cifs', self.configstore)
+
+        netbiosname = cifs.get('netbiosname')
+        if netbiosname is not None:
+            if not validate_netbios_name(netbiosname):
+                errors.append(('netbiosname', errno.EINVAL, 'Invalid name'))
+        else:
+            netbiosname = node['netbiosname']
+
+        workgroup = cifs.get('workgroup')
+        if workgroup is not None:
+            if not validate_netbios_name(workgroup):
+                errors.append(('workgroup', errno.EINVAL, 'Invalid name'))
+        else:
+            workgroup = node['workgroup']
+
+        if netbiosname.lower() == workgroup.lower():
+            errors.append(('netbiosname', errno.EEXIST, 'NetBIOS and Workgroup must be unique'))
+
         dirmask = cifs.get('dirmask')
         if dirmask and (int(dirmask, 8) & ~011777):
             errors.append(('dirmask', errno.EINVAL, 'This is not a valid mask'))
