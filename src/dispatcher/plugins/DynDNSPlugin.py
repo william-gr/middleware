@@ -30,7 +30,7 @@ from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from task import Task, Provider, TaskException, ValidationException
 
-logger = logging.getLogger('DDNSPlugin')
+logger = logging.getLogger('DynDNSPlugin')
 
 PROVIDERS = {
     'dyndns.org': 'dyndns@dyndns.org',
@@ -56,6 +56,11 @@ class DynDNSProvider(Provider):
     @returns(h.ref('service-dyndns'))
     def get_config(self):
         return ConfigNode('service.dyndns', self.configstore)
+
+    @accepts()
+    @returns(h.object())
+    def providers(self):
+        return PROVIDERS
 
 
 @description('Configure DynamicDNS service')
