@@ -50,6 +50,19 @@ class CIFSConfigureTask(Task):
         return 'Configuring CIFS service'
 
     def verify(self, cifs):
+
+        errors = []
+        dirmask = cifs.get('dirmask')
+        if dirmask and (int(dirmask, 8) & ~011777):
+            errors.append(('dirmask', errno.EINVAL, 'This is not a valid mask'))
+
+        filemask = cifs.get('filemask')
+        if filemask and (int(filemask, 8) & ~011777):
+            errors.append(('filemask', errno.EINVAL, 'This is not a valid mask'))
+
+        if errors:
+            raise ValidationException(errors)
+
         return ['system']
 
     def run(self, cifs):
