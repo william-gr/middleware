@@ -295,7 +295,7 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'path': {'type': 'string'},
-            'type': {'type', 'string'},
+            'type': {'type': 'string'},
             'size': {'type': 'integer'},
             'atime': {'type': 'string'},
             'mtime': {'type': 'string'},
