@@ -129,9 +129,11 @@ class ConfigureIPMITask(Task):
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot configure IPMI channel {0}: {1}'.format(channel, err.err))
 
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('ipmi-configuration', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'channel': {'type': 'integer'},
             'password': {'type': 'string'},
