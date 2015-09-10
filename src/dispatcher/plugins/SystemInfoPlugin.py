@@ -1,4 +1,4 @@
-# +
+#+
 # Copyright 2014 iXsystems, Inc.
 # All rights reserved
 #
@@ -32,10 +32,11 @@ import psutil
 import re
 import time
 import netif
+import bsd
 
 from datastore import DatastoreException
 from datetime import datetime
-from dateutil import tz
+from dateutil import tz, parser
 from dispatcher.rpc import (
     RpcException,
     SchemaHelper as h,
@@ -101,12 +102,7 @@ class SystemInfoProvider(Provider):
         }
 
     @accepts()
-    @returns(h.object(properties={
-        'system_time': str,
-        'boot_time': str,
-        'uptime': str,
-        'timezone': str,
-    }))
+    @returns(h.ref('system-time'))
     def time(self):
         boot_time = datetime.fromtimestamp(psutil.BOOT_TIME, tz=tz.tzlocal())
         return {
@@ -230,7 +226,6 @@ class SystemUIProvider(Provider):
 
 @accepts(h.ref('system-general'))
 class SystemGeneralConfigureTask(Task):
-
     def describe(self):
         return "System General Settings Configure"
 
@@ -418,6 +413,31 @@ class SystemUIConfigureTask(Task):
         })
 
 
+@accepts(h.all_of(
+    h.ref('system-time'),
+    h.forbidden('boot_time', 'uptime')
+))
+@description("Configures system time")
+class SystemTimeConfigureTask(Task):
+    def verify(self, props):
+        return ['system']
+
+    def run(self, props):
+        if 'system_time' in props:
+            timestamp = time.mktime(parser.parse(props['system_time']))
+            bsd.clock_settime(bsd.ClockType.REALTIME, timestamp)
+
+        if 'timezone' in props:
+            self.configstore.set('system.timezone', props['timezone'])
+            try:
+                self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
+            except RpcException, e:
+                raise TaskException(
+                    errno.ENXIO,
+                    'Cannot reconfigure system time: {0}'.format(str(e))
+                )
+
+
 @accepts()
 @description("Reboots the System after a delay of 10 seconds")
 class SystemRebootTask(Task):
@@ -517,6 +537,17 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
+    plugin.register_schema_definition('system-time', {
+        'type': 'object',
+        'additionalProperties': False,
+        'properties': {
+            'system_time': {'type': 'string'},
+            'boot_time': {'type': 'string'},
+            'uptime': {'type': 'string'},
+            'timezone': {'type': 'string'}
+        }
+    })
+
     # Register event handler
     plugin.register_event_handler('system.hostname.change', on_hostname_change)
 
@@ -530,6 +561,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("system.advanced.configure", SystemAdvancedConfigureTask)
     plugin.register_task_handler("system.general.configure", SystemGeneralConfigureTask)
     plugin.register_task_handler("system.ui.configure", SystemUIConfigureTask)
+    plugin.register_task_handler("system.time.configure", SystemTimeConfigureTask)
     plugin.register_task_handler("system.shutdown", SystemHaltTask)
     plugin.register_task_handler("system.reboot", SystemRebootTask)
 
