@@ -99,8 +99,8 @@ class ManagementService(RpcService):
     @private
     def add(self, task):
         if 'id' not in task:
-            ids = filter(lambda j: int(j.id), self.context.scheduler.get_jobs())
-            task_id = 'task{0}'.format(max(ids) if ids else 1)
+            count = len(self.context.scheduler.get_jobs())
+            task_id = 'task{0}'.format(count + 1)
         else:
             task_id = task['id']
 
