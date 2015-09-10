@@ -64,6 +64,7 @@ from dispatcher.jsonenc import loads, dumps
 from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
 from resources import ResourceGraph
 from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
+from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
 from auth import PasswordAuthenticator, TokenStore, Token, TokenException
@@ -311,6 +312,8 @@ class Dispatcher(object):
         self.balancer = Balancer(self)
         self.auth = PasswordAuthenticator(self)
         self.rpc = ServerRpcContext(self)
+        register_general_purpose_schemas(self)
+
         self.rpc.register_service('management', ManagementService)
         self.rpc.register_service('event', EventService)
         self.rpc.register_service('task', TaskService)
