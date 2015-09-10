@@ -51,7 +51,7 @@ class NetworkProvider(Provider):
             if 'LOOPBACK' in v['flags']:
                 continue
             for aliases in v['aliases']:
-                if aliases['address'] and aliases['family'] != 'LINK':
+                if aliases['address'] and aliases['type'] != 'LINK':
                     ips.append(aliases['address'])
         return ips
 
