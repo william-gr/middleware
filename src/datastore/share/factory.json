@@ -604,7 +604,7 @@
       "service.dyndns.enable": false,
       "service.dyndns.provider": null,
       "service.dyndns.ipserver": null,
-      "service.dyndns.domain": null,
+      "service.dyndns.domains": null,
       "service.dyndns.username": null,
       "service.dyndns.password": null,
       "service.dyndns.update_period": null,

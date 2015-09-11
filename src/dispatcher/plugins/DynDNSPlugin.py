@@ -107,7 +107,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'provider': {'type': ['string', 'null'], 'enum': [None] + PROVIDERS.values()},
             'ipserver': {'type': ['string', 'null']},
-            'domain': {'type': 'string'},
+            'domains': {'type': 'array', 'items': {'type': 'string'}},
             'username': {'type': 'string'},
             'password': {'type': 'string'},
             'update_period': {'type': ['integer', 'null']},
