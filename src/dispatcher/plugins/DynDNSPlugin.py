@@ -106,13 +106,13 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'provider': {'type': ['string', 'null'], 'enum': [None] + PROVIDERS.values()},
-            'ipserver': {'type': 'string'},
+            'ipserver': {'type': ['string', 'null']},
             'domain': {'type': 'string'},
             'username': {'type': 'string'},
             'password': {'type': 'string'},
             'update_period': {'type': ['integer', 'null']},
             'force_update_period': {'type': ['integer', 'null']},
-            'auxiliary': {'type': 'string'},
+            'auxiliary': {'type': ['string', 'null']},
         },
         'additionalProperties': False,
     })
