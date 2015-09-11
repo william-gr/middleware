@@ -828,14 +828,13 @@ def _init(dispatcher, plugin):
 
     def on_pool_change(args):
         ids = filter(lambda i: i != boot_pool['guid'], args['ids'])
-
         if args['operation'] == 'delete':
-            for i in args['ids']:
+            for i in ids:
                 logger.info('Volume {0} is going away'.format(i))
                 dispatcher.datastore.delete('volumes', i)
 
         if args['operation'] in ('create', 'update'):
-            for i in args['ids']:
+            for i in ids:
                 if args['operation'] == 'update' and dispatcher.datastore.exists('volumes', ('id', '=', i)):
                     continue
 
