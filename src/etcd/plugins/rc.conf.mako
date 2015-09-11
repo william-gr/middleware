@@ -64,7 +64,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'dyndns'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -76,6 +76,9 @@ smbd_enable="YES"
 nmbd_enable="YES"
 winbindd_enable="YES"
 ##% endif
+% endif
+% if config.get("service.dyndns.enable"):
+inadynmt_enable="YES"
 % endif
 
 % if gen_config['console_keymap']:
