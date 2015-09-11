@@ -66,7 +66,6 @@ class BootEnvironmentActivate(Task):
 
         return ['system']
 
-
     def run(self, name):
         if not ActivateClone(name):
             raise TaskException(errno.EIO, 'Cannot activate the {0} boot environment'.format(name))
