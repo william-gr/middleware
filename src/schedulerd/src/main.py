@@ -162,21 +162,27 @@ class Context(object):
 
     def register_schemas(self):
         self.client.register_schema('calendar-task', {
-            'id': {'type': 'string'},
-            'name': {'type': 'string'},
-            'args': {'type': 'array'},
-            'description': {'type': 'string'},
-            'status': {'$ref': 'calendar-task-status'},
-            'schedule': {
-                'coalesce': {'type': ['boolean', 'null']},
-                'year': {'type': ['string', 'null']},
-                'month': {'type': ['string', 'null']},
-                'day': {'type': ['string', 'null']},
-                'week': {'type': ['string', 'null']},
-                'day_of_week': {'type': ['string', 'null']},
-                'hour': {'type': ['string', 'null']},
-                'minute': {'type': ['string', 'null']},
-                'second': {'type': ['string', 'null']}
+            'type': 'object',
+            'properties': {
+                'id': {'type': 'string'},
+                'name': {'type': 'string'},
+                'args': {'type': 'array'},
+                'description': {'type': 'string'},
+                'status': {'$ref': 'calendar-task-status'},
+                'schedule': {
+                    'coalesce': {'type': ['boolean', 'null']},
+                    'year': {'type': ['string', 'null']},
+                    'month': {'type': ['string', 'null']},
+                    'day': {'type': ['string', 'null']},
+                    'week': {'type': ['string', 'null']},
+                    'day_of_week': {
+                        'type': ['string', 'null'],
+                        'enum': [None, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+                    },
+                    'hour': {'type': ['string', 'null']},
+                    'minute': {'type': ['string', 'null']},
+                    'second': {'type': ['string', 'null']}
+                }
             }
         })
 
