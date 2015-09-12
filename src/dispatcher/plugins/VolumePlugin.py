@@ -542,22 +542,28 @@ class VolumeImportTask(Task):
         return self.verify_subtask('zfs.pool.import', id)
 
     def run(self, id, new_name, params=None):
-        mountpoint = os.path.join(VOLUMES_ROOT, new_name)
-        self.join_subtasks(self.run_subtask('zfs.pool.import', id, new_name, params))
-        self.join_subtasks(self.run_subtask('zfs.configure', new_name, {'mountpoint': mountpoint}))
-        self.join_subtasks(self.run_subtask('zfs.mount', new_name))
+        with self.dispatcher.get_lock('volumes'):
+            mountpoint = os.path.join(VOLUMES_ROOT, new_name)
+            self.join_subtasks(self.run_subtask('zfs.pool.import', id, new_name, params))
+            self.join_subtasks(self.run_subtask(
+                'zfs.configure',
+                new_name,
+                new_name,
+                {'mountpoint': {'value': mountpoint}}
+                ))
+            self.join_subtasks(self.run_subtask('zfs.mount', new_name))
 
-        new_id = self.datastore.insert('volumes', {
-            'id': id,
-            'name': new_name,
-            'type': 'zfs',
-            'mountpoint': mountpoint
-        })
+            new_id = self.datastore.insert('volumes', {
+                'id': id,
+                'name': new_name,
+                'type': 'zfs',
+                'mountpoint': mountpoint
+            })
 
-        self.dispatcher.dispatch_event('volumes.changed', {
-            'operation': 'create',
-            'ids': [new_id]
-        })
+            self.dispatcher.dispatch_event('volumes.changed', {
+                'operation': 'create',
+                'ids': [new_id]
+            })
 
 
 @description("Imports non-ZFS disk contents info existing volume")
@@ -661,7 +667,7 @@ class DatasetCreateTask(Task):
 
         return ['zpool:{0}'.format(pool_name)]
 
-    def run(self, pool_name, path,type, params=None):
+    def run(self, pool_name, path, type, params=None):
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
             pool_name,
