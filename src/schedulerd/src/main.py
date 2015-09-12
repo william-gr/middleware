@@ -113,6 +113,8 @@ class ManagementService(RpcService):
             **task['schedule']
         )
 
+        return task_id
+
     @private
     def delete(self, job_id):
         self.context.scheduler.remove_job(job_id)

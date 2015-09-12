@@ -49,9 +49,14 @@ class CreateCalendarTask(Task):
 
     def run(self, task):
         try:
-            return self.dispatcher.call_sync('scheduler.management.add', task)
+            tid = self.dispatcher.call_sync('scheduler.management.add', task)
         except RpcException:
             raise
+
+        self.dispatcher.dispatch_event('calendar_tasks.changed', {
+            'operation': 'create',
+            'ids': [tid]
+        })
 
 
 @accepts(
@@ -71,6 +76,12 @@ class UpdateCalendarTask(Task):
         except RpcException:
             raise
 
+        self.dispatcher.dispatch_event('calendar_tasks.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
+
+
 
 @accepts(str)
 class DeleteCalendarTask(Task):
@@ -83,9 +94,15 @@ class DeleteCalendarTask(Task):
         except RpcException:
             raise
 
+        self.dispatcher.dispatch_event('calendar_tasks.changed', {
+            'operation': 'delete',
+            'ids': [id]
+        })
+
 
 def _init(dispatcher, plugin):
     plugin.register_provider('calendar_tasks', CalendarTasksProvider)
     plugin.register_task_handler('calendar_tasks.create', CreateCalendarTask)
     plugin.register_task_handler('calendar_tasks.update', UpdateCalendarTask)
     plugin.register_task_handler('calendar_tasks.delete', DeleteCalendarTask)
+    plugin.register_event_type('calendar_tasks.changed')
