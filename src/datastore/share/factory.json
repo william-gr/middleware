@@ -641,7 +641,7 @@
       "service.ftp.anon_up_bandwidth": 0,
       "service.ftp.anon_down_bandwidth": 0,
       "service.ftp.tls": false,
-      "service.ftp.tls_policy": 'ON',
+      "service.ftp.tls_policy": "ON",
       "service.ftp.tls_options": [],
       "service.ftp.tls_ssl_certificate": null,
       "service.ftp.auxiliary": null,
