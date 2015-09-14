@@ -77,11 +77,13 @@ class UpdateShareTask(Task):
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
 
-        self.share_type = share['type']
         return ['system']
 
     def run(self, name, updated_fields):
-        self.join_subtasks(self.run_subtask('share.{0}.update'.format(self.share_type), name, updated_fields))
+        share = self.datastore.get_by_id('shares', name)
+        self.join_subtasks(
+            self.run_subtask('share.{0}.update'.format(share['type']), name, updated_fields)
+            )
 
 
 @description("Deletes share")
@@ -92,11 +94,11 @@ class DeleteShareTask(Task):
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
 
-        self.share_type = share['type']
         return ['system']
 
     def run(self, name):
-        self.join_subtasks(self.run_subtask('share.{0}.delete'.format(self.share_type), name))
+        share = self.datastore.get_by_id('shares', name)
+        self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), name))
 
 
 def _init(dispatcher, plugin):
