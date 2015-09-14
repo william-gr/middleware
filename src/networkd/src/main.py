@@ -459,7 +459,6 @@ class ConfigurationService(RpcService):
             self.logger.info('Trying to acquire DHCP lease on interface {0}...'.format(name))
             if not self.context.configure_dhcp(name):
                 self.logger.warn('Failed to configure interface {0} using DHCP'.format(name))
-            return
 
         addresses = set(convert_aliases(entity))
         existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
