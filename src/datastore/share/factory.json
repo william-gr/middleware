@@ -129,12 +129,28 @@
         "attributes": {},
         "builtin": true
       },
-      "61": {
+     "62": {
         "password_disabled": false,
         "email": null,
         "group": 8,
         "home": "/",
         "full_name": "RiakCS User",
+        "username": "riakcs",
+        "sshpubkey": null,
+        "shell": "/bin/sh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
+      "61": {
+        "password_disabled": false,
+        "email": null,
+        "group": 8,
+        "home": "/",
+        "full_name": "RiakKV User",
         "username": "riak",
         "sshpubkey": null,
         "shell": "/bin/sh",
