@@ -755,6 +755,12 @@
         ],
         "name": "console"
       },
+      "89C7C606-8318-49D1-8238-2E726915F9D6": {
+        "dependencies": [
+          "file:local/proftpd.conf"
+        ],
+        "name": "ftp"
+      },
       "9199AEF2-590B-4145-99A4-CABB7D00FFA5": {
         "dependencies": [
           "file:local/afp.conf"
