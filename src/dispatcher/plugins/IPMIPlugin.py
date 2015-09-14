@@ -29,11 +29,13 @@ import os
 import re
 import errno
 import ipaddress
+import logging
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from task import Provider, Task, TaskException, VerifyException
 from lib.system import system, SubprocessException
+from bsd import kld
 
 
 RE_ATTRS = re.compile(r'^(?P<key>^.+?)\s+?:\s+?(?P<val>.+?)\r?$', re.M)
@@ -46,6 +48,7 @@ IPMI_ATTR_MAP = {
 }
 
 
+logger = logging.getLogger('IPMIPlugin')
 channels = []
 
 
@@ -98,6 +101,9 @@ class ConfigureIPMITask(Task):
         config = self.dispatcher.call_sync('ipmi.get_config', channel)
         config.update(updated_params)
         channel = str(channel)
+
+        if updated_params.get('gateway') is None:
+            config['gateway'] = '0.0.0.0'
 
         try:
             if config['dhcp']:
@@ -156,6 +162,13 @@ def _init(dispatcher, plugin):
 
     plugin.register_provider('ipmi', IPMIProvider)
     plugin.register_task_handler('ipmi.configure', ConfigureIPMITask)
+
+    # Load ipmi kernel module
+    try:
+        kld.kldload('/boot/kernel/ipmi.ko')
+    except OSError, err:
+        logger.warning('Cannot load IPMI module: {0}', str(err))
+        logger.warning('IPMI unavailable')
 
     # Scan available channels
     for i in range(1, 17):
