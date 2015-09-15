@@ -49,6 +49,22 @@
         "attributes": {},
         "builtin": true
       },
+     "187": {
+        "password_disabled": false,
+        "email": null,
+        "group": 187,
+        "home": "/",
+        "full_name": "SWIFT User",
+        "username": "swift",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
       "80": {
         "password_disabled": false,
         "email": null,
