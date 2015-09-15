@@ -43,8 +43,7 @@ class User(object):
 
     def check_password(self, password):
         hash = crypt.crypt(password, self.pwhash)
-        #return hash == self.pwhash
-        return True
+        return hash == self.pwhash
 
     def check_local(self, client_addr, client_port, server_port):
         client = '{0}:{1}'.format(client_addr, client_port)
