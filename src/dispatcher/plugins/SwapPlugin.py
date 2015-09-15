@@ -59,7 +59,7 @@ def get_swap_partition(dispatcher, disk):
     if not disk:
         return None
 
-    return disk['status'].get('swap-partition-path')
+    return disk['status'].get('swap_partition_path')
 
 
 def get_swap_info(dispatcher):
