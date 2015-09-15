@@ -159,7 +159,9 @@ class SystemDatasetConfigure(Task):
         return ['service:syslog', 'service:statd']
 
     def run(self, pool):
-        pass
+        status = self.dispatcher.call_sync('system_dataset.status')
+        if status['pool'] != pool:
+            move_system_dataset(status['pool'], pool)
 
 
 def _depends():
