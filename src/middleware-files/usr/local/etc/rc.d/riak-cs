@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# $FreeBSD$
+#
+# PROVIDE: riak-cs
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=riak-cs
+command=/usr/local/lib/riak-cs/erts-5.10.3/bin/beam.smp
+rcvar=riakcs_enable
+start_cmd="/usr/local/sbin/${name} start"
+stop_cmd="/usr/local/sbin/${name} stop"
+pidfile="/var/run/${name}/${name}.pid"
+
+load_rc_config $name
+run_rc_command "$1"
