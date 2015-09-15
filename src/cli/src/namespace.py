@@ -325,10 +325,10 @@ class ItemNamespace(Namespace):
         self.load()
 
     def on_leave(self):
-        if self.modified:
-            output_msg('Object was modified. '
-                       'Type either "save" or "discard" to leave')
-            return False
+        # if self.modified:
+        #     output_msg('Object was modified. '
+        #                'Type either "save" or "discard" to leave')
+        #     return False
 
         return True
 
@@ -390,6 +390,7 @@ class ConfigNamespace(ItemNamespace):
         self.context = context
         self.property_mappings = []
         self.extra_commands = None
+        self.localdoc = {}
 
     def get_name(self):
         name = self.name
@@ -436,9 +437,12 @@ class EntityNamespace(Namespace):
 
         def load(self):
             if self.saved:
-                self.entity = self.parent.get_one(self.name)
-
-            self.orig_entity = copy.deepcopy(self.entity)
+                self.entity = self.parent.get_one(self.get_name())
+                self.orig_entity = copy.deepcopy(self.entity)
+            else:
+                # This is in case the task failed!
+                self.entity = copy.deepcopy(self.orig_entity)
+            self.modified = False
 
         def save(self):
             self.parent.save(self, not self.saved)
