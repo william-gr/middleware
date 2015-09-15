@@ -129,6 +129,38 @@
         "attributes": {},
         "builtin": true
       },
+      "61": {
+        "password_disabled": false,
+        "email": null,
+        "group": 8,
+        "home": "/",
+        "full_name": "RiakCS User",
+        "username": "riak",
+        "sshpubkey": null,
+        "shell": "/bin/sh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
+      "60": {
+        "password_disabled": false,
+        "email": null,
+        "group": 8,
+        "home": "/",
+        "full_name": "Stanchion User",
+        "username": "stanchion",
+        "sshpubkey": null,
+        "shell": "/bin/sh",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
       "8": {
         "password_disabled": false,
         "email": null,
