@@ -190,4 +190,4 @@ def _init(dispatcher, plugin):
     plugin.register_hook('system_dataset.pre_attach')
 
     # Disable until we switch to new system dataset logic
-    #dispatcher.call_sync('system_dataset.init')
+    dispatcher.call_sync('system_dataset.init')
