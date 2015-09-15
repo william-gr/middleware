@@ -130,10 +130,17 @@ class CreateInterfaceTask(Task):
 @accepts(str)
 class DeleteInterfaceTask(Task):
     def verify(self, name):
-        raise NotImplementedError()
+        if not self.datastore.exists('network.interfaces', ('id', '=', name)):
+            raise VerifyException(errno.ENOENT, 'Interface {0} does not exist'.format(name))
+
+        return ['system']
 
     def run(self, name):
-        raise NotImplementedError()
+        self.datastore.delete('network.interfaces', name)
+        try:
+            self.dispatcher.call_sync('networkd.configuration.configure_network')
+        except RpcException, e:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure network: {0}'.format(str(e)))
 
 
 @description("Alters network interface configuration")
@@ -185,8 +192,8 @@ class ConfigureInterfaceTask(Task):
 
         try:
             self.dispatcher.call_sync(task, name)
-        except RpcException:
-            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+        except RpcException, err:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.interface.changed', {
             'operation': 'update',
@@ -206,8 +213,8 @@ class InterfaceUpTask(Task):
     def run(self, name):
         try:
             self.dispatcher.call_sync('networkd.configuration.up_interface', name)
-        except RpcException:
-            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface, networkd service is offline')
+        except RpcException, err:
+            raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.interface.changed', {
             'operation': 'update',
@@ -249,8 +256,8 @@ class AddHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, e:
-            raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
+        except RpcException, err:
+            raise TaskException(errno.ENXIO, 'Cannot update host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'create',
@@ -274,8 +281,8 @@ class UpdateHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, e:
-            raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
+        except RpcException, err:
+            raise TaskException(errno.ENXIO, 'Cannot update host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'update',
@@ -297,8 +304,8 @@ class DeleteHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, e:
-            raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
+        except RpcException, err:
+            raise TaskException(errno.ENXIO, 'Cannot delete host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
             'operation': 'delete',
