@@ -79,8 +79,9 @@ def mount_system_dataset(dispatcher, pool, path):
         ds.properties['mountpoint'].value = path
         ds.mount()
         return
-    except libzfs.ZFSException:
-        raise
+    except libzfs.ZFSException, err:
+        if err.code != libzfs.Error.BUSY:
+            raise
 
 
 def umount_system_dataset(dispatcher, pool):
