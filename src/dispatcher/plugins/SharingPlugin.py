@@ -55,6 +55,21 @@ class SharesProvider(Provider):
 
         return self.dispatcher.call_sync('shares.{0}.get_connected_clients'.format(share['type']), share_name)
 
+    @description("Get shares dependent on provided filesystem path")
+    @accepts(str)
+    @returns(h.array('share'))
+    def get_dependencies(self, path):
+        result = []
+        for i in self.datastore.query('shares', ('enabled', '=', True)):
+            if i['target'][0] != '/':
+                # non-filesystem share
+                continue
+
+            if i['target'].startswith(path):
+                result.append(i)
+
+        return result
+
 
 @description("Creates new share")
 @accepts(h.all_of(
@@ -106,6 +121,8 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'id': {'type': 'string'},
+            'description': {'type': 'string'},
+            'enabled': {'type': 'boolean'},
             'type': {'type': 'string'},
             'target': {'type': 'string'},
             'properties': {'type': 'object'}
