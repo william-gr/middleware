@@ -548,9 +548,11 @@ class Dispatcher(object):
 
     def register_event_type(self, name, source=None, schema=None):
         self.event_types[name] = EventType(name, source, schema)
+        self.dispatch_event('server.event.added', {'name': name})
 
     def unregister_event_type(self, name):
         del self.event_types[name]
+        self.dispatch_event('server.event.removed', {'name': name})
 
     def register_task_handler(self, name, clazz):
         self.logger.debug("New task handler: %s", name)
@@ -912,16 +914,13 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             # and instead verify his username using sockstat(1). Also make
             # token lifetime None for such users (as we do not want their
             # sessions to timeout)
-            if not user.check_local(client_addr, client_port,
-                                    self.dispatcher.port):
-                self.emit_rpc_error(id, errno.EACCES,
-                                    "Incorrect username or password")
+            if not user.check_local(client_addr, client_port, self.dispatcher.port):
+                self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
                 return
             lifetime = None
         else:
             if not user.check_password(password):
-                self.emit_rpc_error(id, errno.EACCES,
-                                    "Incorrect username or password")
+                self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
                 return
 
         self.user = user
