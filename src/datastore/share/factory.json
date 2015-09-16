@@ -713,7 +713,7 @@
       "service.riak_cs.enable": true,
       "service.stanchion.enable": true,
       "service.swift.enable": true,
-      "service.glusterfsd.enable": true,
+      "service.glusterd.enable": true,
       "service.sshd.allow_pubkey_auth": true,
       "service.sshd.allow_password_auth": true,
       "service.sshd.compression": false,
@@ -1103,10 +1103,10 @@
     },
       "0B1057A8-8923-4B57-B138-87563E0AFE9B": {
         "rcng": {
-          "rc-scripts": "glusterfsd"
+          "rc-scripts": "glusterd"
         },
         "builtin": false,
-        "name": "glusterfsd"
+        "name": "glusterd"
       }
     },
     "metadata": {
