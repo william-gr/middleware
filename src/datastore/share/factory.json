@@ -1065,6 +1065,27 @@
         "builtin": false,
         "etcd-group": "dyndns",
         "name": "dyndns"
+      },
+      "4D0E488C-C0A6-41C8-8EEE-5DEBC35EE56F": {
+        "rcng": {
+          "rc-scripts": "riak"
+        },
+        "builtin": false,
+        "name": "riak"
+      },
+      "5E261539-46CB-4453-B94B-1C037F093CCE": {
+        "rcng": {
+          "rc-scripts": "stanchion"
+        },
+        "builtin": false,
+        "name": "stanchion"
+      },
+      "0B1057A8-8923-4B57-B138-87563E0AFC9B": {
+        "rcng": {
+          "rc-scripts": "riak-cs"
+        },
+        "builtin": false,
+        "name": "riak-cs"
       }
     },
     "metadata": {
