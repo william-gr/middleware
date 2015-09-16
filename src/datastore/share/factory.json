@@ -1088,7 +1088,7 @@
           "rc-scripts": "riak-cs"
         },
         "builtin": false,
-        "name": "riak-cs"
+        "name": "riak_cs"
       }
     },
     "metadata": {
