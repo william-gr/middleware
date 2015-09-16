@@ -148,7 +148,7 @@
      "62": {
         "password_disabled": false,
         "email": null,
-        "group": 8,
+        "group": 62,
         "home": "/",
         "full_name": "RiakCS User",
         "username": "riakcs",
@@ -164,7 +164,7 @@
       "61": {
         "password_disabled": false,
         "email": null,
-        "group": 8,
+        "group": 61,
         "home": "/",
         "full_name": "RiakKV User",
         "username": "riak",
@@ -180,7 +180,7 @@
       "60": {
         "password_disabled": false,
         "email": null,
-        "group": 8,
+        "group": 60,
         "home": "/",
         "full_name": "Stanchion User",
         "username": "stanchion",
