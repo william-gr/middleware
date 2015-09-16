@@ -232,6 +232,7 @@ class UpdateHandler(object):
         self.progress = int((float(index) / float(total)) * 100.0)
         self.operation = 'Installing'
         self.details = '%s %s (%d/%d)' % ('Installing', name, index, total)
+        self.emit_update_details()
 
     def emit_update_details(self):
         # Doing the drill below as there is a small window when
