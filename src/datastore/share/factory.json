@@ -1091,16 +1091,14 @@
         },
         "builtin": false,
         "name": "riak_cs"
-      }
-    },
+      },
       "0B1057A8-8923-4B57-B138-87563E0AFD9B": {
         "rcng": {
           "rc-scripts": "swift"
         },
         "builtin": false,
         "name": "swift"
-      }
-    },
+      },
       "0B1057A8-8923-4B57-B138-87563E0AFE9B": {
         "rcng": {
           "rc-scripts": "glusterd"
