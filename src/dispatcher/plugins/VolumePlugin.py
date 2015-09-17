@@ -307,9 +307,7 @@ class SnapshotProvider(Provider):
                 'name': name,
                 'properties': include(
                     snapshot['properties'],
-                    'used', 'available', 'compression', 'atime', 'dedup',
-                    'quota', 'refquota', 'reservation', 'refreservation',
-                    'casesensitivity', 'volsize', 'volblocksize',
+                    'used', 'refer', 'compressratio', 'clones'
                 ),
                 'holds': snapshot['holds']
             }
