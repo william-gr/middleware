@@ -55,7 +55,7 @@
 
     certificate = None
     if config['tls_ssl_certificate']:
-        certificate = dispatcher.call_sync('crypto.certificates.query', ('id', '=', config['tls_ssl_certificate']), single=True)
+        certificate = dispatcher.call_sync('crypto.certificates.query', [('id', '=', config['tls_ssl_certificate'])], {'single': True})
 
 %>\
 <%def name="on_off(val)">\
