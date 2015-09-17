@@ -173,8 +173,6 @@ LoadModule mod_tls.c
   TLSVerifyClient off
   TLSRequired ${config['tls_policy'].lower()}
 </IfModule>
-EOF
-	fi
 
 <IfModule mod_ban.c>
   BanEngine off
