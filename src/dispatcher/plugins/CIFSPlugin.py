@@ -126,7 +126,6 @@ def _init(dispatcher, plugin):
             except SubprocessException:
                 logger.error('Failed to get local sid', exc_info=True)
         try:
-            logger.info('sid %r %r', cifs['sid'], type(cifs['sid']))
             if cifs['sid']:
                 system('/usr/local/bin/net', 'setlocalsid', cifs['sid'])
         except SubprocessException as err:
