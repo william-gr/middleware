@@ -1053,7 +1053,7 @@
         },
         "builtin": false,
         "pidfile": "/var/run/proftpd.pid",
-        "etcd-group": "ftpd",
+        "etcd-group": "ftp",
         "name": "ftp"
       },
       "702DD24D-BF1A-4D36-B69B-C96971B37A9D": {
