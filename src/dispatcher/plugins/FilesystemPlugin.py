@@ -324,6 +324,15 @@ def _init(dispatcher, plugin):
         }
     })
 
+    plugin.register_schema_definition('unix-permissions', {
+        'type': 'object',
+        'properties': {
+            'user': {'$ref': 'unix-mode-tuple'},
+            'group': {'$ref': 'unix-mode-tuple'},
+            'others': {'$ref': 'unix-mode-tuple'}
+        }
+    })
+
     plugin.register_schema_definition('unix-mode-tuple', {
         'type': 'object',
         'properties': {
