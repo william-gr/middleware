@@ -37,6 +37,24 @@ class EntitySubscriberEventSource(EventSource):
         super(EntitySubscriberEventSource, self).__init__(dispatcher)
         self.handles = {}
         self.services = []
+        dispatcher.register_event_handler('server.event.added', self.event_added)
+        dispatcher.register_event_handler('server.event.removed', self.event_removed)
+
+    def event_added(self, args):
+        if args['name'].startswith('entity-subscriber'):
+            return
+
+        service, _, changed = args['name'].rpartition('.')
+        if changed == 'changed':
+            self.register(service)
+
+    def event_removed(self, args):
+        if args['name'].startswith('entity-subscriber'):
+            return
+
+        service, _, changed = args['name'].rpartition('.')
+        if changed == 'changed':
+            self.services.remove(service)
 
     def changed(self, service, event):
         ids = event['ids']
@@ -76,13 +94,17 @@ class EntitySubscriberEventSource(EventSource):
         service = re.match(r'^entity-subscriber\.([\.\w]+)\.changed$', event).group(1)
         self.dispatcher.unregister_event_handler('{0}.changed'.format(service), self.handles[service])
 
+    def register(self, service):
+        self.dispatcher.register_event_type('entity-subscriber.{0}.changed'.format(service), self)
+        self.logger.info('Registered subscriber for service {0}'.format(service))
+        self.services.append(service)
+
     def run(self):
         # Scan through registered events for those ending with .changed
         for i in self.dispatcher.event_types.keys():
-            service = i.rpartition('.')[0]
-            self.dispatcher.register_event_type('entity-subscriber.{0}.changed'.format(service), self)
-            self.logger.info('Registered subscriber for service {0}'.format(service))
-            self.services.append(service)
+            service, _, changed = i.rpartition('.')
+            if changed == 'changed':
+                self.register(service)
 
 
 def _init(dispatcher, plugin):
