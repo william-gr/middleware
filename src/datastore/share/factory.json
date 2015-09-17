@@ -674,6 +674,7 @@
       "service.dyndns.update_period": null,
       "service.dyndns.force_update_period": null,
       "service.dyndns.auxiliary": null,
+      "service.ipfs.enable": false,
       "service.nfs.enable": false,
       "service.devd.enable": true,
       "service.syslog.enable": true,
@@ -1105,6 +1106,13 @@
         },
         "builtin": false,
         "name": "glusterd"
+      },
+      "EFC90340-F09F-43DC-A1AB-20467F0A148A": {
+        "rcng": {
+          "rc-scripts": "exp_ipfs"
+        },
+        "builtin": false,
+        "name": "ipfs"
       }
     },
     "metadata": {
