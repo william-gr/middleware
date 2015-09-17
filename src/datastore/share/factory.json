@@ -487,6 +487,11 @@
         "sudo": false,
         "name": "nullmail"
       },
+      "187": {
+        "builtin": true,
+        "sudo": false,
+        "name": "swift"
+      },
       "80": {
         "builtin": true,
         "sudo": false,
