@@ -548,7 +548,8 @@ class VolumeImportTask(Task):
                 new_name,
                 new_name,
                 {'mountpoint': {'value': mountpoint}}
-                ))
+            ))
+
             self.join_subtasks(self.run_subtask('zfs.mount', new_name))
 
             new_id = self.datastore.insert('volumes', {
@@ -842,17 +843,28 @@ def _init(dispatcher, plugin):
                 if args['operation'] == 'update' and dispatcher.datastore.exists('volumes', ('id', '=', i)):
                     continue
 
-                pool = dispatcher.call_sync(
+                pool = wrap(dispatcher.call_sync(
                     'zfs.pool.query',
                     [('guid', '=', i)],
                     {'single': True}
-                )
+                ))
 
                 if not pool:
                     continue
 
                 logger.info('New volume {0} <{1}>'.format(pool['name'], i))
                 with dispatcher.get_lock('volumes'):
+                    # Set correct mountpoint
+                    dispatcher.call_task_sync('zfs.configure', pool['name'], pool['name'], {
+                        'mountpoint': {'value': os.path.join(VOLUMES_ROOT, pool['name'])}
+                    })
+
+                    if pool['properties.altroot.source'] != 'DEFAULT':
+                        # Ouch. That pool is created or imported with altroot.
+                        # We need to export and reimport it to remove altroot property
+                        dispatcher.call_task_sync('zfs.pool.export', pool['name'])
+                        dispatcher.call_task_sync('zfs.pool.import', pool['guid'], pool['name'])
+
                     try:
                         dispatcher.datastore.insert('volumes', {
                             'id': i,
@@ -939,7 +951,11 @@ def _init(dispatcher, plugin):
     plugin.register_event_type('volumes.changed')
 
     for vol in dispatcher.datastore.query('volumes'):
-        dispatcher.call_task_sync('zfs.mount', vol['name'], True)
+        try:
+            dispatcher.call_task_sync('zfs.mount', vol['name'], True)
+        except TaskException, err:
+            if err.code != errno.EBUSY:
+                logger.warning('Cannot mount volume {0}: {1}'.format(vol['name']), str(err))
 
     # Scan for sentinel files indicating share type and convert them
     # to zfs user properties
