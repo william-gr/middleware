@@ -50,7 +50,31 @@ class FTPConfigureTask(Task):
     def verify(self, ftp):
         errors = []
 
-        node = ConfigNode('service.ftp', self.configstore)
+        node = ConfigNode('service.ftp', self.configstore).__getstate__()
+        node.update(ftp)
+
+        pmin = node['passive_ports_min']
+        if 'passive_ports_min' in ftp:
+            if pmin and (pmin < 1024 or pmin > 65535):
+                errors.append(
+                    ('passive_ports_min', errno.EINVAL, 'This value must be between 1024 and 65535, inclusive.')
+                )
+
+        pmax = node['passive_ports_max']
+        if 'passive_ports_max' in ftp:
+            if pmax and (pmax < 1024 or pmax > 65535):
+                errors.append(
+                    ('passive_ports_max', errno.EINVAL, 'This value must be between 1024 and 65535, inclusive.')
+                )
+            elif pmax and pmin and pmin >= pmax:
+                errors.append(
+                    ('passive_ports_max', errno.EINVAL, 'This value must be higher than minimum passive port.')
+                )
+
+        if node['only_anonymous'] and not node['anonymous_path']:
+            errors.append(
+                ('anonymous_path', errno.EINVAL, 'This field is required for anonymous login.')
+            )
 
         if errors:
             raise ValidationException(errors)
