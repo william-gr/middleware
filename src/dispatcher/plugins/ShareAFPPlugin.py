@@ -134,29 +134,34 @@ def _init(dispatcher, plugin):
         'properties': {
             'id': {'type': 'string'},
             'comment': {'type': 'string'},
-            'read-only': {'type': 'boolean'},
-            'time-machine': {'type': 'boolean'},
-            'ro-list': {
+            'read_only': {'type': 'boolean'},
+            'time_machine': {'type': 'boolean'},
+            'zero_dev_numbers': {'type': 'boolean'},
+            'afp3_privileges': {'type': 'boolean'},
+            'default_file_perms': {'$ref': 'unix-permissions'},
+            'default_directory_perms': {'$ref': 'unix-permissions'},
+            'default_umask': {'type': 'integer'},
+            'ro_list': {
                 'type': 'array',
                 'items': {'type': 'string'}
             },
-            'rw-list': {
+            'rw_list': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
-            'users-allow': {
+            'users_allow': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
-            'users-deny': {
+            'users_deny': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
-            'hosts-allow': {
+            'hosts_allow': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
-            'hosts-deny': {
+            'hosts_deny': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
