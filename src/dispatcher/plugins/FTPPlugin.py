@@ -76,6 +76,11 @@ class FTPConfigureTask(Task):
                 ('anonymous_path', errno.EINVAL, 'This field is required for anonymous login.')
             )
 
+        if node['tls'] is True and not node['tls_ssl_certificate']:
+            errors.append(
+                ('tls_ssl_certificate', errno.EINVAL, 'TLS specified without certificate.')
+            )
+
         if errors:
             raise ValidationException(errors)
 
