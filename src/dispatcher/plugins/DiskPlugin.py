@@ -376,6 +376,27 @@ class DiskTestTask(ProgressTask):
         )
 
 
+class DiskParallelTestTask(ProgressTask):
+    def verify(self, ids, test_type):
+        res = []
+        for i in ids:
+            disk = diskinfo_cache.get(i)
+            if not disk:
+                raise VerifyException(errno.ENOENT, 'Disk {0} not found'.format(id))
+
+            res.append('disk:{0}'.format(i['path']))
+
+        return res
+
+    def run(self, ids, test_type):
+        subtasks = []
+        disks = self.dispatcher.call_sync('disks.query', [('id', 'in', ids)])
+        for d in disks:
+            subtasks.append(self.run_subtask('disk.test', d['id'], test_type))
+
+        self.join_subtasks(subtasks)
+
+
 def get_twcli(controller):
     re_port = re.compile(r'^p(?P<port>\d+).*?\bu(?P<unit>\d+)\b', re.S | re.M)
     output, err = system("/usr/local/sbin/tw_cli", "/c{0}".format(controller), "show")
@@ -881,6 +902,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('disks.configure', DiskConfigureTask)
     plugin.register_task_handler('disks.delete', DiskDeleteTask)
     plugin.register_task_handler('disks.test', DiskTestTask)
+    plugin.register_task_handler('disks.parallel_test', DiskParallelTestTask)
 
     plugin.register_event_type('disks.changed')
 
