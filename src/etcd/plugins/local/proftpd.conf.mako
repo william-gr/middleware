@@ -140,7 +140,7 @@ PassivePorts ${config['passive_ports_min']} ${config['passive_ports_max']}
 <Global>
   RequireValidShell off
 % if config['chroot']:
-"  DefaultRoot ~ !wheel
+  DefaultRoot ~ !wheel
 % endif
 % if config['root_login']:
   RootLogin on
