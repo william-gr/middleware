@@ -178,7 +178,12 @@ class QueryList(list):
 
         if isinstance(key, basestring):
             if key.isdigit():
-                super(QueryList, self).__setitem__(int(key), value)
+                index = int(key)
+                if index >= len(self):
+                    self.extend([None] * (index - len(self) + 1))
+
+                super(QueryList, self).__setitem__(index, value)
+                return
 
             left, right = partition(key)
             self[left][right] = value
@@ -190,6 +195,27 @@ class QueryList(list):
             key = int(key)
 
         return self[key] if len(self) > key else d
+
+    def set(self, key, value):
+        value = wrap(value)
+
+        if isinstance(key, basestring):
+            if key.isdigit():
+                self[key] = value
+                return
+
+            left, right = partition(key)
+
+            if left not in self:
+                ll, _ = partition(right)
+                if ll.isdigit():
+                    self[left] = []
+                else:
+                    self[left] = {}
+
+            self[left].set(right, value)
+
+        super(QueryList, self).__setitem__(key, value)
 
     def query(self, *rules, **params):
         single = params.pop('single', False)
@@ -316,6 +342,10 @@ class QueryDict(dict):
             return super(QueryDict, self).__setitem__(left, value)
 
         if left not in self:
-            self[left] = {}
+            ll, _ = partition(right)
+            if ll.isdigit():
+                self[left] = []
+            else:
+                self[left] = {}
 
         self[left].set(right, value)
