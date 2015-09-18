@@ -77,9 +77,12 @@ class FTPConfigureTask(Task):
             )
 
         if node['tls'] is True and not node['tls_ssl_certificate']:
-            errors.append(
-                ('tls_ssl_certificate', errno.EINVAL, 'TLS specified without certificate.')
-            )
+            errors.append(('tls_ssl_certificate', errno.EINVAL, 'TLS specified without certificate.'))
+
+        if node['tls_ssl_certificate']:
+            cert = self.dispatcher.call_sync('crypto.certificates.query', [('id', '=', node['tls_ssl_certificate'])])
+            if not cert:
+                errors.append(('tls_ssl_certificate', errno.EINVAL, 'SSL Certificate not found.'))
 
         if errors:
             raise ValidationException(errors)
@@ -103,7 +106,7 @@ class FTPConfigureTask(Task):
 
 
 def _depends():
-    return ['ServiceManagePlugin']
+    return ['CryptoPlugin', 'ServiceManagePlugin']
 
 
 def _init(dispatcher, plugin):
