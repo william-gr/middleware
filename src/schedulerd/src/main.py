@@ -106,6 +106,8 @@ class ManagementService(RpcService):
         else:
             task_id = task['id']
 
+        self.context.logger.warning('Adding new job with ID {0}'.format(task_id))
+
         self.context.scheduler.add_job(
             job,
             trigger='cron',
@@ -119,11 +121,13 @@ class ManagementService(RpcService):
 
     @private
     def delete(self, job_id):
+        self.context.logger.warning('Deleting job with ID {0}'.format(job_id))
         self.context.scheduler.remove_job(job_id)
 
     @private
     def update(self, job_id, updated_params):
         job = self.context.scheduler.get_job(job_id)
+        self.context.logger.warning('Updating job with ID {0}'.format(job_id))
 
         if 'name' in updated_params or 'args' in updated_params:
             name = updated_params.get('name', job.args[0])
@@ -186,6 +190,7 @@ class Context(object):
     def register_schemas(self):
         self.client.register_schema('calendar-task', {
             'type': 'object',
+            'additionalProperties': False,
             'properties': {
                 'id': {'type': 'string'},
                 'name': {'type': 'string'},
@@ -194,18 +199,22 @@ class Context(object):
                 'enabled': {'type': 'boolean'},
                 'status': {'$ref': 'calendar-task-status'},
                 'schedule': {
-                    'coalesce': {'type': ['boolean', 'null']},
-                    'year': {'type': ['string', 'null']},
-                    'month': {'type': ['string', 'null']},
-                    'day': {'type': ['string', 'null']},
-                    'week': {'type': ['string', 'null']},
-                    'day_of_week': {
-                        'type': ['string', 'null'],
-                        'enum': [None, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-                    },
-                    'hour': {'type': ['string', 'null']},
-                    'minute': {'type': ['string', 'null']},
-                    'second': {'type': ['string', 'null']}
+                    'type': 'object',
+                    'additionalProperties': False,
+                    'properties': {
+                        'coalesce': {'type': ['boolean', 'null']},
+                        'year': {'type': ['string', 'null']},
+                        'month': {'type': ['string', 'null']},
+                        'day': {'type': ['string', 'null']},
+                        'week': {'type': ['string', 'null']},
+                        'day_of_week': {
+                            'type': ['string', 'null'],
+                            'enum': [None, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+                        },
+                        'hour': {'type': ['string', 'null']},
+                        'minute': {'type': ['string', 'null']},
+                        'second': {'type': ['string', 'null']}
+                    }
                 }
             }
         })
