@@ -73,6 +73,10 @@ def parse_changelog(changelog, start='', end=''):
             changelog.append(changes.strip('\n'))
         if seq == end:
             break
+    try:
+        changelog = changelog[0].split('\n')
+    except:
+        changelog = ['']
     return changelog
 
 
@@ -747,7 +751,10 @@ def _init(dispatcher, plugin):
         'properties': {
             'notes': {'type': 'object'},
             'notice': {'type': 'string'},
-            'changelog': {'type': 'string'},
+            'changelog': {
+                'type': 'array',
+                'items': {'type': 'string'},
+            },
             'operations': {'$ref': 'update-ops'},
         }
     })
