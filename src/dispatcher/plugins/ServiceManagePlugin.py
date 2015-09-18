@@ -26,6 +26,8 @@
 #####################################################################
 import os
 import errno
+import gevent
+import gevent.pool
 import logging
 
 from task import Task, Provider, TaskException, VerifyException, query
@@ -90,7 +92,27 @@ class ServiceInfoProvider(Provider):
             entry['builtin'] = i['builtin']
             return entry
 
-        return self.datastore.query('service_definitions', *(filter or []), callback=extend, **(params or {}))
+        # Running extend sequentially might take too long due to the number of services
+        # and `service ${name} onestatus`. To workaround that run it in parallel using gevent
+        jobs = {
+            gevent.spawn(extend, entry): entry
+            for entry in self.datastore.query('service_definitions', *(filter or []), **(params or {}))
+        }
+        gevent.joinall(jobs.keys(), timeout=5)
+        group = gevent.pool.Group()
+
+        def result(greenlet):
+            if greenlet.value is None:
+                entry = jobs.get(greenlet)
+                return {
+                    'name': entry['name'],
+                    'state': 'UNKNOWN',
+                    'builtin': entry['builtin'],
+                }
+            else:
+                return greenlet.value
+
+        return group.map(result, jobs)
 
     @accepts(str)
     @returns(h.object())
