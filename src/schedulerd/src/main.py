@@ -40,6 +40,7 @@ from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.rpc import RpcService, RpcException, private
 from dispatcher.client import Client, ClientError
+from fnutils import exclude
 from fnutils.query import wrap
 
 
@@ -85,6 +86,7 @@ class ManagementService(RpcService):
                 'description': job.name,
                 'name': job.args[0],
                 'args': job.args[1:],
+                'enabled': job.next_run_time is not None,
                 'status': {
                     'next_run_time': job.next_run_time,
                     'last_run_status': last_task['state'] if last_task else None,
@@ -120,12 +122,31 @@ class ManagementService(RpcService):
         self.context.scheduler.remove_job(job_id)
 
     @private
-    def update(self, job_id, task):
-        self.context.scheduler.modify_job(
-            job_id,
-            args=[task['name']] + task['args'],
-            **task['schedule']
-        )
+    def update(self, job_id, updated_params):
+        job = self.context.scheduler.get_job(job_id)
+
+        if 'name' in updated_params or 'args' in updated_params:
+            name = updated_params.get('name', job.args[0])
+            args = updated_params.get('args', job.args[1:])
+            self.context.scheduler.modify_job(job_id, args=[[name] + args])
+
+        if 'enabled' in updated_params:
+            if updated_params['enabled']:
+                self.context.scheduler.resume_job(job_id)
+            else:
+                self.context.scheduler.pause_job(job_id)
+
+        if 'schedule' in updated_params:
+            if 'coalesce' in updated_params['schedule']:
+                self.context.scheduler.modify_job(
+                    job_id,
+                    coalesce=updated_params['schedule']['coalesce'])
+
+            self.context.scheduler.reschedule_job(
+                job_id,
+                trigger='cron',
+                **exclude(updated_params['schedule'], 'coalesce')
+            )
 
 
 class Context(object):
@@ -170,6 +191,7 @@ class Context(object):
                 'name': {'type': 'string'},
                 'args': {'type': 'array'},
                 'description': {'type': 'string'},
+                'enabled': {'type': 'boolean'},
                 'status': {'$ref': 'calendar-task-status'},
                 'schedule': {
                     'coalesce': {'type': ['boolean', 'null']},
