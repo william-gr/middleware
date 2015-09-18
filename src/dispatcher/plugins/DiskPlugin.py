@@ -76,6 +76,9 @@ class DiskProvider(Provider):
     @query('disk')
     def query(self, filter=None, params=None):
         def extend(disk):
+            if disk.get('delete_at'):
+                return None
+
             disk['online'] = self.is_online(disk['path'])
             disk['status'] = diskinfo_cache.get(disk['id'])
 
@@ -908,7 +911,9 @@ def _init(dispatcher, plugin):
 
     # Start with marking all disks as unavailable
     for i in dispatcher.datastore.query('disks'):
-        i.setdefault('delete_at', datetime.now() + EXPIRE_TIMEOUT)
+        if not i.get('delete_at'):
+            i['delete_at'] = datetime.now() + EXPIRE_TIMEOUT
+
         dispatcher.datastore.update('disks', i['id'], i)
 
     # Destroy all existing multipaths
