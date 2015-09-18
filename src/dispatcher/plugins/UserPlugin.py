@@ -82,6 +82,10 @@ class UserProvider(Provider):
                 ('active', '=', True)
             ])
 
+            # If there's no 'attributes' property, put empty dict in that place
+            if 'attributes' not in user:
+                user['attributes'] = {}
+
             # If there's no 'groups' property, put empty array in that place
             if 'groups' not in user:
                 user['groups'] = []
