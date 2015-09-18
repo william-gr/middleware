@@ -238,7 +238,7 @@ class UserCreateTask(Task):
                 os.makedirs(user['home'])
             os.chown(user['home'], uid, user['group'])
             os.chmod(user['home'], 0755)
-        elif user['home'] is not None:
+        elif not user['builtin'] and user['home'] is not None:
             raise TaskException(
                 errno.ENOENT,
                 "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
@@ -358,7 +358,7 @@ class UserUpdateTask(Task):
                 os.makedirs(user['home'])
                 os.chown(user['home'], uid, user['group'])
                 os.chmod(user['home'], 0755)
-        elif user['home'] is not None:
+        elif not user['builtin'] and user['home'] is not None:
             raise TaskException(
                 errno.ENOENT,
                 "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
