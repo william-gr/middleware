@@ -77,10 +77,10 @@ class DiskProvider(Provider):
     def query(self, filter=None, params=None):
         def extend(disk):
             if disk.get('delete_at'):
-                return None
-
-            disk['online'] = self.is_online(disk['path'])
-            disk['status'] = diskinfo_cache.get(disk['id'])
+                disk['online'] = False
+            else:
+                disk['online'] = self.is_online(disk['path'])
+                disk['status'] = diskinfo_cache.get(disk['id'])
 
             return disk
 
