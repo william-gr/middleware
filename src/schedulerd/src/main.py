@@ -128,7 +128,7 @@ class ManagementService(RpcService):
         if 'name' in updated_params or 'args' in updated_params:
             name = updated_params.get('name', job.args[0])
             args = updated_params.get('args', job.args[1:])
-            self.context.scheduler.modify_job(job_id, args=[[name] + args])
+            self.context.scheduler.modify_job(job_id, args=[name] + args)
 
         if 'enabled' in updated_params:
             if updated_params['enabled']:
