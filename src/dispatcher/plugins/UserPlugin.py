@@ -31,8 +31,7 @@ import os
 import random
 import string
 from task import Provider, Task, TaskException, ValidationException, VerifyException, query
-from dispatcher.rpc import RpcException, description, accepts, returns
-from dispatcher.rpc import SchemaHelper as h
+from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
 from lib.system import SubprocessException, system
 
@@ -59,8 +58,10 @@ def check_unixname(name):
         if char in ' ,\t:+&#%\^()!@~\*?<>=|\\/"' and char not in invalids:
             invalids.append(char)
     if invalids:
-        errors.append(
-            (errno.EINVAL, 'Your name contains invalid characters ({0}).'.format(''.join(invalids))))
+        errors.append((
+            errno.EINVAL,
+            'Your name contains invalid characters ({0}).'.format(''.join(invalids))
+            ))
 
     return errors
 
@@ -217,11 +218,6 @@ class UserCreateTask(Task):
                 user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
 
-            if user['home'].startswith('/mnt') and not os.path.exists(user['home']):
-                os.makedirs(user['home'])
-                os.chown(user['home'], user['id'], user['group'])
-                os.chmod(user['home'], 0755)
-
         except SubprocessException as e:
             raise TaskException(
                 errno.ENXIO,
@@ -229,7 +225,25 @@ class UserCreateTask(Task):
         except DuplicateKeyException, e:
             raise TaskException(errno.EBADMSG, 'Cannot add user: {0}'.format(str(e)))
         except RpcException, e:
-            raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
+            raise TaskException(
+                errno.ENXIO, 'Cannot regenerate users file, etcd service is offline'
+                )
+        volumes_root = self.dispatcher.call_sync('volumes.get_volumes_root')
+        if user['home'].startswith(volumes_root):
+            if not os.path.exists(user['home']):
+                try:
+                    self.dispatcher.call_sync('volumes.decode_path', user['home'])
+                except RpcException as err:
+                    raise TaskException(err.code, err.message)
+                os.makedirs(user['home'])
+            os.chown(user['home'], uid, user['group'])
+            os.chmod(user['home'], 0755)
+        elif user['home'] is not None:
+            raise TaskException(
+                errno.ENOENT,
+                "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
+                " Use '{0}' instead as the mountpoint".format(volumes_root)
+                )
 
         self.dispatcher.dispatch_event('users.changed', {
             'operation': 'create',
@@ -322,15 +336,6 @@ class UserUpdateTask(Task):
                 user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
 
-            if user['home'].startswith('/mnt') and not os.path.exists(user['home']):
-                if (home_before != '/nonexistent' and home_before != user['home']
-                   and os.path.exists(home_before)):
-                    system('mv', home_before, user['home'])
-                else:
-                    os.makedirs(user['home'])
-                    os.chown(user['home'], user['id'], user['group'])
-                    os.chmod(user['home'], 0755)
-
         except SubprocessException as e:
             raise TaskException(
                 errno.ENXIO,
@@ -338,7 +343,27 @@ class UserUpdateTask(Task):
         except DatastoreException, e:
             raise TaskException(errno.EBADMSG, 'Cannot update user: {0}'.format(str(e)))
         except RpcException, e:
-            raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
+            raise TaskException(errno.ENXIO, 'Cannot regenerate users file, etcd service is offline')
+
+        volumes_root = self.dispatcher.call_sync('volumes.get_volumes_root')
+        if user['home'].startswith(volumes_root) and not os.path.exists(user['home']):
+            try:
+                self.dispatcher.call_sync('volumes.decode_path', user['home'])
+            except RpcException as err:
+                raise TaskException(err.code, err.message)
+            if (home_before != '/nonexistent' and home_before != user['home']
+               and os.path.exists(home_before)):
+                system('mv', home_before, user['home'])
+            else:
+                os.makedirs(user['home'])
+                os.chown(user['home'], uid, user['group'])
+                os.chmod(user['home'], 0755)
+        elif user['home'] is not None:
+            raise TaskException(
+                errno.ENOENT,
+                "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
+                " Use '{0}' instead as the mountpoint".format(volumes_root)
+                )
 
         self.dispatcher.dispatch_event('users.changed', {
             'operation': 'update',

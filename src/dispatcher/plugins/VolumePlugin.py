@@ -35,8 +35,9 @@ import bsd.kld
 from lib.system import system, SubprocessException
 from lib.freebsd import fstyp
 from task import Provider, Task, ProgressTask, TaskException, VerifyException, query
-from dispatcher.rpc import RpcException, description, accepts, returns
-from dispatcher.rpc import SchemaHelper as h
+from dispatcher.rpc import (
+    RpcException, description, accepts, returns, private, SchemaHelper as h
+    )
 from utils import first_or_default
 from datastore import DuplicateKeyException
 from fnutils import include
@@ -44,7 +45,7 @@ from fnutils.query import wrap
 from fnutils.copy import count_files, copytree
 
 
-VOLUMES_ROOT = '/volumes'
+VOLUMES_ROOT = '/mnt'
 DEFAULT_ACLS = [
     {'text': 'owner@:rwxpDdaARWcCos:fd:allow'},
     {'text': 'group@:rwxpDdaARWcCos:fd:allow'},
@@ -190,7 +191,7 @@ class VolumeProvider(Provider):
     @accepts(str, str)
     @returns(str)
     def get_dataset_path(self, volname, dsname):
-        return os.path.join('/volumes', dsname)
+        return os.path.join(VOLUMES_ROOT, dsname)
 
     @description("Extracts volume name, dataset name and relative path from full path")
     @accepts(str)
@@ -199,13 +200,15 @@ class VolumeProvider(Provider):
         path = os.path.normpath(path)[1:]
         tokens = path.split(os.sep)
 
-        if tokens[0] != 'volumes':
+        if tokens[0] != VOLUMES_ROOT[1:]:
             raise RpcException(errno.EINVAL, 'Invalid path')
 
         volname = tokens[1]
         config = self.get_config(volname)
-        datasets = map(lambda d: d['name'],
-                       flatten_datasets(config['root_dataset']))
+        if config:
+            datasets = map(lambda d: d['name'], flatten_datasets(config['root_dataset']))
+        else:
+            raise RpcException(errno.ENOENT, "Volume '{0}' does not exist".format(volname))
         n = len(tokens)
 
         while n > 0:
@@ -287,6 +290,12 @@ class VolumeProvider(Provider):
             return self.dispatcher.call_sync('zfs.pool.get_capabilities')
 
         raise RpcException(errno.EINVAL, 'Invalid volume type')
+
+    @accepts()
+    @returns(str)
+    @private
+    def get_volumes_root(self):
+        return VOLUMES_ROOT
 
 
 class SnapshotProvider(Provider):
@@ -482,7 +491,7 @@ class VolumeUpdateTask(Task):
 
             # Rename mountpoint
             self.join_subtasks(self.run_subtask('zfs.configure', new_name, new_name, {
-                'mountpoint': {'value': '/volumes/{0}'.format(new_name)}
+                'mountpoint': {'value': '{0}/{1}'.format(VOLUMES_ROOT, new_name)}
             }))
 
             volume['name'] = new_name
