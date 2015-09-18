@@ -22,6 +22,9 @@ etc_start()
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"crypto"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"console"'
 
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"afp"'
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"dyndns"'
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"ftp"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"samba"'
 	#killall -ALRM sh
 }
