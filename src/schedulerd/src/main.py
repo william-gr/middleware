@@ -106,8 +106,7 @@ class ManagementService(RpcService):
         else:
             task_id = task['id']
 
-        self.context.logger.warning('Adding new job with ID {0}'.format(task_id))
-
+        self.context.logger.info('Adding new job with ID {0}'.format(task_id))
         self.context.scheduler.add_job(
             job,
             trigger='cron',
@@ -121,13 +120,13 @@ class ManagementService(RpcService):
 
     @private
     def delete(self, job_id):
-        self.context.logger.warning('Deleting job with ID {0}'.format(job_id))
+        self.context.logger.info('Deleting job with ID {0}'.format(job_id))
         self.context.scheduler.remove_job(job_id)
 
     @private
     def update(self, job_id, updated_params):
         job = self.context.scheduler.get_job(job_id)
-        self.context.logger.warning('Updating job with ID {0}'.format(job_id))
+        self.context.logger.info('Updating job with ID {0}'.format(job_id))
 
         if 'name' in updated_params or 'args' in updated_params:
             name = updated_params.get('name', job.args[0])
@@ -151,6 +150,16 @@ class ManagementService(RpcService):
                 trigger='cron',
                 **exclude(updated_params['schedule'], 'coalesce')
             )
+
+    @private
+    def run(self, job_id):
+        self.context.logger.info('Running job {0} manualy'.format(job_id))
+        job = self.context.scheduler.get_job(job_id)
+        self.context.scheduler.add_job(
+            id=job_id + '-temp',
+            args=job.args,
+            kwargs=job.kwargs,
+        )
 
 
 class Context(object):

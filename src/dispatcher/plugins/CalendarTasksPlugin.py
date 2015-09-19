@@ -25,9 +25,11 @@
 #
 #####################################################################
 
+import errno
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from task import Provider, Task, VerifyException, TaskException, query
+from lib.system import system, SubprocessException
 
 
 class CalendarTasksProvider(Provider):
@@ -67,12 +69,12 @@ class CreateCalendarTask(Task):
     )
 )
 class UpdateCalendarTask(Task):
-    def verify(self, id, task):
+    def verify(self, id, updated_params):
         return ['system']
 
-    def run(self, id, task):
+    def run(self, id, updated_params):
         try:
-            self.dispatcher.call_sync('scheduler.management.update', id, task)
+            self.dispatcher.call_sync('scheduler.management.update', id, updated_params)
         except RpcException:
             raise
 
@@ -80,7 +82,6 @@ class UpdateCalendarTask(Task):
             'operation': 'update',
             'ids': [id]
         })
-
 
 
 @accepts(str)
@@ -100,9 +101,37 @@ class DeleteCalendarTask(Task):
         })
 
 
+@accepts(str)
+class RunCalendarTask(Task):
+    def verify(self, id):
+        return ['system']
+
+    def run(self, id):
+        try:
+            self.dispatcher.call_sync('scheduler.management.run', id)
+        except RpcException:
+            raise
+
+
+@accepts(str, str)
+class CommandTask(Task):
+    def verify(self, user, command):
+        return ['system']
+
+    def run(self, user, command):
+        try:
+            out, err = system('/usr/bin/su', '-m', user, '-c', '/bin/sh', '-c', command)
+        except SubprocessException, err:
+            raise TaskException(errno.EFAULT, 'Command failed')
+
+        print err.out
+
+
 def _init(dispatcher, plugin):
     plugin.register_provider('calendar_tasks', CalendarTasksProvider)
     plugin.register_task_handler('calendar_tasks.create', CreateCalendarTask)
     plugin.register_task_handler('calendar_tasks.update', UpdateCalendarTask)
     plugin.register_task_handler('calendar_tasks.delete', DeleteCalendarTask)
+    plugin.register_task_handler('calendar_tasks.run', RunCalendarTask)
+    plugin.register_task_handler('calendar_tasks.command', CommandTask)
     plugin.register_event_type('calendar_tasks.changed')
