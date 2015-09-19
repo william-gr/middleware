@@ -138,7 +138,7 @@ def wrap(obj):
     if isinstance(obj, dict):
         return QueryDict(obj)
 
-    if isinstance(obj, list):
+    if isinstance(obj, (list, tuple)):
         return QueryList(obj)
 
     return obj
