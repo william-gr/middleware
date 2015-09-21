@@ -81,6 +81,10 @@ winbindd_enable="YES"
 inadynmt_enable="YES"
 % endif
 
+% if config.get("service.ipfs.path"):
+exp_ipfs_path="${config.get("service.ipfs.path")}"
+% endif
+
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
 % endif
