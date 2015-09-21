@@ -685,6 +685,7 @@
       "service.dyndns.force_update_period": null,
       "service.dyndns.auxiliary": null,
       "service.ipfs.enable": false,
+      "service.ipfs.path": null,
       "service.nfs.enable": false,
       "service.devd.enable": true,
       "service.syslog.enable": true,
