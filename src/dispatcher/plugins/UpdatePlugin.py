@@ -351,7 +351,10 @@ class UpdateProvider(Provider):
             'operations': updateOperations,
         }
 
-    @returns(h.array(h.ref('update-train')))
+    @returns(h.any_of(
+        h.array(h.ref('update-train')),
+        None,
+    ))
     def trains(self):
         conf = Configuration.Configuration()
         conf.LoadTrainsConfig()
