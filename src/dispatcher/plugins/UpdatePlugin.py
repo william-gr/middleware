@@ -355,8 +355,11 @@ class UpdateProvider(Provider):
     def trains(self):
         conf = Configuration.Configuration()
         conf.LoadTrainsConfig()
-        trains = conf.AvailableTrains() or {}
+        trains = conf.AvailableTrains()
 
+        if trains is None:
+            logger.debug('The AvailableTrains call returned None. Check your network connection')
+            return None
         seltrain = self.dispatcher.configstore.get('update.train')
 
         data = []
