@@ -1049,8 +1049,7 @@
       "77C47B78-9BF3-4BA7-AA76-8CB99A8DA4A3": {
         "rcng": {
           "rc-scripts": [
-            "nfsd",
-            "mountd"
+            "nfsd"
           ]
         },
         "builtin": false,

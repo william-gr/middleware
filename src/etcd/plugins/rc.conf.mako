@@ -1,6 +1,9 @@
 <%
     adv_config = dispatcher.call_sync('system.advanced.get_config')
     gen_config = dispatcher.call_sync('system.general.get_config')
+
+    nfs_config = dispatcher.call_sync('service.nfs.get_config')
+    nfs_ips = ' '.join(['-h {0}'.format(ip) for ip in (nfs_config['bind_addresses'] or [])])
 %>\
 hostname="${gen_config["hostname"]}"
 local_startup="/usr/local/etc/rc.d"
@@ -83,6 +86,49 @@ inadynmt_enable="YES"
 
 % if config.get("service.ipfs.path"):
 exp_ipfs_path="${config.get("service.ipfs.path")}"
+% endif
+
+% if nfs_config['enable']:
+%  if nfs_config['v4']:
+nfsv4_server_enable="YES"
+%  else:
+nfsv4_server_enable="NO"
+%  endif
+
+nfs_server_enable="YES"
+rpc_lockd_enable="YES"
+rpc_statd_enable="YES"
+mountd_enable="YES"
+nfsd_enable="YES"
+nfsuserd_enable="YES"
+gssd_enable="YES"
+
+nfs_server_flags="-t -n ${nfs_config['servers']} ${nfs_ips}\
+%  if nfs_config['udp']:
+ -u\
+%  endif
+"
+mountd_flags="-l -rS ${nfs_ips}\
+%  if nfs_config['nonroot']:
+ -n\
+%  endif
+%  if nfs_config['mountd_port']:
+ -p ${nfs_config['mountd_port']}\
+%  endif
+"
+rpc_statd_flags="${nfs_ips}\
+%  if nfs_config['rpcstatd_port']:
+ -p ${nfs_config['rpcstatd_port']}\
+%  endif
+"
+rpc_lockd_flags="${nfs_ips}\
+%  if nfs_config['rpclockd_port']:
+ -p ${nfs_config['rpclockd_port']}\
+%  endif
+"
+%  if nfs_ips:
+rpcbind_flags="${nfs_ips}"
+%  endif
 % endif
 
 % if gen_config['console_keymap']:
