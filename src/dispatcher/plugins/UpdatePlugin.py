@@ -651,7 +651,9 @@ class UpdateApplyTask(ProgressTask):
                 cache_dir = '/var/tmp/update'
         # Note: for now we force reboots always, TODO: Fix in M3-M4
         try:
-            ApplyUpdate(cache_dir, install_handler=handler.install_handler, force_reboot=True)
+            result = ApplyUpdate(
+                cache_dir, install_handler=handler.install_handler, force_reboot=True
+                )
         except ManifestInvalidSignature as e:
             logger.debug('UpdateApplyTask Error: Cached manifest has invalid signature: %s', e)
             raise TaskException(errno.EINVAL, 'Cached manifest has invalid signature: {0}'.format(str(e)))
@@ -665,6 +667,8 @@ class UpdateApplyTask(ProgressTask):
             raise TaskException(
                 errno.EAGAIN, 'Got exception {0} while trying to Apply Updates'.format(str(e))
             )
+        if result is None:
+            raise TaskException(errno.ENOENT, 'No downloaded Updates available to apply.')
         handler.finished = True
         handler.emit_update_details()
         self.message = "Updates Finished Installing Successfully"
