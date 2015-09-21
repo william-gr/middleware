@@ -63,6 +63,7 @@ class NFSConfigureTask(Task):
         try:
             node = ConfigNode('service.nfs', self.configstore)
             node.update(nfs)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
             self.dispatcher.call_sync('services.reload', 'nfs')
             self.dispatcher.dispatch_event('service.nfs.changed', {
