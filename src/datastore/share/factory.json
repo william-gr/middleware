@@ -730,6 +730,9 @@
       "service.nfs.mountd_port": null,
       "service.nfs.rpcstatd_port": null,
       "service.nfs.rpclockd_port": null,
+      "service.ryncd.enable": false,
+      "service.ryncd.port": 873,
+      "service.ryncd.auxiliary": null,
       "service.riak.enable": true,
       "service.riak_cs.enable": true,
       "service.stanchion.enable": true,
@@ -1132,6 +1135,13 @@
         },
         "builtin": false,
         "name": "ipfs"
+      },
+      "FD2C3DCD-6959-4DAB-8750-65F2A0221FE6": {
+        "rcng": {
+          "rc-scripts": "rsyncd"
+        },
+        "builtin": false,
+        "name": "rsyncd"
       }
     },
     "metadata": {
