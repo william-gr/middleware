@@ -26,9 +26,10 @@
 import errno
 import logging
 
+from datastore import DatastoreException
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
-from task import Task, Provider, TaskException, ValidationException
+from task import Task, Provider, TaskException, ValidationException, query
 
 logger = logging.getLogger('RsyncdPlugin')
 
@@ -39,6 +40,14 @@ class RsyncdProvider(Provider):
     @returns(h.ref('service-rsyncd'))
     def get_config(self):
         return ConfigNode('service.rsyncd', self.configstore)
+
+
+@description("Provides access to rsyncd modules database")
+class RsyncdModuleProvider(Provider):
+    @description("Lists rsyncd modules present in the system")
+    @query('rsyncd-module')
+    def query(self, filter=None, params=None):
+        return self.datastore.query('rsyncd-module', *(filter or []), **(params or {}))
 
 
 @description('Configure Rsyncd service')
@@ -74,11 +83,48 @@ class RsyncdConfigureTask(Task):
             )
 
 
+@description("Create a rsync module in the system")
+@accepts(h.all_of(
+    h.ref('rsyncd-module'),
+    h.required('name', 'path'),
+))
+class RsyncdModuleCreateTask(Task):
+    def describe(self, rsyncmod):
+        return 'Adding rsync module'
+
+    def verify(self, rsyncmod):
+
+        errors = []
+        if errors:
+            raise ValidationException(errors)
+
+        return ['system']
+
+    def run(self, rsyncmod):
+
+        try:
+            uuid = self.datastore.insert('rsyncd-module', rsyncmod)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'rsyncd')
+            self.dispatcher.call_sync('services.restart', 'rsyncd')
+        except DatastoreException as e:
+            raise TaskException(errno.EBADMSG, 'Cannot add rsync module: {0}'.format(str(e)))
+        except RpcException as e:
+            raise TaskException(errno.ENXIO, 'Cannot regenerate rsyncd {0}'.format(str(e)))
+        self.dispatcher.dispatch_event('service.rsyncd.module.changed', {
+            'operation': 'create',
+            'ids': [uuid]
+        })
+        return uuid
+
+
 def _depends():
     return ['ServiceManagePlugin']
 
 
 def _init(dispatcher, plugin):
+
+    # Make sure collections are present
+    dispatcher.require_collection('rsyncd-module')
 
     # Register schemas
     plugin.register_schema_definition('service-rsyncd', {
@@ -89,9 +135,31 @@ def _init(dispatcher, plugin):
         },
         'additionalProperties': False,
     })
+    plugin.register_schema_definition('rsyncd-module', {
+        'type': 'object',
+        'properties': {
+            'name': {'type': 'string'},
+            'description': {'type': 'string'},
+            'path': {'type': 'string'},
+            'mode': {'type': 'string', 'enum': [
+                'READONLY',
+                'WRITEONLY',
+                'READWRITE',
+            ]},
+            'max_connections': {'type': 'integer'},
+            'user': {'type': 'string'},
+            'group': {'type': 'string'},
+            'hosts_allow': {'type': 'string'},
+            'hosts_deny': {'type': 'string'},
+            'auxiliary': {'type': 'string'},
+        },
+        'additionalProperties': False,
+    })
 
     # Register providers
     plugin.register_provider("service.rsyncd", RsyncdProvider)
+    plugin.register_provider("service.rsyncd.module", RsyncdModuleProvider)
 
     # Register tasks
     plugin.register_task_handler("service.rsyncd.configure", RsyncdConfigureTask)
+    plugin.register_task_handler("service.rsyncd.module.create", RsyncdModuleCreateTask)
