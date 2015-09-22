@@ -116,7 +116,7 @@ class DeleteCIFSShareTask(Task):
         except smbconf.SambaConfigException:
             raise TaskException(errno.EFAULT, 'Cannot access samba registry')
 
-        self.dispatcher.dispatch_event('shares.CIFS.changed', {
+        self.dispatcher.dispatch_event('shares.cifs.changed', {
             'operation': 'delete',
             'ids': [name]
         })
@@ -164,7 +164,7 @@ def _depends():
 def _metadata():
     return {
         'type': 'sharing',
-        'method': 'CIFS'
+        'method': 'cifs'
     }
 
 
@@ -199,3 +199,12 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.cifs.update", UpdateCIFSShareTask)
     plugin.register_task_handler("share.cifs.delete", DeleteCIFSShareTask)
     plugin.register_provider("shares.cifs", CIFSSharesProvider)
+
+    # Sync samba registry with our database
+    smb_conf = smbconf.SambaConfig('registry')
+    smb_conf.shares.clear()
+
+    for s in dispatcher.datastore.query('shares', ('type', '=', 'cifs')):
+        smb_share = smbconf.SambaShare()
+        convert_share(smb_share, s['target'], s['properties'])
+        smb_conf.shares[s['id']] = smb_share

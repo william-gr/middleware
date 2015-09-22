@@ -52,7 +52,7 @@ class CIFSProvider(Provider):
 @description('Configure CIFS service')
 @accepts(h.ref('service-cifs'))
 class CIFSConfigureTask(Task):
-    def describe(self, share):
+    def describe(self, cifs):
         return 'Configuring CIFS service'
 
     def verify(self, cifs):
