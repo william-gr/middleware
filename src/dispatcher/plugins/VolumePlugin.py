@@ -884,7 +884,6 @@ def _init(dispatcher, plugin):
                         dispatcher.call_task_sync('zfs.pool.export', pool['name'])
                         dispatcher.call_task_sync('zfs.pool.import', pool['guid'], pool['name'])
 
-
         dispatcher.dispatch_event('volumes.changed', {
             'operation': args['operation'],
             'ids': ids

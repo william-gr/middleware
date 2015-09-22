@@ -125,10 +125,10 @@ def _init(dispatcher, plugin):
         'properties': {
             'alldirs': {'type': 'boolean'},
             'read-only': {'type': 'boolean'},
-            'maproot-user': {'type': 'string'},
-            'maproot-group': {'type': 'string'},
-            'mapall-user': {'type': 'string'},
-            'mapall-group': {'type': 'string'},
+            'maproot_user': {'type': 'string'},
+            'maproot_group': {'type': 'string'},
+            'mapall_user': {'type': 'string'},
+            'mapall_group': {'type': 'string'},
             'hosts': {
                 'type': 'array',
                 'items': {'type': 'string'}

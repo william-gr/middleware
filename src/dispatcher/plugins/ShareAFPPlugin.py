@@ -164,7 +164,7 @@ def _init(dispatcher, plugin):
             'hosts_deny': {
                 'type': ['array', 'null'],
                 'items': {'type': 'string'}
-            },
+            }
         }
     })
 
