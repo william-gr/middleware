@@ -268,7 +268,7 @@ class UpdateHandler(object):
 def generate_update_cache(dispatcher, cache_dir=None):
     if cache_dir is None:
         try:
-            cache_dir = dispatcher.call_sync('system-dataset.request_directory', 'update')
+            cache_dir = dispatcher.call_sync('system_dataset.request_directory', 'update')
         except RpcException:
             cache_dir = '/var/tmp/update'
             if not os.path.exists(cache_dir):
@@ -409,6 +409,12 @@ class UpdateProvider(Provider):
         for key, value in value_dict.iteritems():
             update_cache.put(key, value)
 
+    @private
+    @accepts(str)
+    @returns(h.any_of(None, str, bool, h.array(str)))
+    def update_cache_getter(self, key):
+        return update_cache.get(key, timeout=1)
+
 
 @description("Set the System Updater Cofiguration Settings")
 @accepts(h.ref('update'))
@@ -452,12 +458,14 @@ class UpdateConfigureTask(Task):
     "and if yes returns information on operations that will be "
     "performed during the update"
 ))
-@accepts()
+@accepts(h.object(properties={
+            'check_now': bool,
+            }))
 class CheckUpdateTask(Task):
     def describe(self):
         return "Checks for Updates and Reports Operations to be performed"
 
-    def verify(self):
+    def verify(self, conditions={}):
         # TODO: Fix this verify's resource allocation as unique task
         block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
@@ -468,11 +476,13 @@ class CheckUpdateTask(Task):
 
         return [update_resource_string]
 
-    def run(self):
+    def run(self, conditions={}):
+        check_now = conditions.get('check_now', True)
+        cache_dir = self.dispatcher.call_sync('update.update_cache_getter', 'cache_dir')
         try:
             check_updates(
                 self.dispatcher, self.configstore,
-                cache_dir=update_cache.get('cache_dir', timeout=1), check_now=True,
+                cache_dir=cache_dir, check_now=check_now,
             )
         except UpdateManifestNotFound:
             raise TaskException(errno.ENETUNREACH, 'Update server could not be reached')
@@ -512,11 +522,11 @@ class DownloadUpdateTask(ProgressTask):
         self.set_progress(0)
         handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
         train = self.configstore.get('update.train')
-        cache_dir = update_cache.get('cache_dir')
+        cache_dir = self.dispatcher.call_sync('update.update_cache_getter', 'cache_dir')
         if cache_dir is None:
             try:
                 cache_dir = self.dispatcher.call_sync(
-                    'system-dataset.request_directory', 'update'
+                    'system_dataset.request_directory', 'update'
                 )
             except RpcException:
                 cache_dir = '/var/tmp/update'
@@ -647,11 +657,11 @@ class UpdateApplyTask(ProgressTask):
         self.message = 'Applying Updates...'
         self.set_progress(0)
         handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
-        cache_dir = update_cache.get('cache_dir')
+        cache_dir = self.dispatcher.call_sync('update.update_cache_getter', 'cache_dir')
         if cache_dir is None:
             try:
                 cache_dir = self.dispatcher.call_sync(
-                    'system-dataset.request_directory', 'update'
+                    'system_dataset.request_directory', 'update'
                 )
             except RpcException:
                 cache_dir = '/var/tmp/update'
