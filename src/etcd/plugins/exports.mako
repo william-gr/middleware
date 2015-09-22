@@ -9,11 +9,11 @@
         if properties.get('alldirs'):
             result.append('-alldirs')
 
-        if properties.get('maproot-user'):
-            result.append('-maproot={0}'.format(properties['maproot-user']))
+        if properties.get('maproot_user'):
+            result.append('-maproot={0}'.format(properties['maproot_user']))
 
-        elif properties.get('mapall-user'):
-            result.append('-mapall={0}'.format(properties['mapall-user']))
+        elif properties.get('mapall_user'):
+            result.append('-mapall={0}'.format(properties['mapall_user']))
 
         for host in properties.get('hosts', []):
             if '/' in host:
