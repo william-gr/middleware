@@ -29,7 +29,7 @@ import logging
 from datastore import DatastoreException
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
-from task import Task, Provider, TaskException, ValidationException, query
+from task import Task, Provider, TaskException, ValidationException, VerifyException, query
 
 logger = logging.getLogger('RsyncdPlugin')
 
@@ -117,6 +117,45 @@ class RsyncdModuleCreateTask(Task):
         return uuid
 
 
+@description("Update a rsync module in the system")
+@accepts(str, h.all_of(
+    h.ref('rsyncd-module'),
+))
+class RsyncdModuleUpdateTask(Task):
+    def describe(self, uuid, updated_fields):
+        return 'Updating rsync module'
+
+    def verify(self, uuid, updated_fields):
+
+        rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
+        if rsyncmod is None:
+            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exists'.format(uuid))
+
+        errors = []
+        if errors:
+            raise ValidationException(errors)
+
+        return ['system']
+
+    def run(self, uuid, updated_fields):
+
+        rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
+        try:
+            rsyncmod.update(updated_fields)
+            self.datastore.update('rsyncd-module', uuid, rsyncmod)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'rsyncd')
+            self.dispatcher.call_sync('services.restart', 'rsyncd')
+        except DatastoreException as e:
+            raise TaskException(errno.EBADMSG, 'Cannot update rsync module: {0}'.format(str(e)))
+        except RpcException as e:
+            raise TaskException(errno.ENXIO, 'Cannot regenerate rsyncd {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('service.rsyncd.module.changed', {
+            'operation': 'update',
+            'ids': [uuid]
+        })
+
+
 def _depends():
     return ['ServiceManagePlugin']
 
@@ -163,3 +202,4 @@ def _init(dispatcher, plugin):
     # Register tasks
     plugin.register_task_handler("service.rsyncd.configure", RsyncdConfigureTask)
     plugin.register_task_handler("service.rsyncd.module.create", RsyncdModuleCreateTask)
+    plugin.register_task_handler("service.rsyncd.module.update", RsyncdModuleUpdateTask)
