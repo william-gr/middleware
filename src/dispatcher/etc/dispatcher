@@ -15,6 +15,7 @@ pidfile="/var/run/dispatcher.pid"
 command="/usr/sbin/daemon"
 start_precmd="prestart"
 start_postcmd="poststart"
+dispatcher_env="GEVENT_RESOLVER=ares"
 
 prestart()
 {
