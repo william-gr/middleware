@@ -887,6 +887,7 @@ def generate_smb4_conf(smb4_conf, role):
     confset1(smb4_conf, "acl check permissions = true")
     confset1(smb4_conf, "dos filemode = yes")
     confset2(smb4_conf, "multicast dns register = %s", "yes" if cifs['zeroconf'] else "no")
+    confset1(smb4_conf, "registry shares = yes")
 
     if not smb4_ldap_enabled():
         confset2(smb4_conf, "domain logons = %s", "yes" if cifs['domain_logons'] else "no")
@@ -946,114 +947,6 @@ def generate_smb4_conf(smb4_conf, role):
 
     for line in (cifs['auxiliary'] or '').split('\n'):
         confset1(smb4_conf, line)
-
-
-def generate_smb4_shares(smb4_shares):
-    try:
-        shares = CIFS_Share.objects.all()
-    except:
-        return
-
-    if len(shares) == 0:
-        return
-
-    for share in shares:
-        if (not share.cifs_home and
-                not os.path.isdir(share.cifs_path.encode('utf8'))):
-            continue
-
-        confset1(smb4_shares, "\n")
-        if share.cifs_home:
-            confset1(smb4_shares, "[homes]", space=0)
-
-            valid_users_path = "%U"
-            valid_users = "%U"
-
-            if activedirectory_enabled():
-                try:
-                    ad = ActiveDirectory.objects.all()[0]
-                    if not ad.ad_use_default_domain:
-                        valid_users_path = "%D/%U"
-                        valid_users = "%D\%U"
-                except:
-                    pass
-
-            confset2(smb4_shares, "valid users = %s", valid_users)
-
-            if share.cifs_path:
-                cifs_homedir_path = (u"%s/%s" %
-                                     (share.cifs_path, valid_users_path))
-                confset2(smb4_shares, "path = %s",
-                         cifs_homedir_path.encode('utf8'))
-            if share.cifs_comment:
-                confset2(smb4_shares,
-                         "comment = %s", share.cifs_comment.encode('utf8'))
-            else:
-                confset1(smb4_shares, "comment = Home Directories")
-        else:
-            confset2(smb4_shares, "[%s]",
-                     share.cifs_name.encode('utf8'), space=0)
-            confset2(smb4_shares, "path = %s", share.cifs_path.encode('utf8'))
-            confset2(smb4_shares, "comment = %s",
-                     share.cifs_comment.encode('utf8'))
-        confset1(smb4_shares, "printable = no")
-        confset1(smb4_shares, "veto files = /.snapshot/.windows/.mac/.zfs/")
-        confset2(smb4_shares, "writeable = %s",
-                 "no" if share.cifs_ro else "yes")
-        confset2(smb4_shares, "browseable = %s",
-                 "yes" if share.cifs_browsable else "no")
-
-        task = None
-        if share.cifs_storage_task:
-            task = share.cifs_storage_task
-
-        vfs_objects = []
-        if task:
-            vfs_objects.append('shadow_copy2')
-        if is_within_zfs(share.cifs_path):
-            vfs_objects.append('zfs_space')
-            vfs_objects.append('zfsacl')
-        vfs_objects.extend(share.cifs_vfsobjects)
-
-        if share.cifs_recyclebin:
-            vfs_objects.append('recycle')
-            confset1(smb4_shares, "recycle:repository = .recycle/%U")
-            confset1(smb4_shares, "recycle:keeptree = yes")
-            confset1(smb4_shares, "recycle:versions = yes")
-            confset1(smb4_shares, "recycle:touch = yes")
-            confset1(smb4_shares, "recycle:directory_mode = 0777")
-            confset1(smb4_shares, "recycle:subdir_mode = 0700")
-
-        if task:
-            confset1(smb4_shares, "shadow:snapdir = .zfs/snapshot")
-            confset1(smb4_shares, "shadow:sort = desc")
-            confset1(smb4_shares, "shadow:localtime = yes")
-            confset1(smb4_shares,
-                     "shadow:format = auto-%%Y%%m%%d.%%H%%M-%s%s" %
-                     (task.task_ret_count, task.task_ret_unit[0]))
-            confset1(smb4_shares, "shadow:snapdirseverywhere = yes")
-
-        if vfs_objects:
-            confset2(smb4_shares,
-                     "vfs objects = %s", ' '.join(vfs_objects).encode('utf8'))
-
-        confset2(smb4_shares, "hide dot files = %s",
-                 "no" if share.cifs_showhiddenfiles else "yes")
-        confset2(smb4_shares, "hosts allow = %s", share.cifs_hostsallow)
-        confset2(smb4_shares, "hosts deny = %s", share.cifs_hostsdeny)
-        confset2(smb4_shares, "guest ok = %s",
-                 "yes" if share.cifs_guestok else "no")
-
-        confset2(smb4_shares, "guest only = %s",
-                 "yes" if share.cifs_guestonly else False)
-
-        confset1(smb4_shares, "nfs4:mode = special")
-        confset1(smb4_shares, "nfs4:acedup = merge")
-        confset1(smb4_shares, "nfs4:chown = true")
-        confset1(smb4_shares, "zfsacl:acesort = dontcare")
-
-        for line in share.cifs_auxsmbconf.split('\n'):
-            confset1(smb4_shares, line)
 
 
 def generate_smb4_system_shares(smb4_shares):
@@ -1398,7 +1291,6 @@ def run(context):
     generate_smb4_tdb(smb4_tdb)
     generate_smb4_conf(smb4_conf, role)
     generate_smb4_system_shares(smb4_shares)
-    generate_smb4_shares(smb4_shares)
 
     if role == 'dc' and not Samba4().domain_provisioned():
         provision_smb4()
