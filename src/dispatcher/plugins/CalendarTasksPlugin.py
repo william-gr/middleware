@@ -124,7 +124,7 @@ class CommandTask(Task):
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Command failed')
 
-        print err.out
+        print out
 
 
 def _init(dispatcher, plugin):
