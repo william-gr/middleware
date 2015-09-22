@@ -156,6 +156,37 @@ class RsyncdModuleUpdateTask(Task):
         })
 
 
+@description("Delete a rsync module in the system")
+@accepts(str)
+class RsyncdModuleDeleteTask(Task):
+    def describe(self, uuid, updated_fields):
+        return 'Deleting rsync module'
+
+    def verify(self, uuid):
+
+        rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
+        if rsyncmod is None:
+            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exists'.format(uuid))
+
+        return ['system']
+
+    def run(self, uuid):
+
+        try:
+            self.datastore.delete('rsyncd-module', uuid)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'rsyncd')
+            self.dispatcher.call_sync('services.restart', 'rsyncd')
+        except DatastoreException as e:
+            raise TaskException(errno.EBADMSG, 'Cannot delete rsync module: {0}'.format(str(e)))
+        except RpcException as e:
+            raise TaskException(errno.ENXIO, 'Cannot regenerate rsyncd {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('service.rsyncd.module.changed', {
+            'operation': 'delete',
+            'ids': [uuid]
+        })
+
+
 def _depends():
     return ['ServiceManagePlugin']
 
@@ -203,3 +234,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("service.rsyncd.configure", RsyncdConfigureTask)
     plugin.register_task_handler("service.rsyncd.module.create", RsyncdModuleCreateTask)
     plugin.register_task_handler("service.rsyncd.module.update", RsyncdModuleUpdateTask)
+    plugin.register_task_handler("service.rsyncd.module.delete", RsyncdModuleDeleteTask)
