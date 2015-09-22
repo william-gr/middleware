@@ -293,7 +293,10 @@ class ZpoolCreateTask(Task):
     def run(self, name, topology, params=None):
         params = params or {}
         zfs = libzfs.ZFS()
-        mountpoint = params.get('mountpoint', '/volumes/{0}'.format(name))
+        mountpoint = params.get('mountpoint')
+
+        if not mountpoint:
+            raise TaskException(errno.EINVAL, 'Please supply valid "mountpoint" parameter')
 
         opts = {
             'feature@async_destroy': 'enabled',
