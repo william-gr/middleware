@@ -204,7 +204,8 @@ class UserCreateTask(Task):
             user['unixhash'] = user.get('unixhash', '*')
             user['full_name'] = user.get('full_name', 'User &')
             user['shell'] = user.get('shell', '/bin/sh')
-            user['home'] = user.get('home', os.path.join('/home', user['username']))
+            # user['home'] = user.get('home', os.path.join('/home', user['username']))
+            user['home'] = user.get('home', '/nonexistent')
             user.setdefault('groups', [])
             user.setdefault('attributes', {})
 
@@ -242,7 +243,7 @@ class UserCreateTask(Task):
                 os.makedirs(user['home'])
             os.chown(user['home'], uid, user['group'])
             os.chmod(user['home'], 0755)
-        elif not user['builtin'] and user['home'] is not None:
+        elif not user['builtin'] and user['home'] not in (None, '/nonexistent'):
             raise TaskException(
                 errno.ENOENT,
                 "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
@@ -350,19 +351,23 @@ class UserUpdateTask(Task):
             raise TaskException(errno.ENXIO, 'Cannot regenerate users file, etcd service is offline')
 
         volumes_root = self.dispatcher.call_sync('volumes.get_volumes_root')
-        if user['home'].startswith(volumes_root) and not os.path.exists(user['home']):
-            try:
-                self.dispatcher.call_sync('volumes.decode_path', user['home'])
-            except RpcException as err:
-                raise TaskException(err.code, err.message)
-            if (home_before != '/nonexistent' and home_before != user['home']
-               and os.path.exists(home_before)):
-                system('mv', home_before, user['home'])
-            else:
-                os.makedirs(user['home'])
+        if user['home'].startswith(volumes_root):
+            if not os.path.exists(user['home']):
+                try:
+                    self.dispatcher.call_sync('volumes.decode_path', user['home'])
+                except RpcException as err:
+                    raise TaskException(err.code, err.message)
+                if (home_before != '/nonexistent' and home_before != user['home']
+                   and os.path.exists(home_before)):
+                    system('mv', home_before, user['home'])
+                else:
+                    os.makedirs(user['home'])
+                    os.chown(user['home'], uid, user['group'])
+                    os.chmod(user['home'], 0755)
+            elif user['home'] != home_before:
                 os.chown(user['home'], uid, user['group'])
                 os.chmod(user['home'], 0755)
-        elif not user['builtin'] and user['home'] is not None:
+        elif not user['builtin'] and user['home'] not in (None, '/nonexistent'):
             raise TaskException(
                 errno.ENOENT,
                 "Invalid mountpoint specified for home directory: {0}.".format(user['home']) +
