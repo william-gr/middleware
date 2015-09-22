@@ -27,6 +27,7 @@ etc_start()
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"ftp"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"samba"'
 	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"nfs"'
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_group '"rsyncd"'
 	#killall -ALRM sh
 }
 

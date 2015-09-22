@@ -955,6 +955,12 @@
           "file:local/inadyn-mt.conf"
         ],
         "name": "dyndns"
+      },
+      "8E8E0B87-9F86-4144-A5A3-AA3A6AE3748E": {
+        "dependencies": [
+          "file:local/rsyncd.conf"
+        ],
+        "name": "rsyncd"
       }
     },
     "metadata": {
@@ -1141,6 +1147,7 @@
           "rc-scripts": "rsyncd"
         },
         "builtin": false,
+        "etcd-group": "rsyncd",
         "name": "rsyncd"
       }
     },
