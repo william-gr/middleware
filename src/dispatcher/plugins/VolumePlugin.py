@@ -863,6 +863,16 @@ def _init(dispatcher, plugin):
 
                 logger.info('New volume {0} <{1}>'.format(pool['name'], i))
                 with dispatcher.get_lock('volumes'):
+                    try:
+                        dispatcher.datastore.insert('volumes', {
+                            'id': i,
+                            'name': pool['name'],
+                            'type': 'zfs'
+                        })
+                    except DuplicateKeyException:
+                        # already inserted by task
+                        continue
+
                     # Set correct mountpoint
                     dispatcher.call_task_sync('zfs.configure', pool['name'], pool['name'], {
                         'mountpoint': {'value': os.path.join(VOLUMES_ROOT, pool['name'])}
@@ -874,15 +884,6 @@ def _init(dispatcher, plugin):
                         dispatcher.call_task_sync('zfs.pool.export', pool['name'])
                         dispatcher.call_task_sync('zfs.pool.import', pool['guid'], pool['name'])
 
-                    try:
-                        dispatcher.datastore.insert('volumes', {
-                            'id': i,
-                            'name': pool['name'],
-                            'type': 'zfs'
-                        })
-                    except DuplicateKeyException:
-                        # already inserted by task
-                        pass
 
         dispatcher.dispatch_event('volumes.changed', {
             'operation': args['operation'],
@@ -962,6 +963,10 @@ def _init(dispatcher, plugin):
     for vol in dispatcher.datastore.query('volumes'):
         try:
             dispatcher.call_task_sync('zfs.mount', vol['name'], True)
+
+            # XXX: check mountpoint property and correct if needed
+
+
         except TaskException, err:
             if err.code != errno.EBUSY:
                 logger.warning('Cannot mount volume {0}: {1}'.format(vol['name']), str(err))
