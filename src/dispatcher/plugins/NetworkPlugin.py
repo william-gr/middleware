@@ -27,10 +27,15 @@
 
 import errno
 import ipaddress
+import logging
 from dispatcher.rpc import RpcException, description, accepts, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
+from gevent import hub
 from task import Provider, Task, TaskException, VerifyException, query
+
+
+logger = logging.getLogger('NetworkPlugin')
 
 
 def calculate_broadcast(address, netmask):
@@ -100,6 +105,12 @@ class NetworkConfigureTask(Task):
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
+
+        # If DNS has change lets reset our DNS resolver to reflect reality
+        if 'dns' in settings:
+            logger.debug('Resetting resolver')
+            del hub.get_hub().resolver
+            hub.get_hub()._resolver = None
 
 
 @accepts(
@@ -536,5 +547,3 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('network.interface.configure', ConfigureInterfaceTask)
     plugin.register_task_handler('network.interface.create', CreateInterfaceTask)
     plugin.register_task_handler('network.interface.delete', DeleteInterfaceTask)
-
-
