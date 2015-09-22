@@ -98,7 +98,7 @@ class UpdateShareTask(Task):
         share = self.datastore.get_by_id('shares', name)
         self.join_subtasks(
             self.run_subtask('share.{0}.update'.format(share['type']), name, updated_fields)
-            )
+        )
 
 
 @description("Deletes share")
@@ -125,6 +125,7 @@ def _init(dispatcher, plugin):
             'enabled': {'type': 'boolean'},
             'type': {'type': 'string'},
             'target': {'type': 'string'},
+            'homedirs': {'type': 'boolean'},
             'properties': {'type': 'object'}
         }
     })
