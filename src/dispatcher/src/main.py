@@ -866,7 +866,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
     def on_rpc_auth_token(self, id, data):
         token = data['token']
         resource = data.get('resource', None)
-        lifetime = self.dispatcher.configstore.get("server.token_lifetime")
+        lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         token = self.dispatcher.token_store.lookup_token(token)
         client_addr, client_port = self.ws.handler.client_address
 
@@ -900,7 +900,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
     def on_rpc_auth(self, id, data):
         username = data['username']
         password = data['password']
-        lifetime = self.dispatcher.configstore.get("server.token_lifetime")
+        lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         self.resource = data.get('resource', None)
         client_addr, client_port = self.ws.handler.client_address[:2]
 

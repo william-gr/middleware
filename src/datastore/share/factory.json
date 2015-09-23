@@ -772,7 +772,8 @@
         1000,
         65000
       ],
-      "server.token_lifetime": 600,
+      "middleware.token_lifetime": 600,
+      "middleware.parallel_disk_format": false,
       "system.console.keymap": "us.iso",
       "system.syslog_server": null,
       "system.timezone": "America/Los_Angeles",

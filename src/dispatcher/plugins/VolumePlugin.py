@@ -358,7 +358,7 @@ class VolumeCreateTask(ProgressTask):
         return ['disk:{0}'.format(i) for i, _ in get_disks(volume['topology'])]
 
     def run(self, volume):
-        subtasks = []
+
         name = volume['name']
         type = volume['type']
         params = volume.get('params') or {}
@@ -370,18 +370,24 @@ class VolumeCreateTask(ProgressTask):
         if type != 'zfs':
             raise TaskException(errno.EINVAL, 'Invalid volume type')
 
-        for dname, dgroup in get_disks(volume['topology']):
-            #subtasks.append(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
-            #    'blocksize': params.get('blocksize', 4096),
-            #    'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
-            #}))
-            self.join_subtasks(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
-                'blocksize': params.get('blocksize', 4096),
-                'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
-            }))
+        self.set_progress(10)
 
-        #self.set_progress(10)
-        #self.join_subtasks(*subtasks)
+        if self.configstore.get("middleware.parallel_disk_format"):
+            subtasks = []
+            for dname, dgroup in get_disks(volume['topology']):
+                subtasks.append(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
+                    'blocksize': params.get('blocksize', 4096),
+                    'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
+                }))
+
+            self.join_subtasks(*subtasks)
+        else:
+            for dname, dgroup in get_disks(volume['topology']):
+                self.join_subtasks(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
+                    'blocksize': params.get('blocksize', 4096),
+                    'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
+                }))
+
         self.set_progress(40)
 
         with self.dispatcher.get_lock('volumes'):
