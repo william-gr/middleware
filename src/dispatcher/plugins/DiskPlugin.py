@@ -197,7 +197,7 @@ class DiskGPTFormatTask(Task):
 
                 system('/sbin/gpart', 'bootcode', '-b', bootcode, disk)
 
-            self.dispatcher.call_sync('disks.update_disk_cache', disk)
+            self.dispatcher.call_sync('disks.update_disk_cache', disk, timeout=120)
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
 
