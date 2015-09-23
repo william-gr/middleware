@@ -75,6 +75,12 @@ class ConfigNode(object):
     def __len__(self):
         return len(self.children)
 
+    def __str__(self):
+        return str(self.value)
+
+    def __unicode__(self):
+        return unicode(self.value)
+
     def update(self, obj):
         if not self.has_children:
             self.value = obj
