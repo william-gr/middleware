@@ -161,7 +161,11 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
             sequence = sys_mani.Sequence()
         else:
             sequence = ''
-        changelog = get_changelog(train, cache_dir=cache_dir, start=sequence, end=update.Sequence())
+        try:
+            changelog = get_changelog(
+                train, cache_dir=cache_dir, start=sequence, end=update.Sequence())
+        except Exception:
+            changelog = ''
         notes = update.Notes()
         notice = update.Notice()
         downloaded = False if check_now else True
@@ -208,30 +212,23 @@ class UpdateHandler(object):
         self.pkgname = pkg.Name()
         self.pkgversion = pkg.Version()
         self.operation = 'Downloading'
-        self.details = '%s %s' % (
-            'Downloading',
-            '%s-%s' % (self.pkgname, self.pkgversion),
-        )
+        self.details = 'Downloading {0}'.format(self.pkgname)
         stepprogress = int((1.0 / float(len(pkgList))) * 100)
         self._baseprogress = index * stepprogress
         self.progress = (index - 1) * stepprogress
-        self.emit_update_details()
+        # self.emit_update_details()
 
-    def get_handler(self, method, filename, size=None,
-                    progress=None, download_rate=None):
-        filename = filename.rsplit('/', 1)[-1]
+    def get_handler(self, method, filename, size=None, progress=None, download_rate=None):
+        filename = filename.rsplit('/', 1)[-1].rsplit('-', 2)[0]
         if progress is not None:
             self.progress = (progress * self._baseprogress) / 100
             if self.progress == 0:
                 self.progress = 1
-            self.details = '%s %s(%d%%)%s' % (
-                filename,
-                '%s ' % size
-                if size else '',
-                progress,
-                '  %s/s' % download_rate
-                if download_rate else '',
-            )
+            display_size = ' Size: {0}'.format(size) if size else ''
+            display_rate = ' Rate: {0} Bytes/s'.format(download_rate) if download_rate else ''
+            self.details = 'Downloading: {0} Progress:{1}{2}{3}'.format(
+                filename, progress, display_size, display_rate
+                )
         self.emit_update_details()
 
     def install_handler(self, index, name, packages):
@@ -241,7 +238,7 @@ class UpdateHandler(object):
         self.numfilesdone = total
         self.progress = int((float(index) / float(total)) * 100.0)
         self.operation = 'Installing'
-        self.details = '%s %s (%d/%d)' % ('Installing', name, index, total)
+        self.details = 'Installing {0} {1}%'.format(name, self.progress)
         self.emit_update_details()
 
     def emit_update_details(self):
