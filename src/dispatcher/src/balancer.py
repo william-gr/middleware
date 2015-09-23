@@ -195,6 +195,7 @@ class Task(object):
             "resources": self.resources,
             "session": self.session_id,
             "name": self.name,
+            "parent": self.parent.id if self.parent else None,
             "args": remove_dots(self.args),
             "result": self.result,
             "state": self.state,
@@ -381,6 +382,7 @@ class Balancer(object):
         task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
+        task.parent = parent
         self.task_list.append(task)
         task.start()
         return task
