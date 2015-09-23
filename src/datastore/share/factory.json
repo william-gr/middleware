@@ -17,11 +17,11 @@
         "attributes": {},
         "builtin": true
       },
-     "1001": {
+     "667": {
         "password_disabled": false,
         "email": null,
-        "group": 1001,
-        "home": "/usr/local/riak",
+        "group": 667,
+        "home": "/var/db/riak",
         "full_name": "Riak KV User",
         "username": "riak",
         "sshpubkey": null,
@@ -472,7 +472,7 @@
         "sudo": false,
         "name": "nogroup"
       },
-      "1001": {
+      "667": {
         "builtin": true,
         "sudo": false,
         "name": "riak"
