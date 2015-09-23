@@ -50,7 +50,6 @@ kld_list="dtraceall ipmi if_cxgbe"
 dbus_enable="YES"
 mdnsd_enable="YES"
 nginx_enable="YES"
-ldconfig_paths="/lib:/usr/lib:/usr/local/lib:/usr/local/lib/gcc48:/usr/local/lib/compat"
 
 # START - FreeNAS 9.x, remove when rc.conf.local migration completed
 # Add our rc.d scripts to load path
