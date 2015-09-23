@@ -122,6 +122,7 @@ def _metadata():
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('nfs-share-properties', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'alldirs': {'type': 'boolean'},
             'read-only': {'type': 'boolean'},
@@ -133,6 +134,13 @@ def _init(dispatcher, plugin):
                 'type': 'array',
                 'items': {'type': 'string'}
             },
+            'security': {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                    'enum': ['sys', 'krb5', 'krb5i', 'krb5p']
+                }
+            }
         }
     })
 
