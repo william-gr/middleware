@@ -367,7 +367,8 @@ class VolumeCreateTask(ProgressTask):
                 convert_topology_to_gptids(
                     self.dispatcher,
                     volume['topology']
-                )
+                ),
+                {'mountpoint': mountpoint}
             ))
 
             self.join_subtasks(self.run_subtask(
