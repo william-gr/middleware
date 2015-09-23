@@ -651,7 +651,7 @@
       "service.afp.dbpath": null,
       "service.afp.auxiliary": null,
       "service.cifs.enable": false,
-      "service.cifs.netbiosname": "FreeNAS",
+      "service.cifs.netbiosname": ["FreeNAS"],
       "service.cifs.workgroup": "WORKGROUP",
       "service.cifs.description": "FreeNAS Server",
       "service.cifs.dos_charset": "CP437",

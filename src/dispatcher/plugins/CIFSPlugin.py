@@ -27,10 +27,11 @@
 import errno
 import logging
 import re
-
+import smbconf
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from lib.system import system, SubprocessException
+from lib.freebsd import get_sysctl
 from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('CIFSPlugin')
@@ -94,9 +95,7 @@ class CIFSConfigureTask(Task):
         try:
             node = ConfigNode('service.cifs', self.configstore)
             node.update(cifs)
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'samba')
-            self.dispatcher.call_sync('services.reload', 'cifs')
+            configure_params(node)
             self.dispatcher.dispatch_event('service.cifs.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -105,6 +104,62 @@ class CIFSConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure CIFS: {0}'.format(str(e))
             )
+
+
+def yesno(val):
+    return 'yes' if val else 'no'
+
+
+def configure_params(cifs):
+    conf = smbconf.SambaConfig('registry')
+    conf['netbios name'] = cifs['netbiosname'].value[0]
+    if len(cifs['netbiosname']) > 1:
+        conf['netbios aliases'] = ' '.join(cifs['netbiosname'].value[1:])
+
+    if cifs['bind_addresses']:
+        conf['interfaces'] = ' '.join(['127.0.0.1'] + cifs['bind_addresses'].value)
+
+    conf['workgroup'] = cifs['workgroup'].value
+    conf['server string'] = cifs['description'].value
+    conf['encrypt passwords'] = 'yes'
+    conf['dns proxy'] = 'no'
+    conf['strict locking'] = 'no'
+    conf['oplocks'] = 'yes'
+    conf['deadtime'] = '15'
+    conf['max log size'] = '51200'
+    conf['max open files'] = str(long(get_sysctl('kern.maxfilesperproc')) - 25)
+
+    if cifs['syslog']:
+        conf['syslog only'] = 'yes'
+        conf['syslog'] = '1'
+
+    conf['load printers'] = 'no'
+    conf['printing'] = 'bsd'
+    conf['printcap name'] = '/dev/null'
+    conf['disable spoolss'] = 'yes'
+    conf['getwd cache'] = 'yes'
+    conf['guest account'] = cifs['guest_user'].value
+    conf['map to guest'] = 'Bad User'
+    conf['obey pam restrictions'] = yesno(cifs['obey_pam_restrictions'].value)
+    conf['directory name cache size'] = '0'
+    conf['kernel change notify'] = 'no'
+    conf['panic action'] = '/usr/local/libexec/samba/samba-backtrace'
+    conf['nsupdate command'] = '/usr/local/bin/samba-nsupdate -g'
+    conf['ea support'] = 'yes'
+    conf['store dos attributes'] = 'yes'
+    conf['lm announce'] = 'yes'
+    conf['hostname lookups'] = yesno(cifs['hostlookup'].value)
+    conf['unix extensions'] = yesno(cifs['unixext'].value)
+    conf['time server'] = yesno(cifs['time_server'].value)
+    conf['null passwords'] = yesno(cifs['empty_password'].value)
+    conf['acl allow execute always'] = yesno(cifs['execute_always'].value)
+    conf['acl check permissions'] = 'true'
+    conf['dos filemode'] = 'yes'
+    conf['multicast dns register'] = yesno(cifs['zeroconf'].value)
+    conf['local master'] = yesno(cifs['local_master'].value)
+    conf['server role'] = 'auto'
+    conf['log level'] = str(cifs['log_level'].value)
+    conf['username map'] = '/usr/local/etc/smbusers'
 
 
 def _depends():
@@ -146,10 +201,14 @@ def _init(dispatcher, plugin):
         'SMB3',
         'SMB3_00',
     ]
+
     plugin.register_schema_definition('service-cifs', {
         'type': 'object',
         'properties': {
-            'netbiosname': {'type': 'string'},
+            'netbiosname': {
+                'type': 'array',
+                'items': {'type': 'string'}
+            },
             'workgroup': {'type': 'string'},
             'description': {'type': 'string'},
             'dos_charset': {'type': 'string'},
@@ -187,3 +246,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("service.cifs.configure", CIFSConfigureTask)
 
     set_cifs_sid()
+    node = ConfigNode('service.cifs', dispatcher.configstore)
+    configure_params(node)
