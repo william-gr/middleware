@@ -30,13 +30,32 @@ import os
 import errno
 import uuid
 import logging
+import shutil
+import time
 import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, Provider
 
 SYSTEM_DIR = '/var/db/system'
+LINK_DIRS = {
+    'samba': '/var/db/samba4',
+    'log': '/var/log'
+}
+
 logger = logging.getLogger('SystemDataset')
+
+
+def link_directories(dispatcher):
+    for name, directory in LINK_DIRS.items():
+        target = dispatcher.call_sync('system_dataset.request_directory', name)
+        if os.path.islink(directory):
+            if os.readlink(directory) == target:
+                # properly linked already
+                continue
+
+        shutil.move(directory, directory + '.{0}.bak'.format(int(time.time())))
+        os.symlink(target, directory)
 
 
 def create_system_dataset(dispatcher, pool):
@@ -127,6 +146,7 @@ class SystemDatasetProvider(Provider):
         pool = self.configstore.get('system.dataset.pool')
         create_system_dataset(self.dispatcher, pool)
         mount_system_dataset(self.dispatcher, pool, SYSTEM_DIR)
+        link_directories(self.dispatcher)
 
     @private
     @description("Creates directory in .system dataset and returns reference to it")
