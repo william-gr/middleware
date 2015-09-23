@@ -1158,6 +1158,14 @@
         "etcd-group": "rsyncd",
         "pidfile": "/var/run/rsyncd.pid",
         "name": "rsyncd"
+      },
+      "95DEC6AF-48E4-49F0-8D96-9E7ACC8F5E0D": {
+        "rcng": {
+          "rc-scripts": "smartd"
+        },
+        "builtin": false,
+        "pidfile": "/var/run/smartd.pid",
+        "name": "smartd"
       }
     },
     "metadata": {
