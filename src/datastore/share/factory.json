@@ -17,11 +17,11 @@
         "attributes": {},
         "builtin": true
       },
-     "667": {
+     "1001": {
         "password_disabled": false,
         "email": null,
-        "group": 667,
-        "home": "/",
+        "group": 1001,
+        "home": "/usr/local/riak",
         "full_name": "Riak KV User",
         "username": "riak",
         "sshpubkey": null,
@@ -33,13 +33,13 @@
         "attributes": {},
         "builtin": true
       },
-      "668": {
+      "1002": {
         "password_disabled": false,
         "email": null,
-        "group": 667,
-        "home": "/",
-        "full_name": "Stanchion User",
-        "username": "stanchion",
+        "group": 1001,
+        "home": "/usr/local/riak-cs",
+        "full_name": "RIAK CS",
+        "username": "riakcs",
         "sshpubkey": null,
         "shell": "/bin/sh",
         "locked": false,
@@ -49,13 +49,13 @@
         "attributes": {},
         "builtin": true
       },
-      "669": {
+      "1003": {
         "password_disabled": false,
         "email": null,
-        "group": 667,
-        "home": "/",
-        "full_name": "Riak CS User",
-        "username": "riakcs",
+        "group": 1001,
+        "home": "/usr/local/stanchion",
+        "full_name": "Stanchion User",
+        "username": "stanchion",
         "sshpubkey": null,
         "shell": "/bin/sh",
         "locked": false,
@@ -472,7 +472,7 @@
         "sudo": false,
         "name": "nogroup"
       },
-      "667": {
+      "1001": {
         "builtin": true,
         "sudo": false,
         "name": "riak"
