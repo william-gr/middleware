@@ -351,13 +351,17 @@ class VolumeCreateTask(ProgressTask):
             raise TaskException(errno.EINVAL, 'Invalid volume type')
 
         for dname, dgroup in get_disks(volume['topology']):
-            subtasks.append(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
+            #subtasks.append(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
+            #    'blocksize': params.get('blocksize', 4096),
+            #    'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
+            #}))
+            self.join_subtasks(self.run_subtask('disks.format.gpt', dname, 'freebsd-zfs', {
                 'blocksize': params.get('blocksize', 4096),
                 'swapsize': params.get('swapsize', 2048) if dgroup == 'data' else 0
             }))
 
-        self.set_progress(10)
-        self.join_subtasks(*subtasks)
+        #self.set_progress(10)
+        #self.join_subtasks(*subtasks)
         self.set_progress(40)
 
         with self.dispatcher.get_lock('volumes'):
