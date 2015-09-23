@@ -44,9 +44,10 @@ class UsersTest(BaseTestCase):
             'username': 'testUser',
             'group': 0,
             'shell': '/bin/csh',
-            'home': '/nonexistent'
+            'home': '/mnt',
+            'password': 'null',
         })
-
+        
         self.assertTaskCompletion(tid)
         user = self.conn.call_sync('users.query', [('id', '=', 1234)], {'single': True})
         self.assertIsInstance(user, dict)
@@ -57,7 +58,8 @@ class UsersTest(BaseTestCase):
             'username': 'testUserNoUid',
             'group': 0,
             'shell': '/bin/csh',
-            'home': '/nonexistent'
+            'home': '/mnt',
+            'password': 'null',
         })
 
         self.assertTaskCompletion(tid)
@@ -79,11 +81,12 @@ class UsersTest(BaseTestCase):
             'username': 'testUser',
             'group': 0,
             'shell': '/bin/csh',
-            'home': '/nonexistent'
+            'home': '/tmp',
+            'password': 'null'
         })
 
         self.assertTaskCompletion(tid)
-        self.assertTaskCompletion(self.submitTask('users.update', 1234, {'full_name': 'Hello'}))
+        self.assertTaskCompletion(self.submitTask('users.update', 1234, {'full_name': 'Hello', 'password': 'null', 'home': '/tmp'}))
         user = self.conn.call_sync('users.query', [('id', '=', 1234)], {'single': True})
         self.assertIsInstance(user, dict)
         self.assertEqual(user['full_name'], 'Hello')
@@ -99,9 +102,18 @@ class UsersTest(BaseTestCase):
 
 
 class GroupsTest(BaseTestCase):
+    def tearDown(self):
+        # try to delete all groups created during tests
+        for u in self.conn.call_sync('groups.query', [('name', '~', 'testGroup.*')]):
+            self.assertTaskCompletion(self.submitTask('groups.delete', u['id']))
+
+        super(GroupsTest, self).tearDown()
+ 
+
     def test_create_group_gid(self):
         tid = self.submitTask('groups.create', {
             'name': 'testGroup',
+            'sudo': False,
             'id': 1234,
         })
 
