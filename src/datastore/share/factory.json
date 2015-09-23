@@ -788,7 +788,8 @@
       "system.dataset.id": null,
       "system.dataset.services": [
         "syslog",
-        "fnstatd"
+        "fnstatd",
+        "cifs"
       ],
       "system.debug.kernel": false,
       "system.language": "en",
@@ -1029,6 +1030,7 @@
           "rc-scripts": "sshd"
         },
         "builtin": false,
+        "etcd-group": "sshd",
         "name": "sshd"
       },
       "77C31BDA-A90A-495A-8D58-0063981EEC67": {
