@@ -987,7 +987,7 @@
           "rc-scripts": "netatalk"
         },
         "builtin": false,
-        "etcd-group": "afp",
+        "task": "service.afp.configure",
         "name": "afp"
       },
       "DE07173C-FCAA-47CE-A044-FACEF514581F": {
@@ -995,7 +995,7 @@
           "rc-scripts": "samba_server"
         },
         "builtin": false,
-        "etcd-group": "samba",
+        "task": "service.cifs.configure",
         "name": "cifs"
       },
       "FFD1EA3F-36E3-4CFA-8A1E-9BADA0DEFB76": {
