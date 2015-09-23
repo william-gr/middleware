@@ -122,7 +122,9 @@ class CheckUpdateHandler(object):
 def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
     "Utility function to just check for Updates"
     update_cache_invalidate_list = [
-        'updateAvailable', 'updateNotes', 'updateNotice', 'updateOperations', 'changelog']
+        'updateAvailable', 'updateNotes', 'updateNotice',
+        'updateOperations', 'changelog', 'downloaded'
+        ]
     dispatcher.call_sync('update.update_cache_invalidate', update_cache_invalidate_list)
 
     conf = Configuration.Configuration()
@@ -131,6 +133,7 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
     train = configstore.get('update.train')
     notes = None
     notice = None
+    downloaded = False
 
     try:
         update = CheckForUpdates(
@@ -144,7 +147,8 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
             'updateNotes': None,
             'updateNotice': None,
             'updateOperations': update_ops,
-            'changelog': ''
+            'changelog': '',
+            'downloaded': downloaded,
         }
         dispatcher.call_sync('update.update_cache_putter', update_cache_put_value_dict)
         raise
@@ -160,6 +164,7 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
         changelog = get_changelog(train, cache_dir=cache_dir, start=sequence, end=update.Sequence())
         notes = update.Notes()
         notice = update.Notice()
+        downloaded = False if check_now else True
     else:
         logger.debug("No update available")
         changelog = None
@@ -169,7 +174,8 @@ def check_updates(dispatcher, configstore, cache_dir=None, check_now=False):
             'updateNotes': notes,
             'updateNotice': notice,
             'updateOperations': update_ops,
-            'changelog': changelog
+            'changelog': changelog,
+            'downloaded': downloaded,
         }
     dispatcher.call_sync('update.update_cache_putter', update_cache_put_value_dict)
 
@@ -344,11 +350,13 @@ class UpdateProvider(Provider):
         updateNotes = update_cache.get('updateNotes', timeout=1)
         updateNotice = update_cache.get('updateNotice', timeout=1)
         changelog = update_cache.get('changelog', timeout=1)
+        downloaded = update_cache.get('downloaded', timeout=1)
         return {
             'changelog': changelog,
             'notes': updateNotes,
             'notice': updateNotice,
             'operations': updateOperations,
+            'downloaded': downloaded,
         }
 
     @returns(h.any_of(
@@ -545,6 +553,7 @@ class DownloadUpdateTask(ProgressTask):
             raise TaskException(
                 errno.EAGAIN, 'Downloading Updates Failed for some reason, check logs'
             )
+        check_updates(self.dispatcher, self.configstore, cache_dir=cache_dir, check_now=False)
         handler.finished = True
         handler.emit_update_details()
         self.message = "Updates Finished Downloading"
@@ -776,6 +785,7 @@ def _init(dispatcher, plugin):
                 'items': {'type': 'string'},
             },
             'operations': {'$ref': 'update-ops'},
+            'downloaded': {'type': 'boolean'},
         }
     })
 
