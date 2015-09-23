@@ -1,7 +1,11 @@
 <%
+    from bsd import sysctl
+
     adv_config = dispatcher.call_sync('system.advanced.get_config')
     gen_config = dispatcher.call_sync('system.general.get_config')
     smartd_config = dispatcher.call_sync('service.smartd.get_config')
+
+    hwmodel = sysctl.sysctlbyname("hw.model")
 
     nfs_config = dispatcher.call_sync('service.nfs.get_config')
     nfs_ips = ' '.join(['-h {0}'.format(ip) for ip in (nfs_config['bind_addresses'] or [])])
@@ -62,6 +66,15 @@ early_late_divider="*"
 # AppCafe related services
 syscache_enable="YES"
 appcafe_enable="YES"
+
+ataidle_enable="YES"
+vboxnet_enable="YES"
+% if hwmodel.find('AMD') != -1:
+# Bug #7337 -- blacklist AMD systems for now
+watchdogd_enable="NO"
+% else:
+watchdogd_enable="YES"
+% endif
 
 collectd_enable="YES"
 ntpd_enable="YES"
