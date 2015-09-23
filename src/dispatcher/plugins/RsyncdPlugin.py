@@ -25,6 +25,7 @@
 #####################################################################
 import errno
 import logging
+import re
 
 from datastore import DatastoreException
 from datastore.config import ConfigNode
@@ -93,8 +94,11 @@ class RsyncdModuleCreateTask(Task):
         return 'Adding rsync module'
 
     def verify(self, rsyncmod):
-
         errors = []
+
+        if re.search(r'[/\]]', rsyncmod['name']):
+            errors.append('name', errno.EINVAL, 'The name cannot contain slash or a closing square backet.')
+
         if errors:
             raise ValidationException(errors)
 
@@ -130,8 +134,13 @@ class RsyncdModuleUpdateTask(Task):
         rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
         if rsyncmod is None:
             raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exists'.format(uuid))
+        rsyncmod.update(updated_fields)
 
         errors = []
+
+        if re.search(r'[/\]]', rsyncmod['name']):
+            errors.append('name', errno.EINVAL, 'The name cannot contain slash or a closing square backet.')
+
         if errors:
             raise ValidationException(errors)
 
