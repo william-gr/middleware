@@ -137,6 +137,7 @@ def _init(dispatcher, plugin):
             'read_only': {'type': 'boolean'},
             'time_machine': {'type': 'boolean'},
             'zero_dev_numbers': {'type': 'boolean'},
+            'no_stat': {'type': 'boolean'},
             'afp3_privileges': {'type': 'boolean'},
             'default_file_perms': {'$ref': 'unix-permissions'},
             'default_directory_perms': {'$ref': 'unix-permissions'},

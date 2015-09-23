@@ -1,19 +1,4 @@
 <%
-    import os
-    import sys
-    if '/usr/local/www' not in sys.path:
-        sys.path.append('/usr/local/www')
-
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'freenasUI.settings')
-    if 'DJANGO_LOGGING_DISABLE' not in os.environ:
-        os.environ['DJANGO_LOGGING_DISABLE'] = 'true'
-
-    # Make sure to load all modules
-    from django.db.models.loading import cache
-    cache.get_apps()
-
-    from freenasUI.sharing.models import AFP_Share
-
     afp = dispatcher.call_sync('service.afp.get_config')
 
     uam_list = ['uams_dhx.so', 'uams_dhx2.so']
@@ -61,60 +46,22 @@
 %   endif
 % endif
 
-## Comment out this while this is handled by old GUI
-##% for share in dispatcher.call_sync("shares.query", [("type", "=", "afp")]):
-##[${share["id"]}]
-##${opt("path", share["target"])}\
-##${opt("invalid users", share["properties"].get("users-allow"))}\
-##${opt("hosts allow", share["properties"].get("users-deny"))}\
-##${opt("hosts deny", share["properties"].get("hosts-allow"))}\
-##${opt("rolist", share["properties"].get("ro-list"))}\
-##${opt("rwlist", share["properties"].get("rw-list"))}\
-##${opt("time machine", "yes" if share["properties"].get("time-machine") else "no")}\
-##${opt("read only", "yes" if share["properties"].get("read-only") else "no")}\
-##% endfor
-% for share in AFP_Share.objects.all():
-[${share.afp_name}]
-    path = ${share.afp_path}
-% if share.afp_allow:
-    valid users = ${share.afp_allow}
-% endif
-% if share.afp_deny:
-    invalid users = ${share.afp_deny}
-% endif
-% if share.afp_hostsallow:
-    hosts allow = ${share.afp_hostsallow}
-% endif
-% if share.afp_hostsdeny:
-    hosts deny = ${share.afp_hostsdeny}
-% endif
-% if share.afp_ro:
-    rolist = ${share.afp_ro}
-% endif
-% if share.afp_rw:
-    rwlist = ${share.afp_rw}
-% endif
-% if share.afp_timemachine:
-    time machine = yes
-% endif
-% if not share.afp_nodev:
-    cnid dev = no
-% endif
-% if share.afp_nostat:
-    stat vol = no
-% endif
-% if not share.afp_upriv:
-    unix priv = no
-% else:
-%   if share.afp_fperm:
-    file perm = ${share.afp_fperm}
-%   endif
-%   if share.afp_dperm:
-    directory perm = ${share.afp_dperm}
-%   endif
-%   if share.afp_umask:
-    umask = ${share.afp_umask}
-%   endif
-% endif
-    veto files = .windows/.mac/
+% for share in dispatcher.call_sync("shares.query", [("type", "=", "afp")]):
+[${share["id"]}]
+${opt("path", share["target"])}\
+${opt("valid users", share["properties"].get("users_allow"))}\
+${opt("invalid users", share["properties"].get("users_deny"))}\
+${opt("hosts allow", share["properties"].get("hosts_allow"))}\
+${opt("hosts deny", share["properties"].get("hosts_deny"))}\
+${opt("rolist", share["properties"].get("ro_list"))}\
+${opt("rwlist", share["properties"].get("rw_list"))}\
+${opt("time machine", "yes" if share["properties"].get("time_machine") else "no")}\
+${opt("read only", "yes" if share["properties"].get("read_only") else "no")}\
+${opt("cnid dev", "no" if share["properties"].get("zero_dev_numbers") else "yes")}\
+${opt("stat vol", "no" if share["properties"].get("no_stat") else "yes")}\
+${opt("unix priv", "yes" if share["properties"].get("afp3_privileges") else "no")}\
+${opt("file perm", share["properties"].get("default_file_perms"))}\
+${opt("directory perm", share["properties"].get("default_directory_perms"))}\
+${opt("umask" ,share["properties"].get("default_umask"))}\
+veto files = .windows/.mac/
 % endfor
