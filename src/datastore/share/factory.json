@@ -968,6 +968,12 @@
           "file:local/rsyncd.conf"
         ],
         "name": "rsyncd"
+      }.
+      "FBBE4258-42E7-46C5-8204-3EBBD3498340": {
+        "dependencies": [
+          "file:local/smartd.conf"
+        ],
+        "name": "smartd"
       }
     },
     "metadata": {
@@ -1164,6 +1170,7 @@
           "rc-scripts": "smartd"
         },
         "builtin": false,
+        "etcd-group": "smartd",
         "pidfile": "/var/run/smartd.pid",
         "name": "smartd"
       }
