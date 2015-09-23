@@ -225,7 +225,7 @@ class UpdateHandler(object):
             if self.progress == 0:
                 self.progress = 1
             display_size = ' Size: {0}'.format(size) if size else ''
-            display_rate = ' Rate: {0} Bytes/s'.format(download_rate) if download_rate else ''
+            display_rate = ' Rate: {0} B/s'.format(download_rate) if download_rate else ''
             self.details = 'Downloading: {0} Progress:{1}{2}{3}'.format(
                 filename, progress, display_size, display_rate
                 )
