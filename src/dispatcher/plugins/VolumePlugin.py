@@ -256,8 +256,28 @@ class VolumeProvider(Provider):
 
         return list(disks)
 
-    def get_disk_disposition(self, disk):
-        pass
+    @description("Returns allocation of given disk")
+    @accepts(h.array(str))
+    @returns(h.ref('disks-allocation'))
+    def get_disks_allocation(self, disks):
+        ret = {}
+        boot_pool_name = self.configstore.get('system.boot_pool_name')
+        boot_devs = self.dispatcher.call_sync('zfs.pool.get_disks', boot_pool_name)
+
+        for dev in boot_devs:
+            boot_disk = self.dispatcher.call_sync('disks.partition_to_disk', dev)
+            if boot_disk in disks:
+                ret[boot_disk] = {'type': 'BOOT'}
+
+        for vol in self.dispatcher.call_sync('volumes.query'):
+            for dev in self.dispatcher.call_sync('volumes.get_volume_disks', vol['name']):
+                if dev in disks:
+                        ret[dev] = {
+                            'type': 'VOLUME',
+                            'name': vol['name']
+                        }
+
+        return ret
 
     @description("Returns Information about all the possible attributes of" +
                  " the Volume (name, guid, zfs properties, datasets, etc...)")
@@ -897,6 +917,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('volume', {
         'type': 'object',
         'title': 'volume',
+        'additionalProperties': False,
         'properties': {
             'id': {'type': 'string'},
             'name': {'type': 'string'},
@@ -925,6 +946,21 @@ def _init(dispatcher, plugin):
             'permissions_type': {
                 'type': 'string',
                 'enum': ['PERM', 'ACL']
+            }
+        }
+    })
+
+    plugin.register_schema_definition('disks-allocation', {
+        'type': 'object',
+        'additionalProperties': {
+            'type': 'object',
+            'additionalProperties': False,
+            'properties': {
+                'type': {
+                    'type': 'string',
+                    'enum': ['BOOT', 'VOLUME', 'ISCSI'],
+                },
+                'name': {'type': 'string'}
             }
         }
     })
