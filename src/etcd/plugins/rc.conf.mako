@@ -1,6 +1,7 @@
 <%
     adv_config = dispatcher.call_sync('system.advanced.get_config')
     gen_config = dispatcher.call_sync('system.general.get_config')
+    smartd_config = dispatcher.call_sync('service.smartd.get_config')
 
     nfs_config = dispatcher.call_sync('service.nfs.get_config')
     nfs_ips = ' '.join(['-h {0}'.format(ip) for ip in (nfs_config['bind_addresses'] or [])])
@@ -67,7 +68,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'ipfs', 'rsyncd'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'ipfs', 'rsyncd', 'smartd'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -129,6 +130,10 @@ rpc_lockd_flags="${nfs_ips}\
 %  if nfs_ips:
 rpcbind_flags="${nfs_ips}"
 %  endif
+% endif
+
+% if smartd_config['interval']:
+smartd_flags="-i ${smartd_config['interval']*60}"
 % endif
 
 % if gen_config['console_keymap']:
