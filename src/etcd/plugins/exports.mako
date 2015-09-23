@@ -11,6 +11,9 @@
         if properties.get('alldirs'):
             result.append('-alldirs')
 
+        if properties.get('read_only'):
+            result.append('-ro')
+
         if properties.get('security'):
             result.append('-sec={0}'.format(':'.join(properties['security'])))
 

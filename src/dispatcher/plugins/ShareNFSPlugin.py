@@ -92,7 +92,6 @@ class UpdateNFSShareTask(Task):
         })
 
 
-
 @description("Removes NFS share")
 @accepts(str)
 class DeleteNFSShareTask(Task):
@@ -125,7 +124,7 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
         'properties': {
             'alldirs': {'type': 'boolean'},
-            'read-only': {'type': 'boolean'},
+            'read_only': {'type': 'boolean'},
             'maproot_user': {'type': 'string'},
             'maproot_group': {'type': 'string'},
             'mapall_user': {'type': 'string'},
