@@ -42,7 +42,7 @@ from utils import first_or_default
 from datastore import DuplicateKeyException
 from fnutils import include
 from fnutils.query import wrap
-from fnutils.copy import count_files, copytree
+from fnutils.copytree import count_files, copytree
 
 
 VOLUMES_ROOT = '/mnt'
