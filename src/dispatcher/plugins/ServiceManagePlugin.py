@@ -270,11 +270,15 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-        node = ConfigNode('service.{0}'.format(service), self.configstore)
-        node.update(updated_fields)
 
-        if service_def.get('etcd-group'):
-            self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
+        if service_def.get('task'):
+            self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+        else:
+            node = ConfigNode('service.{0}'.format(service), self.configstore)
+            node.update(updated_fields)
+
+            if service_def.get('etcd-group'):
+                self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
 
         self.dispatcher.dispatch_event('service.changed', {
             'operation': 'update',
