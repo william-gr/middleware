@@ -64,7 +64,7 @@ class DispatcherWrapper(object):
         self.dispatcher = dispatcher
 
     def __run_hook(self, name, args):
-        return self.dispatcher.call_sync('task.run_hook', name, args)
+        return self.dispatcher.call_sync('task.run_hook', name, args, timeout=300)
 
     def __verify_subtask(self, task, name, args):
         return self.dispatcher.call_sync('task.verify_subtask', name, args)
