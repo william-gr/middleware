@@ -81,7 +81,8 @@ class EntitySubscriberEventSource(EventSource):
         self.dispatcher.dispatch_event('entity-subscriber.{0}.changed'.format(service), {
             'service': service,
             'operation': operation,
-            'entities': entities
+            'entities': entities,
+            'nolog': True
         })
 
     def enable(self, event):
