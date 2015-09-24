@@ -135,7 +135,8 @@ def _init(dispatcher, plugin):
         'properties': {
             'host': {'type': 'string'},
             'share': {'type': 'string'},
-            'user': {'type': ['string', 'null']}
+            'user': {'type': ['string', 'null']},
+            'connected_at': {'type': ['string', 'null']}
         }
     })
 
