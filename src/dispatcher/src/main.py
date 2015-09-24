@@ -487,37 +487,33 @@ class Dispatcher(object):
         logging.root.addHandler(handler)
 
     def dispatch_event(self, name, args):
-        self.event_delivery_lock.acquire()
+        with self.event_delivery_lock:
+            if 'timestamp' not in args:
+                # If there's no timestamp, assume event fired right now
+                args['timestamp'] = time.time()
 
-        if 'timestamp' not in args:
-            # If there's no timestamp, assume event fired right now
-            args['timestamp'] = time.time()
+            for srv in self.ws_servers:
+                srv.broadcast_event(name, args)
 
-        for srv in self.ws_servers:
-            srv.broadcast_event(name, args)
+            if name in self.event_handlers:
+                for h in self.event_handlers[name]:
+                    try:
+                        gevent.spawn(h, args)
+                    except:
+                        self.logger.exception('Event handler for event %s failed', name)
 
-        if name in self.event_handlers:
-            for h in self.event_handlers[name]:
-                try:
-                    gevent.spawn(h, args)
-                except:
-                    self.logger.exception('Event handler for event %s failed', name)
+            if 'nolog' in args and args['nolog']:
+                return
 
-        if 'nolog' in args and args['nolog']:
-            self.event_delivery_lock.release()
-            return
+            # Persist event
+            event_data = args.copy()
+            del event_data['timestamp']
 
-        # Persist event
-        event_data = args.copy()
-        del event_data['timestamp']
-
-        self.datastore.insert('events', {
-            'name': name,
-            'timestamp': args['timestamp'],
-            'args': event_data
-        })
-
-        self.event_delivery_lock.release()
+            self.datastore.insert('events', {
+                'name': name,
+                'timestamp': args['timestamp'],
+                'args': event_data
+            })
 
     def call_sync(self, name, *args):
         return self.rpc.call_sync(name, *args)
