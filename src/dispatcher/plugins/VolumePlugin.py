@@ -881,6 +881,10 @@ def _init(dispatcher, plugin):
         if args['operation'] in ('create', 'update'):
             for i in ids:
                 if args['operation'] == 'update' and dispatcher.datastore.exists('volumes', ('id', '=', i)):
+                    dispatcher.dispatch_event('volumes.changed', {
+                        'operation': 'update',
+                        'ids': [i]
+                    })
                     continue
 
                 pool = wrap(dispatcher.call_sync(
@@ -915,10 +919,10 @@ def _init(dispatcher, plugin):
                         dispatcher.call_task_sync('zfs.pool.export', pool['name'])
                         dispatcher.call_task_sync('zfs.pool.import', pool['guid'], pool['name'])
 
-        dispatcher.dispatch_event('volumes.changed', {
-            'operation': args['operation'],
-            'ids': ids
-        })
+                    dispatcher.dispatch_event('volumes.changed', {
+                        'operation': 'create',
+                        'ids': [i]
+                    })
 
     plugin.register_schema_definition('volume', {
         'type': 'object',
