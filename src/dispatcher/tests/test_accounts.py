@@ -58,7 +58,7 @@ class UsersTest(BaseTestCase):
             'username': 'testUserNoUid',
             'group': 0,
             'shell': '/bin/csh',
-            'home': '/mnt',
+            'home': '/nonexistent',
             'password': 'null',
         })
 
@@ -67,6 +67,7 @@ class UsersTest(BaseTestCase):
         self.assertIsInstance(user, dict)
         self.assertEqual(user['username'], 'testUserNoUid')
 
+    
     def test_create_user_invalid(self):
         with self.assertRaises(RpcException):
             self.submitTask('users.create', {
@@ -81,12 +82,12 @@ class UsersTest(BaseTestCase):
             'username': 'testUser',
             'group': 0,
             'shell': '/bin/csh',
-            'home': '/tmp',
+            'home': '/nonexistent',
             'password': 'null'
         })
 
         self.assertTaskCompletion(tid)
-        self.assertTaskCompletion(self.submitTask('users.update', 1234, {'full_name': 'Hello', 'password': 'null', 'home': '/tmp'}))
+        self.assertTaskCompletion(self.submitTask('users.update', 1234, {'full_name': 'Hello', 'password': 'null', 'home': '/nonexistent'}))
         user = self.conn.call_sync('users.query', [('id', '=', 1234)], {'single': True})
         self.assertIsInstance(user, dict)
         self.assertEqual(user['full_name'], 'Hello')
