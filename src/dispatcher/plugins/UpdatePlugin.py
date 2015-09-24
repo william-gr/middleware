@@ -219,7 +219,7 @@ class UpdateHandler(object):
         # self.emit_update_details()
 
     def get_handler(self, method, filename, size=None, progress=None, download_rate=None):
-        filename = filename.rsplit('/', 1)[-1].rsplit('-', 2)[0]
+        filename = filename.rsplit('/', 1)[-1].rsplit('-', 3)[0]
         if progress is not None:
             self.progress = (progress * self._baseprogress) / 100
             if self.progress == 0:
@@ -238,7 +238,7 @@ class UpdateHandler(object):
         self.numfilesdone = total
         self.progress = int((float(index) / float(total)) * 100.0)
         self.operation = 'Installing'
-        self.details = 'Installing {0} {1}%'.format(name, self.progress)
+        self.details = 'Installing {0}'.format(name)
         self.emit_update_details()
 
     def emit_update_details(self):
