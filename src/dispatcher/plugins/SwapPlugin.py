@@ -147,7 +147,8 @@ def _init(dispatcher, plugin):
         remove_swap(dispatcher, disks)
 
     def on_volumes_change(args):
-        rearrange_swap(dispatcher)
+        with dispatcher.get_lock('swap'):
+            rearrange_swap(dispatcher)
 
     plugin.register_schema_definition('swap-mirror', {
         'type': 'object',
