@@ -81,7 +81,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'ipfs', 'rsyncd', 'smartd'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -98,8 +98,13 @@ winbindd_enable="YES"
 inadynmt_enable="YES"
 % endif
 
+% if config.get("service.ipfs.enable"):
+ipfs_go_enable="YES"
 % if config.get("service.ipfs.path"):
-exp_ipfs_path="${config.get("service.ipfs.path")}"
+ipfs_go_path="${config.get("service.ipfs.path")}"
+% else:
+ipfs_go_path="/var/db/system/ipfs"
+% endif
 % endif
 
 % if nfs_config['enable']:

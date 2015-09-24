@@ -1152,7 +1152,7 @@
       },
       "EFC90340-F09F-43DC-A1AB-20467F0A148A": {
         "rcng": {
-          "rc-scripts": "exp_ipfs"
+          "rc-scripts": "ipfs-go"
         },
         "builtin": false,
         "name": "ipfs"
