@@ -17,11 +17,11 @@
         if properties.get('security'):
             result.append('-sec={0}'.format(':'.join(properties['security'])))
 
-        if properties.get('maproot_user'):
-            result.append('-maproot={0}'.format(properties['maproot_user']))
-
-        elif properties.get('mapall_user'):
+        if properties.get('mapall_user'):
             result.append('-mapall={0}'.format(properties['mapall_user']))
+
+        elif properties.get('maproot_user'):
+            result.append('-maproot={0}'.format(properties['maproot_user']))
 
         for host in properties.get('hosts', []):
             if '/' in host:

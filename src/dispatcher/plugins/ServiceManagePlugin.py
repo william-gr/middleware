@@ -186,15 +186,18 @@ class ServiceInfoProvider(Provider):
         if status['state'] != 'RUNNING':
             return
 
-        try:
-            if type(rc_scripts) is unicode:
+        if type(rc_scripts) is unicode:
+            try:
                 system("/usr/sbin/service", rc_scripts, 'onereload')
+            except SubprocessException:
+                pass
 
-            if type(rc_scripts) is list:
-                for i in rc_scripts:
+        if type(rc_scripts) is list:
+            for i in rc_scripts:
+                try:
                     system("/usr/sbin/service", i, 'onereload')
-        except SubprocessException:
-            pass
+                except SubprocessException:
+                    pass
 
     @private
     @accepts(str)
