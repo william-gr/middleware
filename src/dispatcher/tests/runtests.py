@@ -4,21 +4,23 @@ import sys
 loader = unittest.TestLoader()
 r = loader.discover('./')
 results = unittest.TestResult()
+
 results.buffer = True
 r.run(results)
-
 overall = results.wasSuccessful()
 
-print '========================='
+print '============================='
 print "Total tests discovered:  " + str(r.countTestCases())
 print "Total tests ran: " + str(results.testsRun)
+print 'Tests failed: ' + str(len(results.failures))
+print 'Tests skipped: ' + str(len(results.skipped))
 print "Overall Result: " + str(overall)
-print '========================='
+print '============================='
 if not overall:
     print '========================================='
-    print "The Failed Tests reported these errors:"
-    print '========================================='
-    for error in results.failures:
-	    print str(error[0]) + ': \n' + error[1]
-
-#print results.errors
+    print "ERRORS:\n"
+    for error in results.errors:
+        print str(error[0]) + ': '
+        print '========================================='
+        print  error[1]
+        print '========================================='

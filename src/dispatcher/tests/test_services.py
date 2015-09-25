@@ -38,9 +38,15 @@ class ServicesTest(BaseTestCase):
     def test_restart(self):
         self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
 
+    def test_query(self):
+        services = self.conn.call_sync('services.query')
+        self.assertIsInstance(services, list)
+        
+            
     def test_configure(self):
-        self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {'service.sshd.port': 9922}))
-        self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {'service.sshd.port': 22}))
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
+        self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {'port': 9922}))
+        self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {"port": 22, "compression": 'no'}))
 
 
 
