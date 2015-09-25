@@ -219,7 +219,7 @@ class UpdateHandler(object):
         # self.emit_update_details()
 
     def get_handler(self, method, filename, size=None, progress=None, download_rate=None):
-        filename = filename.rsplit('/', 1)[-1].rsplit('-', 3)[0]
+        filename = filename.rsplit('/', 1)[-1].rsplit('-', 6)[0]
         if progress is not None:
             self.progress = (progress * self._baseprogress) / 100
             if self.progress == 0:
