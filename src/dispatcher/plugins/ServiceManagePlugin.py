@@ -46,41 +46,7 @@ class ServiceInfoProvider(Provider):
     @query("service")
     def query(self, filter=None, params=None):
         def extend(i):
-            if 'pidfile' in i:
-                # Check if process is alive by reading pidfile
-                try:
-                    fd = open(i['pidfile'], 'r')
-                    pid = int(fd.read().strip())
-                except IOError:
-                    pid = None
-                    state = 'STOPPED'
-                except ValueError:
-                    pid = None
-                    state = 'STOPPED'
-                else:
-                    try:
-                        os.kill(pid, 0)
-                    except OSError:
-                        state = 'UNKNOWN'
-                    else:
-                        state = 'RUNNING'
-            elif 'rcng' in i and 'rc-scripts' in i['rcng']:
-                rc_scripts = i['rcng']['rc-scripts']
-                pid = None
-                state = 'RUNNING'
-                try:
-                    if type(rc_scripts) is unicode:
-                        system("/usr/sbin/service", rc_scripts, 'onestatus')
-
-                    if type(rc_scripts) is list:
-                        for x in rc_scripts:
-                            system("/usr/sbin/service", x, 'onestatus')
-                except SubprocessException:
-                    state = 'STOPPED'
-            else:
-                pid = None
-                state = 'UNKNOWN'
-
+            state, pid = get_status(i)
             entry = {
                 'name': i['name'],
                 'state': state,
@@ -105,7 +71,7 @@ class ServiceInfoProvider(Provider):
                 gevent.spawn(extend, entry): entry
                 for entry in result
             }
-        gevent.joinall(jobs.keys(), timeout=5)
+        gevent.joinall(jobs.keys(), timeout=15)
         group = gevent.pool.Group()
 
         def result(greenlet):
@@ -182,6 +148,7 @@ class ServiceInfoProvider(Provider):
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
         rc_scripts = svc['rcng']['rc-scripts']
+        reload_scripts = service['rcng'].get('reload', rc_scripts)
 
         if status['state'] != 'RUNNING':
             return
@@ -194,6 +161,9 @@ class ServiceInfoProvider(Provider):
 
         if type(rc_scripts) is list:
             for i in rc_scripts:
+                if i not in reload_scripts:
+                        continue
+
                 try:
                     system("/usr/sbin/service", i, 'onereload')
                 except SubprocessException:
@@ -241,12 +211,16 @@ class ServiceManageTask(Task):
     def run(self, name, action):
         service = self.datastore.get_one('service_definitions', ('name', '=', name))
         rc_scripts = service['rcng'].get('rc-scripts')
+        reload_scripts = service['rcng'].get('reload', rc_scripts)
         try:
             if type(rc_scripts) is unicode:
                 system("/usr/sbin/service", rc_scripts, 'one' + action)
 
             if type(rc_scripts) is list:
                 for i in rc_scripts:
+                    if action == 'reload' and i not in reload_scripts:
+                        continue
+
                     system("/usr/sbin/service", i, 'one' + action)
 
         except SubprocessException, e:
@@ -275,6 +249,7 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
+        state, pid = get_status(service_def)
 
         if service_def.get('task'):
             self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
@@ -285,10 +260,55 @@ class UpdateServiceConfigTask(Task):
             if service_def.get('etcd-group'):
                 self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
 
+            if node['enable'] and state != 'RUNNING':
+                self.dispatcher.call_sync('service.ensure_started', service)
+
+            if not node['enable'] and state != 'STOPPED':
+                self.dispatcher.call_sync('service.ensure_stopped', service)
+
         self.dispatcher.dispatch_event('service.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
         })
+
+
+def get_status(service):
+    if 'pidfile' in service:
+        # Check if process is alive by reading pidfile
+        try:
+            fd = open(service['pidfile'], 'r')
+            pid = int(fd.read().strip())
+        except IOError:
+            pid = None
+            state = 'STOPPED'
+        except ValueError:
+            pid = None
+            state = 'STOPPED'
+        else:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                state = 'UNKNOWN'
+            else:
+                state = 'RUNNING'
+    elif 'rcng' in service and 'rc-scripts' in service['rcng']:
+        rc_scripts = service['rcng']['rc-scripts']
+        pid = None
+        state = 'RUNNING'
+        try:
+            if type(rc_scripts) is unicode:
+                system("/usr/sbin/service", rc_scripts, 'onestatus')
+
+            if type(rc_scripts) is list:
+                for x in rc_scripts:
+                    system("/usr/sbin/service", x, 'onestatus')
+        except SubprocessException:
+            state = 'STOPPED'
+    else:
+        pid = None
+        state = 'UNKNOWN'
+
+    return state, pid
 
 
 def _init(dispatcher, plugin):
