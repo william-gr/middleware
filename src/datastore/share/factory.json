@@ -1076,8 +1076,8 @@
             "rpcbind",
             "nfsd",
             "mountd",
-            "lockd",
             "statd",
+            "lockd",
             "gssd"
           ],
           "reload": ["mountd"]
