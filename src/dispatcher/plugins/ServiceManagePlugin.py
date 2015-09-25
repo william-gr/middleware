@@ -260,11 +260,13 @@ class UpdateServiceConfigTask(Task):
             if service_def.get('etcd-group'):
                 self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
 
-            if node['enable'] and state != 'RUNNING':
-                self.dispatcher.call_sync('service.ensure_started', service)
+            if node['enable'].value and state != 'RUNNING':
+                logger.info('Starting service {0}'.format(service))
+                self.dispatcher.call_sync('services.ensure_started', service)
 
-            if not node['enable'] and state != 'STOPPED':
-                self.dispatcher.call_sync('service.ensure_stopped', service)
+            if not node['enable'].value and state != 'STOPPED':
+                logger.info('Stopping service {0}'.format(service))
+                self.dispatcher.call_sync('services.ensure_stopped', service)
 
         self.dispatcher.dispatch_event('service.changed', {
             'operation': 'update',
