@@ -258,7 +258,13 @@ class EventType(object):
         self.refcount += 1
 
     def decref(self):
-        self.refcount -= 1
+        # lets not go below 0!!!
+        if self.refcount > 0:
+            self.refcount -= 1
+        elif self.refcount < 0:
+            # Ok so something is messed up
+            # fix it by going to 0
+            self.refcount = 0
 
         if self.refcount == 0 and self.source:
             self.source.disable(self.name)
