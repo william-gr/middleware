@@ -265,6 +265,12 @@ class EventType(object):
             # Ok so something is messed up
             # fix it by going to 0
             self.refcount = 0
+            self.logger.error(
+                "{0}'s refcount was below zero and was being decreased even further!".format(self.name))
+            return
+        elif self.refcount == 0:
+            self.logger.error("Cannot decrease {0}'s refcount below zero!".format(self.name))
+            return
 
         if self.refcount == 0 and self.source:
             self.source.disable(self.name)
@@ -791,6 +797,15 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         method(message["id"], message["args"])
 
     def on_events_subscribe(self, id, event_masks):
+        # Confirming the event masks is a flat list
+        event_masks_copy = []
+        for i in event_masks:
+            if isinstance(i, list):
+                event_masks_copy.append(*i)
+            else:
+                event_masks_copy.append(i)
+        event_masks = event_masks_copy[:]
+
         if self.user is None:
             return
 
@@ -809,9 +824,18 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 if fnmatch.fnmatch(name, mask):
                     ev.incref()
 
-        self.event_masks = set.union(self.event_masks, event_masks)
+        self.event_masks = set.union(self.event_masks, set(event_masks))
 
     def on_events_unsubscribe(self, id, event_masks):
+        # Confirming the event masks is a flat list
+        event_masks_copy = []
+        for i in event_masks:
+            if isinstance(i, list):
+                event_masks_copy.append(*i)
+            else:
+                event_masks_copy.append(i)
+        event_masks = event_masks_copy[:]
+
         if self.user is None:
             return
 
@@ -830,7 +854,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 if fnmatch.fnmatch(name, mask):
                     ev.decref()
 
-        self.event_masks = set.difference(self.event_masks, event_masks)
+        self.event_masks = set.difference(self.event_masks, set(event_masks))
 
     def on_events_event(self, id, data):
         if self.user is None:
