@@ -148,7 +148,7 @@ class ServiceInfoProvider(Provider):
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
         rc_scripts = svc['rcng']['rc-scripts']
-        reload_scripts = service['rcng'].get('reload', rc_scripts)
+        reload_scripts = svc['rcng'].get('reload', rc_scripts)
 
         if status['state'] != 'RUNNING':
             return
