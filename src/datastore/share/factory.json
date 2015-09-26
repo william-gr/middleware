@@ -1044,6 +1044,7 @@
         },
         "builtin": false,
         "etcd-group": "sshd",
+        "pidfile": "/var/run/sshd.pid",
         "name": "sshd"
       },
       "77C31BDA-A90A-495A-8D58-0063981EEC67": {
