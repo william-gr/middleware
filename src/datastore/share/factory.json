@@ -1001,6 +1001,11 @@
         "rcng": {
           "rc-scripts": "samba_server"
         },
+        "pidfile": [
+          "/var/run/samba4/smbd.pid",
+          "/var/run/samba4/nmbd.pid",
+          "/var/run/samba4/winbindd.pid"
+        ],
         "builtin": false,
         "task": "service.cifs.configure",
         "name": "cifs"
