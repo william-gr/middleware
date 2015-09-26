@@ -268,6 +268,7 @@ class UpdateServiceConfigTask(Task):
                 logger.info('Stopping service {0}'.format(service))
                 self.dispatcher.call_sync('services.ensure_stopped', service)
 
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         self.dispatcher.dispatch_event('service.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
