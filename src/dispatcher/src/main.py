@@ -253,7 +253,7 @@ class EventType(object):
     def incref(self):
         if self.refcount == 0 and self.source:
             self.source.enable(self.name)
-            self.logger.debug('Enabling event source')
+            self.logger.debug('Enabling event source: {0}'.format(self.name))
 
         self.refcount += 1
 
@@ -274,7 +274,7 @@ class EventType(object):
 
         if self.refcount == 0 and self.source:
             self.source.disable(self.name)
-            self.logger.debug('Disabling event source')
+            self.logger.debug('Disabling event source: {0}'.format(self.name))
 
 
 class Dispatcher(object):
@@ -746,6 +746,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.token = None
         self.event_masks = set()
         self.rlock = RLock()
+        self.event_subscription_lock = RLock()
 
     def on_open(self):
         trace_log('Client {0} connected', self.ws.handler.client_address)
@@ -818,6 +819,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 self.logout('Logged out due to inactivity period')
                 return
 
+        self.event_subscription_lock.acquire()
         # Increment reference count for any newly subscribed event
         for mask in set.difference(set(event_masks), self.event_masks):
             for name, ev in self.dispatcher.event_types.items():
@@ -825,6 +827,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                     ev.incref()
 
         self.event_masks = set.union(self.event_masks, set(event_masks))
+        self.event_subscription_lock.release()
 
     def on_events_unsubscribe(self, id, event_masks):
         # Confirming the event masks is a flat list
@@ -848,13 +851,15 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 self.logout('Logged out due to inactivity period')
                 return
 
-        # Decrement reference count for any unsubscribed, previously subscribed event
-        for mask in set.union(set(event_masks), self.event_masks):
+        self.event_subscription_lock.acquire()
+        # Decrement reference count for any newly unsubscribed event
+        for mask in set.difference(set(event_masks), self.event_masks):
             for name, ev in self.dispatcher.event_types.items():
                 if fnmatch.fnmatch(name, mask):
                     ev.decref()
 
         self.event_masks = set.difference(self.event_masks, set(event_masks))
+        self.event_subscription_lock.release()
 
     def on_events_event(self, id, data):
         if self.user is None:
