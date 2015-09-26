@@ -132,7 +132,7 @@ def convert_share(ret, target, share):
     ret['guest ok'] = yesno(share.get('guest_ok', False))
     ret['guest only'] = yesno(share.get('guest_only', False))
     ret['read only'] = yesno(share.get('read only', False))
-    ret['browseable'] = yesno(share.get('browseable', False))
+    ret['browseable'] = yesno(share.get('browseable', True))
     ret['hide dot files'] = yesno(not share.get('show_hidden_files', False))
     ret['printable'] = 'no'
     ret['nfs4:mode'] = 'special'
