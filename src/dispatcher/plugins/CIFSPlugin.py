@@ -63,10 +63,11 @@ class CIFSConfigureTask(Task):
 
         netbiosname = cifs.get('netbiosname')
         if netbiosname is not None:
-            if not validate_netbios_name(netbiosname):
-                errors.append(('netbiosname', errno.EINVAL, 'Invalid name'))
+            for n in netbiosname:
+                if not validate_netbios_name(n):
+                    errors.append(('netbiosname', errno.EINVAL, 'Invalid name {0}'.format(n)))
         else:
-            netbiosname = node['netbiosname']
+            netbiosname = node['netbiosname'].value
 
         workgroup = cifs.get('workgroup')
         if workgroup is not None:
