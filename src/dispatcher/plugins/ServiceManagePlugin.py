@@ -312,6 +312,7 @@ def get_status(service):
                     system("/usr/sbin/service", x, 'onestatus')
         except SubprocessException:
             state = 'STOPPED'
+
     else:
         pid = None
         state = 'UNKNOWN'
@@ -323,7 +324,12 @@ def _init(dispatcher, plugin):
     def on_rc_command(args):
         cmd = args['action']
         name = args['name']
-        svc = dispatcher.datastore.get_one('service_definitions', ('rcng.rc-scripts', '=', name))
+        svc = dispatcher.datastore.get_one('service_definitions', (
+            'or', (
+                ('rcng.rc-scripts', '=', name),
+                ('rcng.rc-scripts', 'in', name)
+            )
+        ))
 
         if svc is None:
             # ignore unknown rc scripts
