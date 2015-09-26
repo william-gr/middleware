@@ -819,15 +819,14 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 self.logout('Logged out due to inactivity period')
                 return
 
-        self.event_subscription_lock.acquire()
-        # Increment reference count for any newly subscribed event
-        for mask in set.difference(set(event_masks), self.event_masks):
-            for name, ev in self.dispatcher.event_types.items():
-                if fnmatch.fnmatch(name, mask):
-                    ev.incref()
+        with self.event_subscription_lock:
+            # Increment reference count for any newly subscribed event
+            for mask in set.difference(set(event_masks), self.event_masks):
+                for name, ev in self.dispatcher.event_types.items():
+                    if fnmatch.fnmatch(name, mask):
+                        ev.incref()
 
-        self.event_masks = set.union(self.event_masks, set(event_masks))
-        self.event_subscription_lock.release()
+            self.event_masks = set.union(self.event_masks, set(event_masks))
 
     def on_events_unsubscribe(self, id, event_masks):
         # Confirming the event masks is a flat list
@@ -851,15 +850,15 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 self.logout('Logged out due to inactivity period')
                 return
 
-        self.event_subscription_lock.acquire()
-        # Decrement reference count for any newly unsubscribed event
-        for mask in set.difference(set(event_masks), self.event_masks):
-            for name, ev in self.dispatcher.event_types.items():
-                if fnmatch.fnmatch(name, mask):
-                    ev.decref()
+        with self.event_subscription_lock:
+            # Decrement reference count for any newly unsubscribed event
+            intersecting_unsubscribe_events = set.intersection(set(event_masks), self.event_masks)
+            for mask in intersecting_unsubscribe_events:
+                for name, ev in self.dispatcher.event_types.items():
+                    if fnmatch.fnmatch(name, mask):
+                        ev.decref()
 
-        self.event_masks = set.difference(self.event_masks, set(event_masks))
-        self.event_subscription_lock.release()
+            self.event_masks = set.difference(self.event_masks, intersecting_unsubscribe_events)
 
     def on_events_event(self, id, data):
         if self.user is None:
@@ -1166,13 +1165,12 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         trace_log('{0} <- {1}', self.ws.handler.client_address, data)
 
-        self.rlock.acquire()
-        try:
-            self.ws.send(data)
-        except WebSocketError, err:
-            self.dispatcher.logger.error('Cannot send message to %s: %s', self.ws.handler.client_address, str(err))
-
-        self.rlock.release()
+        with self.rlock:
+            try:
+                self.ws.send(data)
+            except WebSocketError, err:
+                self.dispatcher.logger.error(
+                    'Cannot send message to %s: %s', self.ws.handler.client_address, str(err))
 
 
 class ShellConnection(WebSocketApplication, EventEmitter):
