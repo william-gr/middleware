@@ -844,8 +844,7 @@
       },
       "0B8B01D5-91B4-4DEE-9720-4D65D56F513E": {
         "dependencies": [
-          "file:local/smbusers",
-          "plugin:local/smb4.conf"
+          "file:local/smbusers"
         ],
         "name": "samba"
       },
