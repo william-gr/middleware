@@ -276,23 +276,29 @@ class UpdateServiceConfigTask(Task):
 
 def get_status(service):
     if 'pidfile' in service:
-        # Check if process is alive by reading pidfile
-        try:
-            fd = open(service['pidfile'], 'r')
-            pid = int(fd.read().strip())
-        except IOError:
-            pid = None
-            state = 'STOPPED'
-        except ValueError:
-            pid = None
-            state = 'STOPPED'
-        else:
+        state = 'RUNNING'
+        pid = None
+        pidfiles = service['pidfile'] \
+            if isinstance(service['pidfile'], list) \
+            else [service['pidfile']]
+
+        for p in pidfiles:
+            # Check if process is alive by reading pidfile
             try:
-                os.kill(pid, 0)
-            except OSError:
-                state = 'UNKNOWN'
+                with open(p, 'r') as fd:
+                    pid = int(fd.read().strip())
+            except IOError:
+                pid = None
+                state = 'STOPPED'
+            except ValueError:
+                pid = None
+                state = 'STOPPED'
             else:
-                state = 'RUNNING'
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    state = 'UNKNOWN'
+
     elif 'rcng' in service and 'rc-scripts' in service['rcng']:
         rc_scripts = service['rcng']['rc-scripts']
         pid = None
