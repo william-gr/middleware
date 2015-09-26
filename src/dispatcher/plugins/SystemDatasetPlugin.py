@@ -42,6 +42,9 @@ LINK_DIRS = {
     'samba': '/var/db/samba4',
     'log': '/var/log'
 }
+SKELETON_DIRS = {
+    'log': ['riak', 'riak-cs', 'samba4', 'stanchion']
+}
 
 logger = logging.getLogger('SystemDataset')
 
@@ -56,6 +59,10 @@ def link_directories(dispatcher):
 
         shutil.move(directory, directory + '.{0}.bak'.format(int(time.time())))
         os.symlink(target, directory)
+
+        if name in SKELETON_DIRS:
+            for i in SKELETON_DIRS[name]:
+                os.mkdir(os.path.join(target, i))
 
 
 def create_system_dataset(dispatcher, pool):
