@@ -59,7 +59,7 @@ class CIFSConfigureTask(Task):
     def verify(self, cifs):
         errors = []
 
-        node = ConfigNode('service.cifs', self.configstore)
+        node = ConfigNode('service.cifs', self.configstore).__getstate__()
 
         netbiosname = cifs.get('netbiosname')
         if netbiosname is not None:
@@ -67,7 +67,7 @@ class CIFSConfigureTask(Task):
                 if not validate_netbios_name(n):
                     errors.append(('netbiosname', errno.EINVAL, 'Invalid name {0}'.format(n)))
         else:
-            netbiosname = node['netbiosname'].value
+            netbiosname = node['netbiosname']
 
         workgroup = cifs.get('workgroup')
         if workgroup is not None:
@@ -76,7 +76,7 @@ class CIFSConfigureTask(Task):
         else:
             workgroup = node['workgroup']
 
-        if netbiosname.lower() == workgroup.lower():
+        if workgroup.lower() in [i.lower() for i in netbiosname]:
             errors.append(('netbiosname', errno.EEXIST, 'NetBIOS and Workgroup must be unique'))
 
         dirmask = cifs.get('dirmask')
@@ -96,7 +96,7 @@ class CIFSConfigureTask(Task):
         try:
             node = ConfigNode('service.cifs', self.configstore)
             node.update(cifs)
-            configure_params(node)
+            configure_params(node.__getstate__())
             self.dispatcher.dispatch_event('service.cifs.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -113,15 +113,15 @@ def yesno(val):
 
 def configure_params(cifs):
     conf = smbconf.SambaConfig('registry')
-    conf['netbios name'] = cifs['netbiosname'].value[0]
+    conf['netbios name'] = cifs['netbiosname'][0]
     if len(cifs['netbiosname']) > 1:
-        conf['netbios aliases'] = ' '.join(cifs['netbiosname'].value[1:])
+        conf['netbios aliases'] = ' '.join(cifs['netbiosname'][1:])
 
     if cifs['bind_addresses']:
-        conf['interfaces'] = ' '.join(['127.0.0.1'] + cifs['bind_addresses'].value)
+        conf['interfaces'] = ' '.join(['127.0.0.1'] + cifs['bind_addresses'])
 
-    conf['workgroup'] = cifs['workgroup'].value
-    conf['server string'] = cifs['description'].value
+    conf['workgroup'] = cifs['workgroup']
+    conf['server string'] = cifs['description']
     conf['encrypt passwords'] = 'yes'
     conf['dns proxy'] = 'no'
     conf['strict locking'] = 'no'
@@ -139,9 +139,9 @@ def configure_params(cifs):
     conf['printcap name'] = '/dev/null'
     conf['disable spoolss'] = 'yes'
     conf['getwd cache'] = 'yes'
-    conf['guest account'] = cifs['guest_user'].value
+    conf['guest account'] = cifs['guest_user']
     conf['map to guest'] = 'Bad User'
-    conf['obey pam restrictions'] = yesno(cifs['obey_pam_restrictions'].value)
+    conf['obey pam restrictions'] = yesno(cifs['obey_pam_restrictions'])
     conf['directory name cache size'] = '0'
     conf['kernel change notify'] = 'no'
     conf['panic action'] = '/usr/local/libexec/samba/samba-backtrace'
@@ -149,17 +149,17 @@ def configure_params(cifs):
     conf['ea support'] = 'yes'
     conf['store dos attributes'] = 'yes'
     conf['lm announce'] = 'yes'
-    conf['hostname lookups'] = yesno(cifs['hostlookup'].value)
-    conf['unix extensions'] = yesno(cifs['unixext'].value)
-    conf['time server'] = yesno(cifs['time_server'].value)
-    conf['null passwords'] = yesno(cifs['empty_password'].value)
-    conf['acl allow execute always'] = yesno(cifs['execute_always'].value)
+    conf['hostname lookups'] = yesno(cifs['hostlookup'])
+    conf['unix extensions'] = yesno(cifs['unixext'])
+    conf['time server'] = yesno(cifs['time_server'])
+    conf['null passwords'] = yesno(cifs['empty_password'])
+    conf['acl allow execute always'] = yesno(cifs['execute_always'])
     conf['acl check permissions'] = 'true'
     conf['dos filemode'] = 'yes'
-    conf['multicast dns register'] = yesno(cifs['zeroconf'].value)
-    conf['local master'] = yesno(cifs['local_master'].value)
+    conf['multicast dns register'] = yesno(cifs['zeroconf'])
+    conf['local master'] = yesno(cifs['local_master'])
     conf['server role'] = 'auto'
-    conf['log level'] = str(cifs['log_level'].value)
+    conf['log level'] = str(cifs['log_level'])
     conf['username map'] = '/usr/local/etc/smbusers'
 
 
@@ -248,4 +248,4 @@ def _init(dispatcher, plugin):
 
     set_cifs_sid()
     node = ConfigNode('service.cifs', dispatcher.configstore)
-    configure_params(node)
+    configure_params(node.__getstate__())
