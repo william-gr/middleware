@@ -1126,6 +1126,7 @@
           "rc-scripts": "riak"
         },
         "builtin": false,
+	"pidfile": "/var/run/riak/riak.pid",
         "name": "riak"
       },
       "5E261539-46CB-4453-B94B-1C037F093CCE": {
@@ -1133,6 +1134,7 @@
           "rc-scripts": "stanchion"
         },
         "builtin": false,
+	"pidfile": "/var/run/stanchion/stanchion.pid",
         "name": "stanchion"
       },
       "0B1057A8-8923-4B57-B138-87563E0AFC9B": {
@@ -1140,6 +1142,7 @@
           "rc-scripts": "riak-cs"
         },
         "builtin": false,
+	"pidfile": "/var/run/riak-cs/riak-cs.pid",
         "name": "riak_cs"
       },
       "0B1057A8-8923-4B57-B138-87563E0AFD9B": {
