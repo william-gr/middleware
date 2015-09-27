@@ -91,6 +91,10 @@ class EventService(RpcService):
         params = params if params else {}
         return list(self.__datastore.query('events', *filter, **params))
 
+    @pass_sender
+    def get_my_subscriptions(self, sender):
+        return list(sender.event_masks)
+
     @private
     def suspend(self):
         self.__dispatcher.event_delivery_lock.acquire()
