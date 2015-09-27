@@ -100,16 +100,24 @@ class VolumeProvider(Provider):
                             pass
 
                 vol.update({
-                    'description': config.get('root_dataset.properties.org\\.freenas:description.value'),
+                    'description': None,
+                    'mountpoint': None,
+                    'datasets': None,
+                    'upgraded': None,
                     'topology': topology,
                     'root_vdev': config['root_vdev'],
                     'status': config['status'],
-                    'upgraded': is_upgraded(config),
                     'scan': config['scan'],
                     'properties': config['properties'],
-                    'mountpoint': config['root_dataset.properties.mountpoint.value'],
-                    'datasets': map(extend_dataset, flatten_datasets(config['root_dataset']))
                 })
+
+                if config['status'] != 'UNAVAIL':
+                    vol.update({
+                        'description': config.get('root_dataset.properties.org\\.freenas:description.value'),
+                        'mountpoint': config['root_dataset.properties.mountpoint.value'],
+                        'datasets': map(extend_dataset, flatten_datasets(config['root_dataset'])),
+                        'upgraded': is_upgraded(config),
+                    })
 
             return vol
 
