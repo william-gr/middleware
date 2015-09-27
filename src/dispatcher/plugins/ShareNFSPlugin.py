@@ -45,7 +45,12 @@ class NFSSharesProvider(Provider):
         for line in f:
             host, path = line.split()
             if share['target'] in path:
-                result.append(host)
+                result.append({
+                    'host': host,
+                    'share': share_name,
+                    'user': None,
+                    'connected_at': None
+                })
 
         f.close()
         return result

@@ -48,6 +48,8 @@ class SharesProvider(Provider):
         return result
 
     @description("Returns list of clients connected to particular share")
+    @accepts(str)
+    @returns(h.array(h.ref('share-client')))
     def get_connected_clients(self, share_name):
         share = self.datastore.get_by_id('shares', share_name)
         if not share:
