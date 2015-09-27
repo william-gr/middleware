@@ -1019,7 +1019,7 @@ def _init(dispatcher, plugin):
 
         except TaskException, err:
             if err.code != errno.EBUSY:
-                logger.warning('Cannot mount volume {0}: {1}'.format(vol['name']), str(err))
+                logger.warning('Cannot mount volume {0}: {1}'.format(vol['name'], str(err)))
 
     # Scan for sentinel files indicating share type and convert them
     # to zfs user properties
