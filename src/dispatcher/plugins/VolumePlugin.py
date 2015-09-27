@@ -234,7 +234,10 @@ class VolumeProvider(Provider):
     def get_volume_disks(self, name):
         result = []
         for dev in self.dispatcher.call_sync('zfs.pool.get_disks', name):
-            result.append(self.dispatcher.call_sync('disks.partition_to_disk', dev))
+            try:
+                result.append(self.dispatcher.call_sync('disks.partition_to_disk', dev))
+            except RpcException:
+                pass
 
         return result
 
@@ -284,10 +287,10 @@ class VolumeProvider(Provider):
         for vol in self.dispatcher.call_sync('volumes.query'):
             for dev in self.dispatcher.call_sync('volumes.get_volume_disks', vol['name']):
                 if dev in disks:
-                        ret[dev] = {
-                            'type': 'VOLUME',
-                            'name': vol['name']
-                        }
+                    ret[dev] = {
+                        'type': 'VOLUME',
+                        'name': vol['name']
+                    }
 
         return ret
 
