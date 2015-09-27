@@ -18,10 +18,16 @@
             result.append('-sec={0}'.format(':'.join(properties['security'])))
 
         if properties.get('mapall_user'):
-            result.append('-mapall={0}'.format(properties['mapall_user']))
+            if 'mapall_group' in properties:
+                result.append('-mapall={mapall_user}:{mapall_group}'.format(**properties))
+            else:
+                result.append('-mapall={mapall_user}'.format(**properties))
 
         elif properties.get('maproot_user'):
-            result.append('-maproot={0}'.format(properties['maproot_user']))
+            if 'maproot_group' in properties:
+                result.append('-maproot={maroot_user}:{maproot_group}'.format(**properties))
+            else:
+                result.append('-maproot={maroot_user}'.format(**properties))
 
         for host in properties.get('hosts', []):
             if '/' in host:
