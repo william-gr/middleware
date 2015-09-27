@@ -62,6 +62,6 @@ ${opt("stat vol", "no" if share["properties"].get("no_stat") else "yes")}\
 ${opt("unix priv", "yes" if share["properties"].get("afp3_privileges") else "no")}\
 ${opt("file perm", share["properties"].get("default_file_perms"))}\
 ${opt("directory perm", share["properties"].get("default_directory_perms"))}\
-${opt("umask" ,share["properties"].get("default_umask"))}\
-veto files = .windows/.mac/
+${opt("umask", share["properties"].get("default_umask"))}\
+${opt("veto files", ".windows/.mac/")}
 % endfor
