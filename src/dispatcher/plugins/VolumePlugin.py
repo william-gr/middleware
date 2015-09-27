@@ -259,7 +259,11 @@ class VolumeProvider(Provider):
         disks = set([d['path'] for d in self.dispatcher.call_sync('disks.query')])
         for pool in self.dispatcher.call_sync('zfs.pool.query'):
             for dev in self.dispatcher.call_sync('zfs.pool.get_disks', pool['name']):
-                disk = self.dispatcher.call_sync('disks.partition_to_disk', dev)
+                try:
+                    disk = self.dispatcher.call_sync('disks.partition_to_disk', dev)
+                except RpcException:
+                    continue
+
                 disks.remove(disk)
 
         return list(disks)
