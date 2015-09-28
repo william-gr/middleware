@@ -63,7 +63,7 @@ class SNMPConfigureTask(Task):
             node = ConfigNode('service.snmp', self.configstore)
             node.update(snmp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('services.restart', 'snmpd')
+            self.dispatcher.call_sync('services.restart', 'snmp')
             self.dispatcher.dispatch_event('service.snmp.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -86,13 +86,15 @@ def _init(dispatcher, plugin):
         'properties': {
             'location': {'type': ['string', 'null']},
             'contact': {'type': ['string', 'null']},
+            'community': {'type': ['string', 'null']},
             'v3': {'type': 'boolean'},
-            'v3_auth_type': {'type': ['string', 'null', 'enum': [
-                None,
+            'v3_username': {'type': 'string'},
+            'v3_password': {'type': 'string'},
+            'v3_auth_type': {'type': 'string', 'enum': [
                 'MD5',
                 'SHA',
             ]},
-            'v3_privacy_protocol': {'type': ['string', 'null'], 'enum': [
+            'v3_privacy_protocol': {'type': 'string', 'enum': [
                 'AES',
                 'DES',
             ]},
