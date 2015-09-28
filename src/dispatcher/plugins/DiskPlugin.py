@@ -248,8 +248,8 @@ class DiskInstallBootloaderTask(Task):
 
 @accepts(str, h.ref('disk-erase-method'))
 class DiskEraseTask(Task):
-    def __init__(self, dispatcher):
-        super(DiskEraseTask, self).__init__(dispatcher)
+    def __init__(self, dispatcher, datastore):
+        super(DiskEraseTask, self).__init__(dispatcher, datastore)
         self.started = False
         self.mediasize = 0
         self.remaining = 0
@@ -261,10 +261,10 @@ class DiskEraseTask(Task):
         return ['disk:{0}'.format(disk)]
 
     def run(self, disk, erase_method=None):
+        diskinfo = self.dispatcher.call_sync("disks.get_disk_config", disk)
         try:
             system('/sbin/zpool', 'labelclear', '-f', disk)
-            generate_disk_cache(self.dispatcher, disk)
-            if self.dispatcher.call_sync("disks.get_disk_config", disk)['partitions']:
+            if diskinfo.get('partitions'):
                 system('/sbin/gpart', 'destroy', '-F', disk)
         except SubprocessException, err:
             raise TaskException(errno.EFAULT, 'Cannot erase disk: {0}'.format(err.err))
@@ -273,14 +273,12 @@ class DiskEraseTask(Task):
             erase_method = 'QUICK'
 
         zeros = b'\0' * (1024 * 1024)
-        diskinfo = diskinfo_cache.get(disk)
-        fd = open(disk, 'w')
+        fd = os.open(disk, os.O_WRONLY)
 
         if erase_method == 'QUICK':
-            fd.write(zeros)
-            fd.seek(diskinfo['mediasize'] - len(zeros))
-            fd.write(zeros)
-            fd.flush()
+            os.write(fd, zeros)
+            os.lseek(fd, diskinfo['mediasize'] - len(zeros), os.SEEK_SET)
+            os.write(fd, zeros)
 
         if erase_method in ('ZEROS', 'RANDOM'):
             self.mediasize = diskinfo['mediasize']
@@ -290,18 +288,16 @@ class DiskEraseTask(Task):
             while self.remaining > 0:
                 garbage = zeros if erase_method == 'ZEROS' else os.urandom(1024 * 1024)
                 amount = min(len(garbage), self.remaining)
-                fd.write(garbage[:amount])
-                fd.flush()
+                os.write(fd, garbage[:amount])
                 self.remaining -= amount
 
-        fd.close()
-        generate_disk_cache(self.dispatcher, disk)
+        os.close(fd)
 
     def get_status(self):
         if not self.started:
             return TaskStatus(0, 'Erasing disk...')
 
-        return TaskStatus(self.remaining / self.mediasize, 'Erasing disk...')
+        return TaskStatus((self.mediasize - self.remaining) / float(self.mediasize), 'Erasing disk...')
 
 
 @description("Configures online disk parameters")
