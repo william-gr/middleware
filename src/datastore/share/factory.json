@@ -696,7 +696,7 @@
       "service.smartd.temp_informational": null,
       "service.smartd.temp_critical": null,
       "service.snmp.enable": true,
-      "service.ftp.enable": true,
+      "service.ftp.enable": false,
       "service.ftp.port": 21,
       "service.ftp.max_clients": 32,
       "service.ftp.ip_connections": null,
