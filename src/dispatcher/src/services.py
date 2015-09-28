@@ -264,9 +264,14 @@ class TaskService(RpcService):
         return result
 
     def query(self, filter=None, params=None):
-        filter = filter if filter else []
-        params = params if params else {}
-        return self.__datastore.query('tasks', *filter, **params)
+        def extend(t):
+            task = self.__balancer.get_task(t['id'])
+            if task and task.progress:
+                t['progress'] = task.progress.__getstate__()
+
+            return t
+
+        return self.__datastore.query('tasks', *(filter or []), callback=extend, **(params or {}))
 
     @private
     @pass_sender
