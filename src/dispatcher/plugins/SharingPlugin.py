@@ -118,6 +118,18 @@ class DeleteShareTask(Task):
         self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), name))
 
 
+class DeleteDependentShares(Task):
+    def verify(self, path):
+        return ['system']
+
+    def run(self, path):
+        subtasks = []
+        for i in self.dispatcher.call_sync('shares.get_dependencies', path):
+            subtasks.append(self.run_subtask('share.delete', i['id']))
+
+        self.join_subtasks(subtasks)
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('share', {
         'type': 'object',
@@ -147,3 +159,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('share.create', CreateShareTask)
     plugin.register_task_handler('share.update', UpdateShareTask)
     plugin.register_task_handler('share.delete', DeleteShareTask)
+    plugin.register_task_handler('share.delete_dependent', DeleteDependentShares)
