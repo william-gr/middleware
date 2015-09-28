@@ -2,15 +2,15 @@ PREFIX ?= /usr/local
 PYTHON ?= python
 
 install:
-	install etc/dispatcher ${PREFIX}/etc/rc.d/
-	install etc/middleware.conf ${PREFIX}/etc/middleware.conf
-	install tools/dispatcherd ${PREFIX}/sbin/
-	install tools/dispatcherctl ${PREFIX}/sbin/
-	install tools/taskproxy ${PREFIX}/libexec/
-	install -d ${PREFIX}/lib/dispatcher/src
-	install -d ${PREFIX}/lib/dispatcher/plugins
-	install -d ${PREFIX}/libexec/dispatcher
-	cp -R src/ ${PREFIX}/lib/dispatcher/src/
-	cp -R plugins/ ${PREFIX}/lib/dispatcher/plugins/
-	cp -R libexec/ ${PREFIX}/libexec/dispatcher/
-	cd client/python && ${PYTHON} setup.py install --prefix=${PREFIX}
+	install etc/dispatcher ${STAGEDIR}${PREFIX}/etc/rc.d/
+	install etc/middleware.conf ${STAGEDIR}${PREFIX}/etc/middleware.conf
+	install tools/dispatcherd ${STAGEDIR}${PREFIX}/sbin/
+	install tools/dispatcherctl ${STAGEDIR}${PREFIX}/sbin/
+	install tools/taskproxy ${STAGEDIR}${PREFIX}/libexec/
+	install -d ${STAGEDIR}${PREFIX}/lib/dispatcher/src
+	install -d ${STAGEDIR}${PREFIX}/lib/dispatcher/plugins
+	install -d ${STAGEDIR}${PREFIX}/libexec/dispatcher
+	cp -R src/ ${STAGEDIR}${PREFIX}/lib/dispatcher/src/
+	cp -R plugins/ ${STAGEDIR}${PREFIX}/lib/dispatcher/plugins/
+	cp -R libexec/ ${STAGEDIR}${PREFIX}/libexec/dispatcher/
+	cd client/python && ${PYTHON} setup.py install --root=${STAGEDIR} --prefix=${PREFIX}

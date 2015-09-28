@@ -31,6 +31,6 @@ checksum fetch:
 	echo ${.TARGET} not needed because building direct
 
 do-install:
-	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
+	${MAKE} -C ${WRKSRC} install STAGEDIR=${STAGEDIR} PREFIX=${PREFIX} PYTHON=${PYTHON_CMD}
 
 .include <bsd.port.mk>
