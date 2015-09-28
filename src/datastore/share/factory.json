@@ -984,6 +984,12 @@
           "file:local/smartd.conf"
         ],
         "name": "smartd"
+      },
+      "01AF048D-5D3F-4E6A-A389-96D8D73F3D93": {
+        "dependencies": [
+          "file:local/snmpd.conf"
+        ],
+        "name": "snmpd"
       }
     },
     "metadata": {

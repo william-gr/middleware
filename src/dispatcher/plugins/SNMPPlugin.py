@@ -62,7 +62,7 @@ class SNMPConfigureTask(Task):
         try:
             node = ConfigNode('service.snmp', self.configstore)
             node.update(snmp)
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'snmpd')
             self.dispatcher.call_sync('services.restart', 'snmp')
             self.dispatcher.dispatch_event('service.snmp.changed', {
                 'operation': 'updated',
