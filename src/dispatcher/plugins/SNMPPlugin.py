@@ -24,7 +24,9 @@
 #
 #####################################################################
 import errno
+import jsonschema
 import logging
+import re
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
@@ -52,6 +54,29 @@ class SNMPConfigureTask(Task):
 
         node = ConfigNode('service.snmp', self.configstore).__getstate__()
         node.update(snmp)
+
+        if node['contact']:
+            if '@' in node['contact']:
+                if not jsonschema._format.is_email(node['contact']):
+                    errors.append(('contact', errno.EINVAL, 'Invalid e-mail address'))
+            elif not re.match(r'^[-_a-zA-Z0-9\s]+$', node['contact']):
+                errors.append(('contact', errno.EINVAL, (
+                    'Must contain only alphanumeric characters, _, - or a valid e-mail address')
+                ))
+
+        if not node['community']:
+            if not node['v3']:
+                errors.append(('community', errno.ENOENT, 'This field is required'))
+        elif not re.match(r'^[-_a-zA-Z0-9\s]+$', node['community']):
+            errors.append(('community', errno.EINVAL, (
+                'The community must contain only alphanumeric characters, _ or -')
+            ))
+
+        if node['v3_password'] and len(node['v3_password']) < 8:
+            errors.append(('v3_password', errno.EINVAL, 'Password must contain at least 8 characters'))
+
+        if node['v3_privacy_passphrase'] and len(node['v3_privacy_passphrase']) < 8:
+            errors.append(('v3_password', errno.EINVAL, 'Passphrase must contain at least 8 characters'))
 
         if errors:
             raise ValidationException(errors)
