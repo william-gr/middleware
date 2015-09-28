@@ -167,14 +167,16 @@ def _init(dispatcher, plugin):
     try:
         kld.kldload('/boot/kernel/ipmi.ko')
     except OSError, err:
-        logger.warning('Cannot load IPMI module: %s', str(err))
-        logger.warning('IPMI unavailable')
-    else:
-        # Scan available channels
-        for i in range(1, 17):
-            try:
-                system('/usr/local/bin/ipmitool', 'lan', 'print', str(i))
-            except SubprocessException:
-                continue
+        if err.errno != 17:
+            logger.warning('Cannot load IPMI module: %s', str(err))
+            logger.warning('IPMI unavailable')
+            return
 
-            channels.append(i)
+    # Scan available channels
+    for i in range(1, 17):
+        try:
+            system('/usr/local/bin/ipmitool', 'lan', 'print', str(i))
+        except SubprocessException:
+            continue
+
+        channels.append(i)
