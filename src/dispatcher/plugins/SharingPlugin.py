@@ -118,6 +118,8 @@ class DeleteShareTask(Task):
         self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), name))
 
 
+@description("Deletes all shares dependent on specified volume/dataset")
+@accepts(str)
 class DeleteDependentShares(Task):
     def verify(self, path):
         return ['system']
@@ -127,7 +129,7 @@ class DeleteDependentShares(Task):
         for i in self.dispatcher.call_sync('shares.get_dependencies', path):
             subtasks.append(self.run_subtask('share.delete', i['id']))
 
-        self.join_subtasks(subtasks)
+        self.join_subtasks(*subtasks)
 
 
 def _init(dispatcher, plugin):
