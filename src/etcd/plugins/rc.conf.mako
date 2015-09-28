@@ -81,7 +81,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -153,6 +153,9 @@ rpcbind_flags="${nfs_ips}"
 % if smartd_config['interval']:
 smartd_flags="-i ${smartd_config['interval']*60}"
 % endif
+
+snmpd_conffile="/usr/local/etc/snmpd.conf"
+snmpd_flags="-Ls5d"
 
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
