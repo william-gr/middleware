@@ -90,6 +90,7 @@
 /usr/local/lib/dispatcher/plugins/SMARTPlugin.py
 /usr/local/lib/dispatcher/plugins/ShareCIFSPlugin.py
 /usr/local/lib/dispatcher/plugins/ReplicationPlugin.py
+/usr/local/lib/dispatcher/plugins/SNMPPlugin.py
 /usr/local/libexec/dispatcher/notify-pam
 /usr/local/etc/rc.d/dispatcher
 /usr/local/sbin/dispatcherd
