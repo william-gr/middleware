@@ -763,6 +763,7 @@
       "service.sshd.sftp_log_level": "ERROR",
       "service.sshd.port": 22,
       "service.sshd.enable": true,
+      "service.sshd.auxiliary": null,
       "service.nginx.http.redirect_https": false,
       "service.nginx.http.port": 80,
       "service.nginx.http.enable": true,
