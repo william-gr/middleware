@@ -167,7 +167,7 @@ def _init(dispatcher, plugin):
     try:
         kld.kldload('/boot/kernel/ipmi.ko')
     except OSError, err:
-        if err.errno != 17:
+        if err.errno != errno.EEXIST:
             logger.warning('Cannot load IPMI module: %s', str(err))
             logger.warning('IPMI unavailable')
             return
