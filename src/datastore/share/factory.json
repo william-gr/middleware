@@ -990,6 +990,17 @@
           "file:local/snmpd.conf"
         ],
         "name": "snmpd"
+      },
+      "E58BD01D-26DF-4533-91CE-0D6B04C3023A": {
+        "dependencies": [
+          "file:local/nut/ups.conf",
+          "file:local/nut/upsd.conf",
+          "file:local/nut/upsd.users",
+          "file:local/nut/upsmon.conf",
+          "file:local/nut/upssched.conf",
+          "plugin:local/nut/ups_perms"
+        ],
+        "name": "ups"
       }
     },
     "metadata": {
