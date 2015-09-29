@@ -84,6 +84,10 @@ class CreateShareTask(Task):
 
     def run(self, share):
         self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
+        self.dispatcher.dispatch_event('shares.changed', {
+            'operation': 'create',
+            'ids': [share['id']]
+        })
 
 
 @description("Updates existing share")
@@ -101,6 +105,10 @@ class UpdateShareTask(Task):
         self.join_subtasks(
             self.run_subtask('share.{0}.update'.format(share['type']), name, updated_fields)
         )
+        self.dispatcher.dispatch_event('shares.changed', {
+            'operation': 'update',
+            'ids': [share['id']]
+        })
 
 
 @description("Deletes share")
@@ -116,7 +124,10 @@ class DeleteShareTask(Task):
     def run(self, name):
         share = self.datastore.get_by_id('shares', name)
         self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), name))
-
+        self.dispatcher.dispatch_event('shares.changed', {
+            'operation': 'delete',
+            'ids': [name]
+        })
 
 @description("Deletes all shares dependent on specified volume/dataset")
 @accepts(str)
@@ -126,10 +137,16 @@ class DeleteDependentShares(Task):
 
     def run(self, path):
         subtasks = []
+        ids = []
         for i in self.dispatcher.call_sync('shares.get_dependencies', path):
             subtasks.append(self.run_subtask('share.delete', i['id']))
+            ids.append(i['id'])
 
         self.join_subtasks(*subtasks)
+        self.dispatcher.dispatch_event('shares.changed', {
+            'operation': 'delete',
+            'ids': ids
+        })
 
 
 def _init(dispatcher, plugin):
@@ -162,3 +179,4 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('share.update', UpdateShareTask)
     plugin.register_task_handler('share.delete', DeleteShareTask)
     plugin.register_task_handler('share.delete_dependent', DeleteDependentShares)
+    plugin.register_event_type('shares.changed')
