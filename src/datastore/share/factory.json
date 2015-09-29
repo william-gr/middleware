@@ -754,6 +754,13 @@
       "service.stanchion.enable": false,
       "service.swift.enable": false,
       "service.glusterd.enable": false,
+      "service.tftp.enable": false,
+      "service.tftp.path": null,
+      "service.tftp.allow_new_files": false,
+      "service.tftp.port": 69,
+      "service.tftp.username": "nobody",
+      "service.tftp.umask": "022",
+      "service.tftp.auxiliary": null,
       "service.sshd.allow_pubkey_auth": true,
       "service.sshd.allow_password_auth": true,
       "service.sshd.compression": false,
@@ -1205,6 +1212,14 @@
         "etcd-group": "smartd",
         "pidfile": "/var/run/smartd.pid",
         "name": "smartd"
+      },
+      "638DDE98-3F61-487E-9DA7-47093A6BEB7A": {
+        "rcng": {
+          "rc-scripts": "tftpd"
+        },
+        "builtin": false,
+        "pidfile": "/var/run/tftpd.pid",
+        "name": "tftpd"
       }
     },
     "metadata": {

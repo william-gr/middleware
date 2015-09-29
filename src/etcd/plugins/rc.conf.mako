@@ -4,6 +4,7 @@
     adv_config = dispatcher.call_sync('system.advanced.get_config')
     gen_config = dispatcher.call_sync('system.general.get_config')
     smartd_config = dispatcher.call_sync('service.smartd.get_config')
+    tftp_config = dispatcher.call_sync('service.tftp.get_config')
 
     hwmodel = sysctl.sysctlbyname("hw.model")
 
@@ -81,7 +82,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp', 'sshd'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -156,6 +157,21 @@ smartd_flags="-i ${smartd_config['interval']*60}"
 
 snmpd_conffile="/usr/local/etc/snmpd.conf"
 snmpd_flags="-Ls5d"
+
+tftpd_flags="-s -u ${tftp_config['username']} -U ${tftp_config['umask']}\
+% if tftp_config['port'] != 69:
+ -a :${tftp_config['port']}\
+% endif
+% if tftp_config['allow_new_files']:
+ -c\
+% endif
+% if tftp_config['auxiliary']:
+ ${tftp_config['auxiliary']}\
+% endif
+% if tftp_config['path']:
+ ${tftp_config['path']}\
+% endif
+"
 
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
