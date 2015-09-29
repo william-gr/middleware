@@ -1,4 +1,3 @@
-#+
 # Copyright 2014 iXsystems, Inc.
 # All rights reserved
 #
@@ -24,8 +23,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-
-
 import os
 import subprocess
 import base64
@@ -36,11 +33,13 @@ def run(context):
         config = context.configstore
         private_key = config.get('service.sshd.keys.{0}.private'.format(keytype))
         public_key = config.get('service.sshd.keys.{0}.public'.format(keytype))
+        cert_public_key = config.get('service.sshd.keys.{0}.certificate'.format(keytype))
         private_key_file = '/etc/ssh/ssh_host_{0}_key'.format(keytype) \
             if keytype != 'host' \
             else '/etc/ssh/ssh_host_key'
 
         public_key_file = private_key_file + '.pub'
+        cert_public_key_file = private_key_file + '-cert.pub'
 
         if private_key is None or public_key is None:
             if os.path.exists(private_key_file) and os.path.exists(public_key_file):
@@ -68,6 +67,11 @@ def run(context):
 
             with open(public_key_file, 'w') as fd:
                 fd.write(base64.b64decode(public_key))
+
+            if cert_public_key:
+                with open(cert_public_key_file, 'w') as fd:
+                    fd.write(base64.b64decode(cert_public_key))
+                context.emit_event('etcd.file_generated', {'filename': cert_public_key_file})
 
         context.emit_event('etcd.file_generated', {
             'filename': private_key_file
