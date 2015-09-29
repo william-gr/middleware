@@ -81,22 +81,6 @@
         "attributes": {},
         "builtin": true
       },
-      "522": {
-        "password_disabled": false,
-        "email": null,
-        "group": 522,
-        "home": "/var/spool/nullmailer",
-        "full_name": "Nullmailer Mail System",
-        "username": "nullmail",
-        "sshpubkey": null,
-        "shell": "/bin/sh",
-        "locked": false,
-        "unixhash": "*",
-        "sudo": false,
-        "smbhash": "*",
-        "attributes": {},
-        "builtin": true
-      },
      "187": {
         "password_disabled": false,
         "email": null,
@@ -481,11 +465,6 @@
         "builtin": true,
         "sudo": false,
         "name": "messagebus"
-      },
-      "522": {
-        "builtin": true,
-        "sudo": false,
-        "name": "nullmail"
       },
       "187": {
         "builtin": true,
@@ -916,12 +895,6 @@
           "file:local/collectd.conf"
         ],
         "name": "collectd"
-      },
-      "5A35508B-AE0F-4C1A-B728-482956D1C12E": {
-        "dependencies": [
-          "file:local/nullmailer/remotes"
-        ],
-        "name": "mail"
       },
       "FDF68C06-1F3F-47F8-AF28-2402F3D45424": {
         "dependencies": [

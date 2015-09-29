@@ -137,13 +137,6 @@ class MailConfigureTask(Task):
         node = ConfigNode('mail', self.dispatcher.configstore)
         node.update(mail)
 
-        try:
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'mail')
-        except RpcException, e:
-            raise TaskException(
-                errno.ENXIO, 'Cannot reconfigure mail: {0}'.format(str(e))
-            )
-
 
 def _init(dispatcher, plugin):
 
