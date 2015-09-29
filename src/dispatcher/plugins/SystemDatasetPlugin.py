@@ -36,6 +36,7 @@ import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, Provider
+from fnutils.copytree import copytree
 
 SYSTEM_DIR = '/var/db/system'
 LINK_DIRS = {
@@ -62,86 +63,88 @@ def link_directories(dispatcher):
 
         if name in SKELETON_DIRS:
             for i in SKELETON_DIRS[name]:
-                os.mkdir(os.path.join(target, i))
+                try:
+                    os.mkdir(os.path.join(target, i))
+                except OSError, err:
+                    if err.errno != errno.EEXIST:
+                        logger.warning('Cannot create skeleton directory {0}: {1}'.format(
+                            os.path.join(target, i),
+                            str(err))
+                        )
 
 
-def create_system_dataset(dispatcher, pool):
+def create_system_dataset(dispatcher, dsid, pool):
     logger.warning('Creating system dataset on pool {0}'.format(pool))
     zfs = libzfs.ZFS()
-    dsid = dispatcher.configstore.get('system.dataset.id')
     pool = zfs.get(pool)
+
     try:
-        zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
-        return
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
     except libzfs.ZFSException:
-        nv = {}
-        nv['mountpoint'] = 'none'
-        pool.create('{0}/.system-{1}'.format(pool.name, dsid), nv)
+        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {'mountpoint': 'none'})
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
+
+    try:
+        ds.properties['canmount'].value = 'noauto'
+        ds.properties['mountpoint'].value = SYSTEM_DIR
+    except libzfs.ZFSException, err:
+        logger.warning('Cannot set properties on .system dataset: {0}', str(err))
 
 
-def remove_system_dataset(dispatcher, pool):
+def remove_system_dataset(dispatcher, dsid, pool):
     logger.warning('Removing system dataset from pool {0}'.format(pool))
     zfs = libzfs.ZFS()
-    dsid = dispatcher.configstore.get('system.dataset.id')
     pool = zfs.get(pool)
     try:
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
-        ds.umount()
+        ds.umount(force=True)
         ds.delete()
     except libzfs.ZFSException:
         pass
 
 
-def mount_system_dataset(dispatcher, pool, path):
+def mount_system_dataset(dispatcher, dsid, pool, path):
     logger.warning('Mounting system dataset from pool {0} on {1}'.format(pool, path))
     zfs = libzfs.ZFS()
-    dsid = dispatcher.configstore.get('system.dataset.id')
     pool = zfs.get(pool)
     try:
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
-        if ds.mountpoint == path:
-            return
-
         ds.properties['mountpoint'].value = path
         ds.mount()
         return
     except libzfs.ZFSException, err:
-        if err.code != libzfs.Error.BUSY:
-            raise
+        logger.error('Cannot mount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
+        raise err
 
 
-def umount_system_dataset(dispatcher, pool):
+def umount_system_dataset(dispatcher, dsid, pool):
     zfs = libzfs.ZFS()
-    dsid = dispatcher.configstore.get('system.dataset.id')
     pool = zfs.get(pool)
     try:
-        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool, dsid))
-        ds.properties['mountpoint'].value = 'none'
-        ds.umount()
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
+        ds.umount(force=True)
         return
-    except libzfs.ZFSException:
-        pass
+    except libzfs.ZFSException, err:
+        logger.error('Cannot unmount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
 
 
-def move_system_dataset(dispatcher, src_pool, dst_pool):
+def move_system_dataset(dispatcher, dsid, services, src_pool, dst_pool):
     logger.warning('Migrating system dataset from pool {0} to {1}'.format(src_pool, dst_pool))
-    zfs = libzfs.ZFS()
-    dsid = dispatcher.configstore.get('system.dataset.id')
     tmpath = os.tempnam('/tmp')
-    src_ds = zfs.get_dataset('{0}/.system-{1}'.format(src_pool, dsid))
-    create_system_dataset(dispatcher, dst_pool)
-    mount_system_dataset(dispatcher, dst_pool, tmpath)
+    create_system_dataset(dispatcher, dsid, dst_pool)
+    mount_system_dataset(dispatcher, dsid, dst_pool, tmpath)
 
-    dst_ds = zfs.get_dataset('{0}/.system-{1}'.format(dst_pool, dsid))
-    pipe = os.pipe()
-    src_ds.send(pipe[0])
-    dst_ds.receive(pipe[1], force=True)
-    os.close(pipe[0])
-    os.close(pipe[1])
+    try:
+        copytree(SYSTEM_DIR, tmpath)
+    except shutil.Error, err:
+        logger.warning('Following errors were encountered during migration:')
+        for i in err:
+            logger.warning('{0}: {1}'.format(*i))
 
-    umount_system_dataset(dispatcher, src_pool)
-    mount_system_dataset(dispatcher, dst_pool, SYSTEM_DIR)
-    remove_system_dataset(dispatcher, src_pool)
+    umount_system_dataset(dispatcher, dsid, dst_pool)
+    umount_system_dataset(dispatcher, dsid, src_pool)
+    mount_system_dataset(dispatcher, dsid, dst_pool, SYSTEM_DIR)
+    remove_system_dataset(dispatcher, dsid, src_pool)
 
 
 class SystemDatasetProvider(Provider):
@@ -151,8 +154,9 @@ class SystemDatasetProvider(Provider):
     @returns()
     def init(self):
         pool = self.configstore.get('system.dataset.pool')
-        create_system_dataset(self.dispatcher, pool)
-        mount_system_dataset(self.dispatcher, pool, SYSTEM_DIR)
+        dsid = self.configstore.get('system.dataset.id')
+        create_system_dataset(self.dispatcher, dsid, pool)
+        mount_system_dataset(self.dispatcher, dsid, pool, SYSTEM_DIR)
         link_directories(self.dispatcher)
 
     @private
@@ -183,12 +187,14 @@ class SystemDatasetProvider(Provider):
 @accepts(str)
 class SystemDatasetConfigure(Task):
     def verify(self, pool):
-        return ['service:syslog', 'service:statd']
+        return ['system']
 
     def run(self, pool):
         status = self.dispatcher.call_sync('system_dataset.status')
         if status['pool'] != pool:
-            move_system_dataset(status['pool'], pool)
+            move_system_dataset(self.dispatcher, self.configstore.get('system.dataset.id'), status['pool'], pool)
+
+        self.configstore.set('system.dataset.pool', pool)
 
 
 def _depends():
@@ -219,5 +225,4 @@ def _init(dispatcher, plugin):
     plugin.register_hook('system_dataset.pre_detach')
     plugin.register_hook('system_dataset.pre_attach')
 
-    # Disable until we switch to new system dataset logic
     dispatcher.call_sync('system_dataset.init')
