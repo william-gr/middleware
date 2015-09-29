@@ -5,7 +5,6 @@
 /usr/local/lib/etcd/plugins/loader.py
 /usr/local/lib/etcd/plugins/localtime.py
 /usr/local/lib/etcd/plugins/local/nginx/nginx.conf.mako
-/usr/local/lib/etcd/plugins/local/nullmailer/remotes.mako
 /usr/local/lib/etcd/plugins/local/collectd.conf.mako
 /usr/local/lib/etcd/plugins/local/afp.conf.mako
 /usr/local/lib/etcd/plugins/local/smbusers.mako
