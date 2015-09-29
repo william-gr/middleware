@@ -17,6 +17,7 @@
 /usr/local/lib/etcd/plugins/local/smartd.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/ups.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/upsd.conf.mako
+/usr/local/lib/etcd/plugins/local/nut/upsd.users.mako
 /usr/local/lib/etcd/plugins/local/nut/upsmon.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/upssched.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/ups_perms.py

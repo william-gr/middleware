@@ -31,6 +31,7 @@ def run(context):
     for f in (
         '/usr/local/etc/nut/ups.conf',
         '/usr/local/etc/nut/upsd.conf',
+        '/usr/local/etc/nut/upsd.users',
         '/usr/local/etc/nut/upsmon.conf',
         '/usr/local/etc/nut/upssched.conf',
     ):
