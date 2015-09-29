@@ -153,6 +153,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.nfs.delete", DeleteNFSShareTask)
     plugin.register_provider("shares.nfs", NFSSharesProvider)
     plugin.register_resource(Resource('service:nfs'), ['system'])
+    plugin.register_event_type('shares.nfs.changed')
 
     # Start NFS server if there are any configured shares
     if dispatcher.datastore.exists('shares', ('type', '=', 'nfs')):

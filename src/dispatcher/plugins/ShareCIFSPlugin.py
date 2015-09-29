@@ -199,6 +199,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.cifs.update", UpdateCIFSShareTask)
     plugin.register_task_handler("share.cifs.delete", DeleteCIFSShareTask)
     plugin.register_provider("shares.cifs", CIFSSharesProvider)
+    plugin.register_event_type('shares.cifs.changed')
 
     # Sync samba registry with our database
     smb_conf = smbconf.SambaConfig('registry')
