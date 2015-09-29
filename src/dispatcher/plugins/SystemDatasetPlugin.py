@@ -209,7 +209,7 @@ def _init(dispatcher, plugin):
     def volume_pre_destroy(args):
         # Evacuate .system dataset from the pool
         if dispatcher.configstore.get('system.dataset.pool') == args['name']:
-            pass
+            dispatcher.call_task_sync('system_dataset.configure', 'freenas-boot')
 
     if not dispatcher.configstore.get('system.dataset.id'):
         dsid = uuid.uuid4().hex[:8]
