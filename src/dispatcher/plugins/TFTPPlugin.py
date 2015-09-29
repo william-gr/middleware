@@ -62,8 +62,8 @@ class TFTPConfigureTask(Task):
         try:
             node = ConfigNode('service.tftp', self.configstore)
             node.update(tftp)
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'tftp')
-            self.dispatcher.call_sync('services.restart', 'tftp')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+            self.dispatcher.call_sync('services.restart', 'tftpd')
             self.dispatcher.dispatch_event('service.tftp.changed', {
                 'operation': 'updated',
                 'ids': None,
