@@ -447,8 +447,8 @@ def info_from_device(devname):
     dev_smart_info = Device(os.path.join('/dev/', devname))
     disk_info['is_ssd'] = dev_smart_info.is_ssd
     disk_info['smart_capable'] = dev_smart_info.smart_capable
+    disk_info['serial'] = dev_smart_info.serial
     if dev_smart_info.smart_capable:
-        disk_info['serial'] = dev_smart_info.serial
         disk_info['model'] = dev_smart_info.model
         disk_info['max_rotation'] = dev_smart_info.rotation_rate
         disk_info['interface'] = dev_smart_info.interface
