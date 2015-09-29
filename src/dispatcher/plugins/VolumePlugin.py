@@ -73,6 +73,7 @@ class VolumeProvider(Provider):
             return {
                 'name': ds['name'],
                 'type': ds['type'],
+                'mountpoint': ds['mountpoint'],
                 'properties': include(
                     ds['properties'],
                     'used', 'available', 'compression', 'atime', 'dedup',
@@ -959,6 +960,7 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
+            'mountpoint': {'type': 'string'},
             'type': {
                 'type': 'string',
                 'enum': ['FILESYSTEM', 'VOLUME']
