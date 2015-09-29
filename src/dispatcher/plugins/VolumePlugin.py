@@ -497,7 +497,7 @@ class VolumeDestroyTask(Task):
         vol = self.datastore.get_one('volumes', ('name', '=', name))
         config = self.dispatcher.call_sync('volumes.get_config', name)
 
-        self.dispatcher.run_hook('volumes.pre-destroy', {'name': name})
+        self.dispatcher.run_hook('volumes.pre_destroy', {'name': name})
 
         if config:
             self.join_subtasks(self.run_subtask('zfs.umount', name))
