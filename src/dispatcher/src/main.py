@@ -71,6 +71,7 @@ from auth import PasswordAuthenticator, TokenStore, Token, TokenException
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
+LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
 trace_log_file = None
 
 
@@ -86,6 +87,14 @@ def trace_log(message, *args):
 
         print(message.format(*args), file=trace_log_file)
         trace_log_file.flush()
+
+
+class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):
+    def emit(self, record):
+        try:
+            logging.handlers.WatchedFileHandler.emit(self, record)
+        except IOError:
+            pass
 
 
 class Plugin(object):
@@ -1402,10 +1411,12 @@ def main():
 
     logging.basicConfig(
         level=logging.getLevelName(args.log_level),
-        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
+        format=LOGGING_FORMAT)
 
     if args.log_file:
-        handler = logging.handlers.RotatingFileHandler(args.log_file)
+        handler = FaultTolerantLogHandler(args.log_file)
+        handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
+        logging.root.removeHandler(logging.root.handlers[0])
         logging.root.addHandler(handler)
 
     # Initialization and dependency injection

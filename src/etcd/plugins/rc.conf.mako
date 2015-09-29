@@ -22,7 +22,7 @@ synchronous_dhclient="YES"
 
 # middleware10
 dispatcher_enable="YES"
-dispatcher_flags="--log-level=DEBUG"
+dispatcher_flags="--log-level=DEBUG --log-file=/var/log/dispatcher.log"
 datastore_enable="YES"
 datastore_dbdir="/data"
 datastore_driver="mongodb"
