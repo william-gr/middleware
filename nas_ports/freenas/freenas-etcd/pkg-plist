@@ -15,6 +15,8 @@
 /usr/local/lib/etcd/plugins/local/proftpd.conf.mako
 /usr/local/lib/etcd/plugins/local/rsyncd.conf.mako
 /usr/local/lib/etcd/plugins/local/smartd.conf.mako
+/usr/local/lib/etcd/plugins/local/nut/ups.conf.mako
+/usr/local/lib/etcd/plugins/local/nut/upsmon.conf.mako
 /usr/local/lib/etcd/plugins/mail/aliases.py
 /usr/local/lib/etcd/plugins/master.passwd.mako
 /usr/local/lib/etcd/plugins/motd.mako
