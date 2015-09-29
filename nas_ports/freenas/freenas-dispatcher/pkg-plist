@@ -96,6 +96,7 @@ lib/dispatcher/plugins/ReplicationPlugin.py
 lib/dispatcher/plugins/SNMPPlugin.py
 lib/dispatcher/plugins/SSHPlugin.py
 lib/dispatcher/plugins/TFTPPlugin.py
+lib/dispatcher/plugins/UPSPlugin.py
 libexec/dispatcher/notify-pam
 etc/rc.d/dispatcher
 sbin/dispatcherd
