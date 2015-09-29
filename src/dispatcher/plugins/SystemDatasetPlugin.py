@@ -128,7 +128,7 @@ def umount_system_dataset(dispatcher, dsid, pool):
         logger.error('Cannot unmount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
 
 
-def move_system_dataset(dispatcher, dsid, services, src_pool, dst_pool):
+def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
     logger.warning('Migrating system dataset from pool {0} to {1}'.format(src_pool, dst_pool))
     tmpath = os.tempnam('/tmp')
     create_system_dataset(dispatcher, dsid, dst_pool)
