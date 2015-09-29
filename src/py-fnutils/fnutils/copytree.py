@@ -27,6 +27,7 @@
 
 import os
 import shutil
+import errno
 
 
 def count_files(directory):
@@ -39,7 +40,13 @@ def count_files(directory):
 
 def copytree(src, dst, symlinks=False, progress_callback=None):
     names = os.listdir(src)
-    os.makedirs(dst)
+
+    try:
+        os.makedirs(dst)
+    except OSError, err:
+        if err.errno == errno.EEXIST:
+            pass
+
     errors = []
 
     for name in names:
