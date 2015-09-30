@@ -139,6 +139,7 @@ class UPSConfigureTask(Task):
             node = ConfigNode('service.ups', self.configstore)
             node.update(ups)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'ups')
             self.dispatcher.call_sync('services.restart', 'ups')
             self.dispatcher.dispatch_event('service.ups.changed', {
                 'operation': 'updated',
