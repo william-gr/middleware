@@ -226,6 +226,23 @@ class TaskService(RpcService):
         self.__dispatcher = context.dispatcher
         self.__datastore = context.dispatcher.datastore
         self.__balancer = context.dispatcher.balancer
+
+        # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
+        # from the previous dispatcher instance and set their
+        # states to 'FAILED' since they are no longer running
+        # in this instance of the dispatcher
+        residual_tasks = self.__datastore.query(
+            'tasks',
+            ('state', '~', 'EXECUTING|WAITING|CREATED'),
+            **({})
+        )
+        for stale_task in residual_tasks:
+            self.__dispatcher.logger.info(
+                'Stale Task ID: {0} Name: {1} being set to FAILED'.format(
+                    stale_task['id'], stale_task['name'])
+                )
+            stale_task['state'] = 'FAILED'
+            self.__datastore.update('tasks', stale_task['id'], stale_task)
         pass
 
     @pass_sender
