@@ -1223,6 +1223,19 @@
         "builtin": false,
         "pidfile": "/var/run/tftpd.pid",
         "name": "tftpd"
+      },
+      "B9D11E23-ECFB-46C2-A0C9-4A0D94EAAFC1": {
+        "rcng": {
+          "rc-scripts": [
+            "nut_upsmon",
+            "nut_upslog"
+          ]
+        },
+        "builtin": false,
+        "start_rpc": "service.ups.service_start",
+        "stop_rpc": "service.ups.service_stop",
+        "status_rpc": "service.ups.service_status",
+        "name": "ups"
       }
     },
     "metadata": {

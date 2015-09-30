@@ -31,7 +31,8 @@ import os
 import re
 
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private, returns
+from lib.system import system, SubprocessException
 from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('UPSPlugin')
@@ -73,6 +74,49 @@ class UPSProvider(Provider):
                 ' '.join(row[0:last]), row[last]
             )))
         return drivers
+
+    @private
+    def service_start(self):
+        ups = self.get_config().__getstate__()
+        if ups['mode'] == 'MASTER':
+            rc_scripts = ['nut']
+        else:
+            rc_scripts = []
+        rc_scripts.extend(['nut_upslog', 'nut_upsmon'])
+
+        try:
+            for i in rc_scripts:
+                system("/usr/sbin/service", i, 'onestart')
+        except SubprocessException, e:
+            raise TaskException(errno.EBUSY, e.err)
+
+    @private
+    def service_status(self):
+        ups = self.get_config().__getstate__()
+        if ups['mode'] == 'MASTER':
+            rc_scripts = ['nut']
+        else:
+            rc_scripts = []
+        rc_scripts.extend(['nut_upslog', 'nut_upsmon'])
+
+        try:
+            for i in rc_scripts:
+                system("/usr/sbin/service", i, 'onestatus')
+        except SubprocessException, e:
+            raise TaskException(errno.EBUSY, e.err)
+
+    @private
+    def service_stop(self):
+        ups = self.get_config().__getstate__()
+        rc_scripts = ['nut_upslog', 'nut_upsmon']
+        if ups['mode'] == 'MASTER':
+            rc_scripts.append('nut')
+
+        try:
+            for i in rc_scripts:
+                system("/usr/sbin/service", i, 'onestop')
+        except SubprocessException, e:
+            raise TaskException(errno.EBUSY, e.err)
 
 
 @description('Configure UPS service')
