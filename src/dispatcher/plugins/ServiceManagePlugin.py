@@ -46,7 +46,7 @@ class ServiceInfoProvider(Provider):
     @query("service")
     def query(self, filter=None, params=None):
         def extend(i):
-            state, pid = get_status(i)
+            state, pid = get_status(self.dispatcher, i)
             entry = {
                 'name': i['name'],
                 'state': state,
@@ -210,6 +210,16 @@ class ServiceManageTask(Task):
 
     def run(self, name, action):
         service = self.datastore.get_one('service_definitions', ('name', '=', name))
+
+        hook_rpc = service.get('{0}_rpc'.format(action))
+        if hook_rpc:
+            try:
+                return self.dispatcher.call_sync(hook_rpc)
+            except RpcException as e:
+                raise TaskException(errno.EBUSY, 'Hook {0} for {1} failed: {2}'.format(
+                    action, name, e
+                ))
+
         rc_scripts = service['rcng'].get('rc-scripts')
         reload_scripts = service['rcng'].get('reload', rc_scripts)
         try:
@@ -249,7 +259,7 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-        state, pid = get_status(service_def)
+        state, pid = get_status(self.dispatcher, service_def)
 
         if service_def.get('task'):
             self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
@@ -275,8 +285,15 @@ class UpdateServiceConfigTask(Task):
         })
 
 
-def get_status(service):
-    if 'pidfile' in service:
+def get_status(dispatcher, service):
+    if 'status_rpc' in service:
+        state = 'RUNNING'
+        pid = None
+        try:
+            dispatcher.call_sync(service['status_rpc'])
+        except RpcException:
+            state = 'STOPPED'
+    elif 'pidfile' in service:
         state = 'RUNNING'
         pid = None
         pidfiles = service['pidfile'] \
