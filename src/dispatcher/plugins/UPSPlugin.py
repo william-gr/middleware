@@ -23,8 +23,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
+import cStringIO
+import csv
 import errno
 import logging
+import os
+import re
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
@@ -39,6 +43,36 @@ class UPSProvider(Provider):
     @returns(h.ref('service-ups'))
     def get_config(self):
         return ConfigNode('service.ups', self.configstore)
+
+    @accepts()
+    @returns(h.array(h.array(str)))
+    def drivers(self):
+        driver_list = '/usr/local/libexec/nut/driver.list'
+        if not os.path.exists(driver_list):
+            return []
+        drivers = []
+        with open(driver_list, 'rb') as f:
+            d = f.read()
+        r = cStringIO.StringIO()
+        for line in re.sub(r'[ \t]+', ' ', d, flags=re.M).split('\n'):
+            r.write(line.strip() + '\n')
+        r.seek(0)
+        reader = csv.reader(r, delimiter=' ', quotechar='"')
+        for row in reader:
+            if len(row) == 0 or row[0].startswith('#'):
+                continue
+            if row[-2] == '#':
+                last = -3
+            else:
+                last = -1
+            if row[last].find(' (experimental)') != -1:
+                row[last] = row[last].replace(' (experimental)', '').strip()
+            for i, field in enumerate(list(row)):
+                row[i] = field.decode('utf8')
+            drivers.append(('$'.join([row[last], row[3]]), '{0} ({1})'.format(
+                ' '.join(row[0:last]), row[last]
+            )))
+        return drivers
 
 
 @description('Configure UPS service')
