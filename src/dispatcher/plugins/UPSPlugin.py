@@ -68,9 +68,7 @@ class UPSProvider(Provider):
                 last = -1
             if row[last].find(' (experimental)') != -1:
                 row[last] = row[last].replace(' (experimental)', '').strip()
-            for i, field in enumerate(list(row)):
-                row[i] = field.decode('utf8')
-            drivers.append(('$'.join([row[last], row[3]]), '{0} ({1})'.format(
+            drivers.append((row[last], '{0} ({1})'.format(
                 ' '.join(row[0:last]), row[last]
             )))
         return drivers
