@@ -134,7 +134,7 @@ class MailConfigureTask(Task):
         return []
 
     def run(self, mail):
-        node = ConfigNode('mail', self.dispatcher.configstore)
+        node = ConfigNode('mail', self.configstore)
         node.update(mail)
 
 
