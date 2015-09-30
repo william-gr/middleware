@@ -321,6 +321,26 @@ class Balancer(object):
         self.create_initial_queues()
         self.distribution_lock = RLock()
 
+        # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
+        # from the previous dispatcher instance and set their
+        # states to 'FAILED' since they are no longer running
+        # in this instance of the dispatcher
+        for stale_task in dispatcher.datastore.query('tasks', ('state', 'in', ['EXECUTING', 'WAITING', 'CREATED'])):
+            self.logger.info('Stale Task ID: {0} Name: {1} being set to FAILED'.format(
+                stale_task['id'],
+                stale_task['name']
+            ))
+
+            stale_task.update({
+                'state': 'FAILED',
+                'error': {
+                    'message': 'dispatcher process died',
+                    'code': errno.ECANCELED,
+                }
+            })
+
+            dispatcher.datastore.update('tasks', stale_task['id'], stale_task)
+
     def create_initial_queues(self):
         self.resource_graph.add_resource(Resource('system'))
 
