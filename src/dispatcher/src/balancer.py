@@ -335,7 +335,7 @@ class Balancer(object):
                 'state': 'FAILED',
                 'error': {
                     'message': 'dispatcher process died',
-                    'code': errno.ECANCELED,
+                    'code': errno.EINTR,
                 }
             })
 
