@@ -27,26 +27,289 @@
 
 
 import unittest
+import inspect
 from shared import BaseTestCase
 
 
 class ServicesTest(BaseTestCase):
-    def test_start_stop(self):
-        self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'stop'))
-        self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'start'))
+    # SSHD
+    def test_start_stop_sshd(self):
+        # will fail if trying to stop from stopped state
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if self.isRunning(sname):  # service['state'] != 'STOPPED':
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
 
-    def test_restart(self):
+    def test_sshd_restart(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+        if self.isRunning('sshd'): #service['state'] != 'STOPPED':
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
         self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
-
-    def test_query(self):
-        services = self.conn.call_sync('services.query')
-        self.assertIsInstance(services, list)
-        
             
-    def test_configure(self):
+    def test_configure_sshd(self):
     	self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
         self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {'port': 9922}))
         self.assertTaskCompletion(self.submitTask('service.configure', 'sshd', {"port": 22, "compression": 'no'}))
+
+  
+# dydns
+    def test_start_stop_dyndns(self):
+        # will fail if trying to stop from stopped state
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if self.isRunning(sname):  
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_dyndns(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+        if self.isRunning(sname): 
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
+            
+    def atest_configure_dydns(self):
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'dydns', 'restart'))
+        self.assertTaskCompletion(self.submitTask('service.configure', \
+        	'dydns', {'username': 'root', 'password': 'abcd1234', 'update_period': 60, 'forced_update_period': 80}))
+        
+    
+# dydns
+    def test_start_stop_ipfs(self):
+        # will fail if trying to stop from stopped state
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if self.isRunning(sname):  
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_ipfs(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+        if self.isRunning(sname): 
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
+            
+    def atest_configure_ipfs(self):
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'ipfs', 'restart'))
+        self.assertTaskCompletion(self.submitTask('service.configure', 'ipfs', {'path': 'mnt/tank/smth'}))
+        
+
+    ############# AFP    
+    def atest_start_stop_afp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def atest_restart_afp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def atest_configure_afp(self):
+    	'''
+        Tests that the afp service 
+        restart and configure working. 
+        Not a functional test, 
+    	'''
+    	sname = inspect.stack()[0][3].split('_')[-1]
+        if not self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+    	self.assertTaskCompletion(self.submitTask('service.configure', 'afp', \
+    		{"connections_limit": 20, 'guest_enable': True, 'guest_user': 'nobody'}))
+
+    ############# SNMP    
+    def test_start_stop_snmp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning(sname):
+    		# the below is for debug only. Service should be able to stop when the state is RUNNING
+            #self.assertTaskCompletion(self.submitTask('service.manage', 'afp', 'restart'))
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	# and then start    
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_snmp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	
+    	if not self.isRunning(sname):
+           self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))   
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def test_configure_snmp(self):
+    	'''
+        Tests that the afp service 
+        restart and configure working. 
+        Not a functional test, 
+    	'''
+    	sname = inspect.stack()[0][3].split('_')[-1]
+        #service = self.conn.call_sync('services.query', [('name', '=', 'snmp')], {'single': True})
+        if not self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+        self.assertTaskCompletion(self.submitTask('service.configure', sname, \
+    		{"auxilary": "dummy", 'contact': 'nobody', 'v3': False}))	
+
+    ################# CIFS
+    def atest_start_stop_cifs(self):
+        '''
+        Can start from stopped state
+        '''
+        sname = inspect.stack()[0][3].split('_')[-1]
+        #service = self.conn.call_sync('services.query', [('name', '=', sname)], {'single': True})
+        if self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def atest_restart_cifs(self):
+    	'''
+    	Can restart
+    	'''
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if not self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'start'))
+        self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'restart'))
+
+    def atest_configure_cifs(self):
+    	'''
+        NOT WORKING
+    	'''
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	#service = self.conn.call_sync('services.query', [('name', '=', 'cifs')], {'single': True})
+    	#print service
+    	if not self.isRunning(sname):
+    		self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'start'))
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'reload'))
+    	self.assertTaskCompletion(self.submitTask('service.configure', 'cifs', \
+    		{"zeroconf": False, 'log_level': 'mininum', 'netbiosname': ['freenas']}))
+	
+    
+############# riak
+    def test_start_stop_riak_cs(self):
+    	#sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning('riak_cs'): 
+    	    self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'stop'))
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'start'))
+
+    def test_restart_riak_cs(self):
+    	#sname = inspect.stack()[0][3].split('_')[-1]
+    	service = self.conn.call_sync('services.query', [('name', '=', 'riak_cs')], {'single': True})
+    	if not self.isRunning('riak_cs'):
+           self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'start')) 
+        self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'restart'))    
+
+###################### FTP
+    def test_start_stop_ftp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning(sname):
+    		self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	# and then start    
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_ftp(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	
+    	if self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def atest_configure_ftp(self):
+    	'''
+        Tests that the ftp service 
+        restart and configure working. 
+        Not a functional test, 
+    	'''
+    	sname = inspect.stack()[0][3].split('_')[-1]
+        if self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
+    	else:
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))    
+    	self.assertTaskCompletion(self.submitTask('service.configure', sname, \
+    	 {"only_anonymous": True, 'ip_connections': 15, 'reverse_dns': False}))
+        
+    
+    ####################### NFS
+    def test_start_stop_nfs(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	if self.isRunning(sname):
+    		self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	# and then start    
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_nfs(self):
+    	sname = inspect.stack()[0][3].split('_')[-1]
+    	
+    	if self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
+
+    def test_configure_nfs(self):
+    	'''
+        Tests that the ftp service 
+        restart and configure working. 
+        Not a functional test, 
+    	'''
+    	self.assertTaskCompletion(self.submitTask('service.manage', 'nfs', 'restart'))
+    	self.assertTaskCompletion(self.submitTask('service.configure', 'nfs', \
+    		{"udp": True, 'v4': True, 'rpclockd_port': 22, 'nonroot': False}))
+
+
+    ############# SMARTD
+    def atest_start_stop_smartd(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+    	if self.isRunning(sname): 
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def atest_restart_smartd(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+    	
+    	#if not self.isRunning(sname):
+        #    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start')) 
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def atest_configure_smartd(self):
+    	'''
+        Configure service
+    	'''
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if not self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+    	# uncomment
+    	#self.assertTaskCompletion(self.submitTask('service.configure', 'webdav', \
+    	#	{"connections_limit": 20, 'guest_enable': True, 'guest_user': 'nobody'}))    	
+
+############# rsyncd   
+    def test_start_stop_rsyncd(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+    	if self.isRunning(sname): 
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    	self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_rsyncd(self):
+    	sname = str(inspect.stack()[0][3].split('_')[-1])
+    	
+    	if not self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start')) 
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def test_configure_rsyncd(self):
+    	'''
+        Configure service
+    	'''
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if not self.isRunning(sname):
+    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+    	self.assertTaskCompletion(self.submitTask('service.configure', sname, \
+    		{"port": 875}))    	
+
+######## HELPERS
+    def isRunning(self, sname):
+        service = self.conn.call_sync('services.query', [('name', '=', str(sname))], {'single': True})
+        if service['state'] == 'RUNNING':
+            return True
+        return False		
+
+    ######################### QUERY
+    def test_query(self):
+        services = self.conn.call_sync('services.query')
+        for s in services:
+            print s
+        self.assertIsInstance(services, list)
+
 
 
 

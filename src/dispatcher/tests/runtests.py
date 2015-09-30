@@ -24,3 +24,12 @@ if not overall:
         print '========================================='
         print  error[1]
         print '========================================='
+    print '========================================='
+    print 'FAILURES\n'
+    for failure in results.failures:
+        print str(failure[0]) + ': '
+        print '========================================='
+        print  failure[1]
+        print '========================================='
+
+        
