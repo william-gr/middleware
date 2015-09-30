@@ -5,6 +5,7 @@
     gen_config = dispatcher.call_sync('system.general.get_config')
     smartd_config = dispatcher.call_sync('service.smartd.get_config')
     tftp_config = dispatcher.call_sync('service.tftp.get_config')
+    ups_config = dispatcher.call_sync('service.ups.get_config')
 
     hwmodel = sysctl.sysctlbyname("hw.model")
 
@@ -172,6 +173,17 @@ tftpd_flags="-s -u ${tftp_config['username']} -U ${tftp_config['umask']}\
  ${tftp_config['path']}\
 % endif
 "
+
+% if ups_config['enable']:
+%  if ups_config['mode'] == 'MASTER':
+nut_enable="YES"
+nut_upslog_ups="${ups_config['identifier']}"
+%  else:
+nut_upslog_ups="${ups_config['identifier']}@${ups_config['remote_host']}:${ups_config['remote_port']}"
+%  endif
+nut_upslog_enable="YES"
+nut_upsmon_enable="YES"
+% endif
 
 % if gen_config['console_keymap']:
 keymap="${gen_config['console_keymap']}"
