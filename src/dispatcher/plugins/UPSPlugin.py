@@ -121,13 +121,18 @@ class UPSProvider(Provider):
     @private
     def service_restart(self):
         ups = self.get_config().__getstate__()
-        rc_scripts = ['nut_upslog', 'nut_upsmon']
+        # Stop monitor so it wont trigger signals when nut restarts
+        verbs = [
+            ('nut_upsmon', 'stop'),
+            ('nut_upslog', 'restart'),
+        ]
         if ups['mode'] == 'MASTER':
-            rc_scripts.append('nut')
+            verbs.append(('nut', 'restart'))
+        verbs.append(('nut_upsmon', 'start'))
 
         try:
-            for i in rc_scripts:
-                system("/usr/sbin/service", i, 'onerestart')
+            for svc, verb in verbs:
+                system("/usr/sbin/service", svc, 'one' + verb)
         except SubprocessException, e:
             raise TaskException(errno.EBUSY, e.err)
 
