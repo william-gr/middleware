@@ -44,7 +44,8 @@ LINK_DIRS = {
     'log': '/var/log'
 }
 SKELETON_DIRS = {
-    'log': ['riak', 'riak-cs', 'samba4', 'stanchion']
+    'log': ['riak', 'riak-cs', 'samba4', 'stanchion'],
+    'samba': ['private']
 }
 
 logger = logging.getLogger('SystemDataset')
