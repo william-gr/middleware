@@ -8,7 +8,7 @@
 
 . /etc/rc.subr
 
-name="statd"
+name="fnstatd"
 rcvar="fnstatd_enable"
 pidfile="/var/run/fnstatd.pid"
 command="/usr/sbin/daemon"
