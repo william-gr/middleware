@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/local/bin/python2.7 -u /usr/local/bin/custom-upssched-cmd.py $*

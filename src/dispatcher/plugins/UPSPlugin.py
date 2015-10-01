@@ -29,6 +29,8 @@ import errno
 import logging
 import os
 import re
+import socket
+import time
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private, returns
@@ -157,6 +159,32 @@ def _depends():
 
 def _init(dispatcher, plugin):
 
+    def ups_signal(kwargs):
+        ups = dispatcher.call_sync('service.ups.get_config').__getstate__()
+
+        name = kwargs.get('name')
+        notifytype = kwargs.get('type')
+
+        if name == 'ONBATT':
+            if ups['shutdown_mode'] == 'BATT':
+                logger.warn('Issuing shutdown from UPS signal')
+                system('/usr/local/sbin/upsmon', '-c', 'fsd')
+
+        elif name in ('EMAIL', 'COMMBAD', 'COMMOK'):
+            if ups['email_notify'] and ups['email_recipients']:
+                subject = ups['email_subject'].replace('%d', time.asctime()).replace('%h', socket.gethostname())
+                dispatcher.call_sync('mail.send', {
+                    'to': ups['email_recipients'],
+                    'subject': subject,
+                    'message': 'UPS Status: {0}\n'.format(
+                        notifytype,
+                    ),
+                })
+            else:
+                logger.debug('Email not configured for UPS')
+        else:
+            logger.info('Unhandled UPS Signal: %s', name)
+
     # Register schemas
     plugin.register_schema_definition('service-ups', {
         'type': 'object',
@@ -194,3 +222,7 @@ def _init(dispatcher, plugin):
 
     # Register tasks
     plugin.register_task_handler("service.ups.configure", UPSConfigureTask)
+
+    # Register events
+    plugin.register_event_type('service.ups.signal')
+    plugin.register_event_handler('service.ups.signal', ups_signal)
