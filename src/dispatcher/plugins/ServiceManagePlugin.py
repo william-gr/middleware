@@ -177,10 +177,18 @@ class ServiceInfoProvider(Provider):
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
-        rc_scripts = svc['rcng']['rc-scripts']
-
         if status['state'] != 'RUNNING':
             return
+
+        hook_rpc = svc.get('restart_rpc')
+        if hook_rpc:
+            try:
+                self.dispatcher.call_sync(hook_rpc)
+            except RpcException:
+                pass
+            return
+
+        rc_scripts = svc['rcng']['rc-scripts']
 
         try:
             if type(rc_scripts) is unicode:
