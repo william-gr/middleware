@@ -12,14 +12,14 @@
 
     if cfg['authentication'] == 'BASIC':
         import imp
-	htpasswd = imp.load_source('htpasswd', '/usr/local/bin/htpasswd.py')
-	passwdfile = htpasswd.HtpasswdFile(auth_file, create=True)
-	passwdfile.update('webdav', cfg['password'])
+        htpasswd = imp.load_source('htpasswd', '/usr/local/bin/htpasswd.py')
+        passwdfile = htpasswd.HtpasswdFile(auth_file, create=True)
+        passwdfile.update('webdav', cfg['password'])
     else:
         import hashlib
-	hexdigest = hashlib.md5('webdav:webdav:{0}'.format(cfg['password'])).hexdigest()
-	with open(auth_file, 'w') as f:
-	    f.write('webdav:webdav:{0}\n'.format(hexdigest))
+        hexdigest = hashlib.md5('webdav:webdav:{0}'.format(cfg['password'])).hexdigest()
+        with open(auth_file, 'w') as f:
+            f.write('webdav:webdav:{0}\n'.format(hexdigest))
 
     user = pwd.getpwnam('webdav')
     os.chown(auth_file, user.pw_uid, user.pw_gid)
