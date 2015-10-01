@@ -17,6 +17,22 @@
         "attributes": {},
         "builtin": true
       },
+     "666": {
+        "password_disabled": false,
+        "email": null,
+        "group": 666,
+        "home": "/var/empty",
+        "full_name": "WebDAV Anonymous User",
+        "username": "riak",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
      "667": {
         "password_disabled": false,
         "email": null,
@@ -460,6 +476,11 @@
         "builtin": true,
         "sudo": false,
         "name": "riak"
+      },
+      "666": {
+        "builtin": true,
+        "sudo": false,
+        "name": "webdav"
       },
       "556": {
         "builtin": true,
