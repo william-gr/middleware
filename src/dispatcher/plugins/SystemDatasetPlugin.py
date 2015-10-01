@@ -110,11 +110,11 @@ def mount_system_dataset(dispatcher, dsid, pool, path):
     pool = zfs.get(pool)
     try:
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
-        ds.properties['mountpoint'].value = path
         if ds.mountpoint:
             logger.warning('.system dataset already mounted')
             return
-        
+
+        ds.properties['mountpoint'].value = path
         ds.mount()
     except libzfs.ZFSException, err:
         logger.error('Cannot mount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
