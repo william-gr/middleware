@@ -1244,6 +1244,14 @@
         "restart_rpc": "service.ups.service_restart",
         "status_rpc": "service.ups.service_status",
         "name": "ups"
+      },
+      "3F884592-FD25-4FE6-85C5-F1AABD4387E2": {
+        "rcng": {
+          "rc-scripts": "apache24"
+        },
+        "builtin": false,
+        "pidfile": "/var/run/httpd.pid",
+        "name": "webdav"
       }
     },
     "metadata": {
