@@ -23,7 +23,7 @@
         "group": 666,
         "home": "/var/empty",
         "full_name": "WebDAV Anonymous User",
-        "username": "riak",
+        "username": "webdav",
         "sshpubkey": null,
         "shell": "/usr/sbin/nologin",
         "locked": false,
@@ -1029,6 +1029,12 @@
           "plugin:local/nut/ups_perms"
         ],
         "name": "ups"
+      },
+      "D6B51C66-382E-488A-AFEF-1B2ADA1F0B32": {
+        "dependencies": [
+          "file:local/apache24/httpd.conf"
+        ],
+        "name": "webdav"
       }
     },
     "metadata": {
