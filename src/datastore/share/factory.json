@@ -778,6 +778,13 @@
       ],
       "service.nginx.enable": true,
       "service.powerd.enable": false,
+      "service.webdav.enable": false,
+      "service.webdav.protocol": "HTTP",
+      "service.webdav.http_port": 8080,
+      "service.webdav.https_port": 8081,
+      "service.webdav.password": "devtest",
+      "service.webdav.authentication": "DIGEST",
+      "service.webdav.certificate": null,
       "update.check_auto": true,
       "update.train": "FreeNAS-10-Nightlies",
       "accounts.local_gid_range": [

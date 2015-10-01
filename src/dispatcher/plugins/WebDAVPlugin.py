@@ -98,7 +98,7 @@ def _init(dispatcher, plugin):
                 'BASIC',
                 'DIGEST',
             ]},
-            'certificate': {'type': 'string'},
+            'certificate': {'type': ['string', 'null']},
         },
         'additionalProperties': False,
     })
