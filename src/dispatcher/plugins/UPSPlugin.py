@@ -118,6 +118,19 @@ class UPSProvider(Provider):
         except SubprocessException, e:
             raise TaskException(errno.EBUSY, e.err)
 
+    @private
+    def service_restart(self):
+        ups = self.get_config().__getstate__()
+        rc_scripts = ['nut_upslog', 'nut_upsmon']
+        if ups['mode'] == 'MASTER':
+            rc_scripts.append('nut')
+
+        try:
+            for i in rc_scripts:
+                system("/usr/sbin/service", i, 'onerestart')
+        except SubprocessException, e:
+            raise TaskException(errno.EBUSY, e.err)
+
 
 @description('Configure UPS service')
 @accepts(h.ref('service-ups'))

@@ -1234,6 +1234,7 @@
         "builtin": false,
         "start_rpc": "service.ups.service_start",
         "stop_rpc": "service.ups.service_stop",
+        "restart_rpc": "service.ups.service_restart",
         "status_rpc": "service.ups.service_status",
         "name": "ups"
       }
