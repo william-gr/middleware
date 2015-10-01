@@ -140,7 +140,7 @@ def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
     except shutil.Error, err:
         logger.warning('Following errors were encountered during migration:')
         for i in err:
-            logger.warning('{0}: {1}'.format(*i))
+            logger.warning('{0} -> {1}: {2}'.format(*i[0]))
 
     umount_system_dataset(dispatcher, dsid, dst_pool)
     umount_system_dataset(dispatcher, dsid, src_pool)
