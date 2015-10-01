@@ -15,6 +15,7 @@
 /usr/local/lib/etcd/plugins/local/proftpd.conf.mako
 /usr/local/lib/etcd/plugins/local/rsyncd.conf.mako
 /usr/local/lib/etcd/plugins/local/smartd.conf.mako
+/usr/local/lib/etcd/plugins/local/apache24/httpd.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/ups.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/upsd.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/upsd.users.mako

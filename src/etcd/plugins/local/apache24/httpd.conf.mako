@@ -1,3 +1,31 @@
+<%
+    import os
+    import pwd
+
+    cfg = dispatcher.call_sync('service.webdav.get_config')
+
+    certificate = None
+    if cfg['certificate']:
+        certificate = dispatcher.call_sync('crypto.certificates.query', [('id', '=', cfg['certificate'])], {'single': True})
+
+    auth_file = '/usr/local/etc/apache24/webdavauth'
+
+    if cfg['authentication'] == 'BASIC':
+        import imp
+	htpasswd = imp.load_source('htpasswd', '/usr/local/bin/htpasswd.py')
+	passwdfile = htpasswd.HtpasswdFile(auth_file, create=True)
+	passwdfile.update('webdav', cfg['password'])
+    else:
+        import hashlib
+	hexdigest = hashlib.md5('webdav:webdav:{0}'.format(cfg['password'])).hexdigest()
+	with open(auth_file, 'w') as f:
+	    f.write('webdav:webdav:{0}\n'.format(hexdigest))
+
+    user = pwd.getpwnam('webdav')
+    os.chown(auth_file, user.pw_uid, user.pw_gid)
+    os.chmod(auth_file, 0640)
+
+%>\
 # Generating apache general httpd.conf
 # The absolutely necessary modules
 LoadModule authn_file_module libexec/apache24/mod_authn_file.so
@@ -133,4 +161,72 @@ SSLRandomSeed connect builtin
 SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
 </IfModule>
 
-Include etc/apache24/Includes/*.conf
+<%def name="webdav_block(cfg, field, certificate=None)">
+Listen ${cfg[field]}
+
+% if certificate:
+  SSLEngine on
+  SSLCertificateFile "${certificate['certificate_path']}"
+  SSLCertificateKeyFile "${certificate['privatekey_path']}"
+  SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
+  SSLCipherSuite HIGH:MEDIUM
+% endif
+
+<VirtualHost *:${cfg[field]}>
+  DavLockDB "/etc/local/apache24/var/DavLock"
+  AssignUserId webdav webdav
+
+  <Directory />
+    AuthType ${cfg['authentication'].lower()}
+    AuthName webdav
+    AuthUserFile "/usr/local/etc/apache24/webdavauth"
+% if cfg['authentication'] == 'DIGEST':
+    AuthDigestProvider file
+% endif
+    Require valid-user
+
+    Dav On
+    IndexOptions Charset=utf-8
+    AddDefaultCharset UTF-8
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+    Options Indexes FollowSymLinks
+  </Directory>
+
+## Shares go here
+##for share in webshares:
+##    temp_path = """ "%s" """ % share.webdav_path
+##    f.write("\t   Alias /"+share.webdav_name+temp_path+"\n")
+##    f.write("\t   <Directory "+temp_path+">\n")
+##    f.write("\t   </Directory>\n")
+##    if share.webdav_ro == 1:
+##            f.write("\t   <Location /" +
+##                    share.webdav_name +
+##                    ">\n\t\t AllowMethods GET OPTIONS PROPFIND\n\t   </Locati
+##
+##    if share.webdav_perm:
+##        _pipeopen("chown -R webdav:webdav %s" % share.webdav_path)
+
+  # The following directives disable redirects on non-GET requests for
+  # a directory that does not include the trailing slash.  This fixes a
+  # problem with several clients that do not appropriately handle
+  # redirects for folders with DAV methods.
+  BrowserMatch "Microsoft Data Access Internet Publishing Provider" redirect-carefully
+  BrowserMatch "MS FrontPage" redirect-carefully
+  BrowserMatch "^WebDrive" redirect-carefully
+  BrowserMatch "^WebDAVFS/1.[01234]" redirect-carefully
+  BrowserMatch "^gnome-vfs/1.0" redirect-carefully
+  BrowserMatch "^XML Spy" redirect-carefully
+  BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
+  BrowserMatch " Konqueror/4" redirect-carefully
+</VirtualHost>
+</%def>
+
+% if 'HTTP' in cfg['protocol']:
+${webdav_block(cfg, 'http_port')}
+% endif
+
+% if 'HTTPS' in cfg['protocol']:
+${webdav_block(cfg, 'https_port', certificate)}
+% endif
