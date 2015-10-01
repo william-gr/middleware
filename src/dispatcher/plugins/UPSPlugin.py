@@ -131,6 +131,19 @@ class UPSConfigureTask(Task):
         node = ConfigNode('service.ups', self.configstore).__getstate__()
         node.update(ups)
 
+        if node['mode'] == 'MASTER' and not node['driver_port']:
+            errors.append(('driver_port', errno.EINVAL, 'This field is required'))
+
+        if node['mode'] == 'SLAVE' and not node['remote_host']:
+            errors.append(('remote_host', errno.EINVAL, 'This field is required'))
+
+        if not re.search(r'^[a-z0-9\.\-_]+$', node['identifier'], re.I):
+            errors.append(('identifier', errno.EINVAL, 'Use alphanumeric characters, ".", "-" and "_"'))
+
+        for i in ('monitor_user', 'monitor_password'):
+            if re.search(r'[ #]', node[i], re.I):
+                errors.append((i, errno.EINVAL, 'Spaces or number signs are not allowed'))
+
         if errors:
             raise ValidationException(errors)
 
@@ -197,7 +210,7 @@ def _init(dispatcher, plugin):
             'remote_host': {'type': ['string', 'null']},
             'remote_port': {'type': 'integer'},
             'driver': {'type': 'string'},
-            'driver_port': {'type': 'string'},
+            'driver_port': {'type': ['string', 'null']},
             'description': {'type': ['string', 'null']},
             'shutdown_mode': {'type': 'string', 'enum': [
                 'LOWBATT',
