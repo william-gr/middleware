@@ -83,7 +83,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
