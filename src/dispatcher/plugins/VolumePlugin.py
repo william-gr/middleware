@@ -352,7 +352,7 @@ class SnapshotProvider(Provider):
                 'name': name,
                 'properties': include(
                     snapshot['properties'],
-                    'used', 'refer', 'compressratio', 'clones'
+                    'used', 'referenced', 'compressratio', 'clones'
                 ),
                 'holds': snapshot['holds']
             }
@@ -374,7 +374,6 @@ class VolumeCreateTask(ProgressTask):
         return ['disk:{0}'.format(i) for i, _ in get_disks(volume['topology'])]
 
     def run(self, volume):
-
         name = volume['name']
         type = volume['type']
         params = volume.get('params') or {}
