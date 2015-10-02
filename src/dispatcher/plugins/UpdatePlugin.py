@@ -197,7 +197,6 @@ class UpdateHandler(object):
         self.pkgname = ''
         self.pkgversion = ''
         self.operation = ''
-        self.filename = ''
         self.filesize = 0
         self.numfilestotal = 0
         self.numfilesdone = 0
@@ -219,7 +218,6 @@ class UpdateHandler(object):
         # self.emit_update_details()
 
     def get_handler(self, method, filename, size=None, progress=None, download_rate=None):
-        filename = filename.rsplit('/', 1)[-1].rsplit('-', 6)[0]
         if progress is not None:
             self.progress = (progress * self._baseprogress) / 100
             if self.progress == 0:
@@ -227,7 +225,7 @@ class UpdateHandler(object):
             display_size = ' Size: {0}'.format(size) if size else ''
             display_rate = ' Rate: {0} B/s'.format(download_rate) if download_rate else ''
             self.details = 'Downloading: {0} Progress:{1}{2}{3}'.format(
-                filename, progress, display_size, display_rate
+                self.pkgname, progress, display_size, display_rate
                 )
         self.emit_update_details()
 
@@ -252,7 +250,6 @@ class UpdateHandler(object):
             'reboot': self.reboot,
             'pkg_name': self.pkgname,
             'pkg_version': self.pkgversion,
-            'filename': self.filename,
             'filesize': self.filesize,
             'num_files_one': self.numfilesdone,
             'num_files_total': self.numfilestotal,
@@ -750,7 +747,6 @@ def _init(dispatcher, plugin):
         'reboot': bool,
         'pkg_name': str,
         'pkg_version': str,
-        'filename': str,
         'filesize': int,
         'num_files_done': int,
         'num_files_total': int,
