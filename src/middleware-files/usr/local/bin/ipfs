@@ -1,0 +1,5 @@
+#!/bin/sh
+_path=$(cat /usr/local/etc/rc.d/ipfs-go|grep ^ipfs_go_path)
+eval $_path
+export IPFS_PATH=$ipfs_go_path
+exec /usr/local/bin/ipfs-go $*
