@@ -46,7 +46,7 @@ class BaseTestCase(unittest.TestCase):
         self.tasks = {}
         self.tasks_lock = Lock()
         self.conn = None
-        self.task_timeout = 20
+        self.task_timeout = 30
 
     def setUp(self):
         try:

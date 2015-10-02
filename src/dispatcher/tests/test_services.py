@@ -92,16 +92,17 @@ class ServicesTest(BaseTestCase):
         
 
     ############# AFP    
-    def atest_start_stop_afp(self):
+    def test_start_stop_afp(self):
     	sname = inspect.stack()[0][3].split('_')[-1]
     	if self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
     	self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
 
-    def atest_restart_afp(self):
+    def test_restart_afp(self):
     	sname = inspect.stack()[0][3].split('_')[-1]
-    	if self.isRunning(sname):
-            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+    	if not self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))        
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
 
     def atest_configure_afp(self):
     	'''
@@ -119,9 +120,7 @@ class ServicesTest(BaseTestCase):
     def test_start_stop_snmp(self):
     	sname = inspect.stack()[0][3].split('_')[-1]
     	if self.isRunning(sname):
-    		# the below is for debug only. Service should be able to stop when the state is RUNNING
-            #self.assertTaskCompletion(self.submitTask('service.manage', 'afp', 'restart'))
-    	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+    		self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
     	# and then start    
         self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
 
@@ -155,7 +154,7 @@ class ServicesTest(BaseTestCase):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
         self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
 
-    def atest_restart_cifs(self):
+    def test_restart_cifs(self):
     	'''
     	Can restart
     	'''
