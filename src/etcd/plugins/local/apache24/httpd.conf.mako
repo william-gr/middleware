@@ -197,6 +197,8 @@ SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
 <%def name="webdav_block(cfg, field, certificate=None)">
 Listen ${cfg[field]}
 
+<VirtualHost *:${cfg[field]}>
+
 % if certificate:
   SSLEngine on
   SSLCertificateFile "${certificate['certificate_path']}"
@@ -205,7 +207,6 @@ Listen ${cfg[field]}
   SSLCipherSuite HIGH:MEDIUM
 % endif
 
-<VirtualHost *:${cfg[field]}>
   DavLockDB "/etc/local/apache24/var/DavLock"
   AssignUserId webdav webdav
 
