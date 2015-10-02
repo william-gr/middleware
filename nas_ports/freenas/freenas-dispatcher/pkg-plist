@@ -98,6 +98,7 @@ lib/dispatcher/plugins/SSHPlugin.py
 lib/dispatcher/plugins/TFTPPlugin.py
 lib/dispatcher/plugins/UPSPlugin.py
 lib/dispatcher/plugins/WebDAVPlugin.py
+lib/dispatcher/plugins/LLDPPlugin.py
 libexec/dispatcher/notify-pam
 etc/rc.d/dispatcher
 sbin/dispatcherd
