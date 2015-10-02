@@ -52,6 +52,7 @@ LoadModule authn_core_module libexec/apache24/mod_authn_core.so
 LoadModule authz_user_module libexec/apache24/mod_authz_user.so
 LoadModule authz_core_module libexec/apache24/mod_authz_core.so
 LoadModule alias_module libexec/apache24/mod_alias.so
+LoadModule mpm_prefork_module libexec/apache24/mod_mpm_prefork.so
 LoadModule mpm_itk_module libexec/apache24/mod_mpm_itk.so
 LoadModule unixd_module libexec/apache24/mod_unixd.so
 LoadModule auth_basic_module libexec/apache24/mod_auth_basic.so
@@ -87,6 +88,14 @@ ServerName localhost
 <IfModule mpm_itk_module>
         StartServers 1
         MinSpareServers 1
+</IfModule>
+
+<IfModule mpm_prefork_module>
+    StartServers             2
+    MinSpareServers          2
+    MaxSpareServers          5
+    MaxRequestWorkers      100
+    MaxConnectionsPerChild   0
 </IfModule>
 
 <IfModule unixd_module>
