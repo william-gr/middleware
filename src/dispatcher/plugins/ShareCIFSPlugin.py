@@ -128,6 +128,7 @@ def yesno(val):
 
 def convert_share(ret, target, share):
     vfs_objects = []
+    ret.clear()
     ret['path'] = target
     ret['guest ok'] = yesno(share.get('guest_ok', False))
     ret['guest only'] = yesno(share.get('guest_only', False))
