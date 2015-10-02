@@ -42,7 +42,7 @@ class ServicesTest(BaseTestCase):
 
     def test_sshd_restart(self):
     	sname = str(inspect.stack()[0][3].split('_')[-1])
-        if self.isRunning('sshd'): #service['state'] != 'STOPPED':
+        if self.isRunning('sshd'): 
             self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
         self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
             
@@ -139,14 +139,13 @@ class ServicesTest(BaseTestCase):
         Not a functional test, 
     	'''
     	sname = inspect.stack()[0][3].split('_')[-1]
-        #service = self.conn.call_sync('services.query', [('name', '=', 'snmp')], {'single': True})
         if not self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
         self.assertTaskCompletion(self.submitTask('service.configure', sname, \
-    		{"auxilary": "dummy", 'contact': 'nobody', 'v3': False}))	
+    		{'contact': 'nobody', 'v3_password': 'abcd1234', 'v3_privacy_passphrase': 'abcd1234'}))	
 
     ################# CIFS
-    def atest_start_stop_cifs(self):
+    def test_start_stop_cifs(self):
         '''
         Can start from stopped state
         '''
@@ -227,12 +226,10 @@ class ServicesTest(BaseTestCase):
     	sname = inspect.stack()[0][3].split('_')[-1]
     	if self.isRunning(sname):
     		self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
-    	# and then start    
         self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
 
     def test_restart_nfs(self):
     	sname = inspect.stack()[0][3].split('_')[-1]
-    	
     	if self.isRunning(sname):
             self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
 
