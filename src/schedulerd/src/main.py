@@ -216,10 +216,7 @@ class Context(object):
                         'month': {'type': ['string', 'null']},
                         'day': {'type': ['string', 'null']},
                         'week': {'type': ['string', 'null']},
-                        'day_of_week': {
-                            'type': ['string', 'null'],
-                            'enum': [None, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-                        },
+                        'day_of_week': {'type': ['string', 'null']},
                         'hour': {'type': ['string', 'null']},
                         'minute': {'type': ['string', 'null']},
                         'second': {'type': ['string', 'null']}
