@@ -113,6 +113,22 @@
         "attributes": {},
         "builtin": true
       },
+     "142": {
+        "password_disabled": false,
+        "email": null,
+        "group": 142,
+        "home": "/var/empty",
+        "full_name": "Ladvd User",
+        "username": "ladvd",
+        "sshpubkey": null,
+        "shell": "/usr/sbin/nologin",
+        "locked": false,
+        "unixhash": "*",
+        "sudo": false,
+        "smbhash": "*",
+        "attributes": {},
+        "builtin": true
+      },
       "80": {
         "password_disabled": false,
         "email": null,
@@ -491,6 +507,11 @@
         "builtin": true,
         "sudo": false,
         "name": "swift"
+      },
+      "142": {
+        "builtin": true,
+        "sudo": false,
+        "name": "ladvd"
       },
       "80": {
         "builtin": true,
