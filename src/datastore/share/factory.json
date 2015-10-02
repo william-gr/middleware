@@ -1279,6 +1279,62 @@
         "builtin": false,
         "pidfile": "/var/run/httpd.pid",
         "name": "webdav"
+      },
+      "1c668931-3e2e-48d3-927d-39d71c34e3f2": {
+        "rcng": {
+          "rc-scripts": "fnstatd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/fnstatd.pid",
+        "name": "fnstatd"
+      },
+      "f029276c-d66f-4730-916c-3f5765fb7213": {
+        "rcng": {
+          "rc-scripts": "networkd"
+        },
+        "builtin": true,
+        "pidfile": "/var/run/networkd.pid",
+        "name": "networkd"
+      },
+      "1e054b99-ae65-4eb6-a991-8fe9a16abd9c": {
+          "rcng": {
+            "rc-scripts": "etcd"
+          },
+          "builtin": true,
+          "pidfile": "/var/run/etcd.pid",
+          "name": "etcd"
+      },
+      "4984e2d7-7293-4e53-9507-474992c5db76": {
+          "rcng": {
+            "rc-scripts": "schedulerd"
+          },
+          "builtin": true,
+          "pidfile": "/var/run/schedulerd.pid",
+          "name": "schedulerd"
+      },
+      "b3e5e737-bd2e-401e-8d16-2a4cf3d68717": {
+          "rcng": {
+            "rc-scripts": "dispatcher"
+          },
+          "builtin": true,
+          "pidfile": "/var/run/dispatcher.pid",
+          "name": "dispatcher"
+      },
+      "42ee6d97-3bbb-4dc4-bc30-95776167cb1d": {
+          "rcng": {
+            "rc-scripts": "gui"
+          },
+          "builtin": true,
+          "pidfile": "/var/run/node.pid",
+          "name": "gui"
+      },
+      "38f6d9ba-753a-4ffe-a9f5-df50d1b0598e": {
+          "rcng": {
+            "rc-scripts": "django"
+          },
+          "builtin": true,
+          "pidfile": "/var/run/django.pid",
+          "name": "django"
       }
     },
     "metadata": {
