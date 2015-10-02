@@ -189,6 +189,11 @@ SSLRandomSeed connect builtin
 SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
 </IfModule>
 
+<IfDefine NOHTTPACCEPT>
+   AcceptFilter http none
+   AcceptFilter https none
+</IfDefine>
+
 <%def name="webdav_block(cfg, field, certificate=None)">
 Listen ${cfg[field]}
 
