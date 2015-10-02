@@ -562,10 +562,9 @@ class ZfsDatasetMountTask(ZfsBaseTask):
             zfs = libzfs.ZFS()
             dataset = zfs.get_dataset(name)
             if dataset.mountpoint:
-                logger.warning(
-                    '{0} dataset already mounted at {1}'.format(name, dataset.mountpoint)
-                )
-            return
+                logger.warning('{0} dataset already mounted at {1}'.format(name, dataset.mountpoint))
+                return
+
             if recursive:
                 dataset.mount_recursive()
             else:
