@@ -28,6 +28,7 @@ import errno
 import logging
 import re
 import smbconf
+import enum
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from lib.system import system, SubprocessException
@@ -35,6 +36,14 @@ from lib.freebsd import get_sysctl
 from task import Task, Provider, TaskException, ValidationException
 
 logger = logging.getLogger('CIFSPlugin')
+
+
+class LogLevel(enum.IntEnum):
+    NONE = 0
+    MINIMUM = 1
+    NORMAL = 2
+    FULL = 3
+    DEBUG = 10
 
 
 def validate_netbios_name(netbiosname):
@@ -164,7 +173,7 @@ def configure_params(cifs):
     conf['multicast dns register'] = yesno(cifs['zeroconf'])
     conf['local master'] = yesno(cifs['local_master'])
     conf['server role'] = 'auto'
-    conf['log level'] = str(cifs['log_level'])
+    conf['log level'] = str(getattr(LogLevel, cifs['log_level']).value)
     conf['username map'] = '/usr/local/etc/smbusers'
 
 
@@ -219,7 +228,10 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'dos_charset': {'type': 'string'},
             'unix_charset': {'type': 'string'},
-            'log_level': {'type': 'string'},
+            'log_level': {
+                'type': 'string',
+                'enum': LogLevel.__members__.keys()
+            },
             'syslog': {'type': 'boolean'},
             'local_master': {'type': 'boolean'},
             'domain_logons': {'type': 'boolean'},
