@@ -9,18 +9,18 @@ MASTER_SITES=	GNOME
 MAINTAINER=	gnome@FreeBSD.org
 COMMENT=	Object database, tag/metadata database, search tool and indexer
 
-LIB_DEPENDS=	libdbus-glib-1.so:${PORTSDIR}/devel/dbus-glib \
-		libgmime-2.6.so:${PORTSDIR}/mail/gmime26 \
-		libhal.so:${PORTSDIR}/sysutils/hal \
-		libraptor.so:${PORTSDIR}/textproc/raptor \
-		libuuid.so:${PORTSDIR}/misc/e2fsprogs-libuuid \
-		libicutu.so:${PORTSDIR}/devel/icu \
-		libmediaart-2.0.so:${PORTSDIR}/multimedia/libmediaart \
-		librest-0.7.so:${PORTSDIR}/devel/librest
-RUN_DEPENDS=	xdg-desktop-icon:${PORTSDIR}/devel/xdg-utils \
-		o3totxt:${PORTSDIR}/converters/o3read \
-		pdftotext:${PORTSDIR}/graphics/poppler-utils \
-		w3m:${PORTSDIR}/www/w3m
+#LIB_DEPENDS=	libdbus-glib-1.so:${PORTSDIR}/devel/dbus-glib \
+#		libgmime-2.6.so:${PORTSDIR}/mail/gmime26 \
+#		libhal.so:${PORTSDIR}/sysutils/hal \
+#		libraptor.so:${PORTSDIR}/textproc/raptor \
+#		libuuid.so:${PORTSDIR}/misc/e2fsprogs-libuuid \
+#		libicutu.so:${PORTSDIR}/devel/icu \
+#		libmediaart-2.0.so:${PORTSDIR}/multimedia/libmediaart \
+#		librest-0.7.so:${PORTSDIR}/devel/librest
+#RUN_DEPENDS=	xdg-desktop-icon:${PORTSDIR}/devel/xdg-utils \
+#		o3totxt:${PORTSDIR}/converters/o3read \
+#		pdftotext:${PORTSDIR}/graphics/poppler-utils \
+#		w3m:${PORTSDIR}/www/w3m
 
 PORTSCOUT=	limitw:1,even
 
