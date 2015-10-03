@@ -137,7 +137,12 @@ def apply_migrations(collection, directory, force=False):
             else:
                 mig_log('Object unchanged after migration')
 
-            ds.update(collection, old_obj['id'], new_obj)
+            if not new_obj:
+                ds.delete(collection, old_obj['id'])
+                mig_log('Object deleted by migration')
+            else:
+                ds.update(collection, old_obj['id'], new_obj)
+
             migrated += 1
 
         mig_log("{0} out of {1} objects migrated".format(migrated, total))
