@@ -89,7 +89,6 @@ etc/ctdb/nfs-linux-kernel-callout
 etc/ctdb/notify.d/README
 etc/ctdb/notify.sh
 etc/ctdb/statd-callout
-etc/rc.d/samba_server
 etc/sudoers.d/ctdb
 include/samba4/charset.h
 include/samba4/core/doserr.h
@@ -901,7 +900,6 @@ share/ctdb-tests/scripts/common.sh
 share/ctdb-tests/scripts/integration.bash
 share/ctdb-tests/scripts/test_wrap
 share/ctdb-tests/scripts/unit.sh
-%%PORTDOCS%%%%DOCSDIR%%/README.FreeBSD
 %%DATADIR%%/setup/DB_CONFIG
 %%DATADIR%%/setup/ad-schema/MS-AD_Schema_2K8_Attributes.txt
 %%DATADIR%%/setup/ad-schema/MS-AD_Schema_2K8_Classes.txt
