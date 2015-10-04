@@ -427,16 +427,6 @@ class UpdateConfigureTask(Task):
 
     def verify(self, props):
         # TODO: Fix this verify's resource allocation as unique task
-        train_to_set = props.get('train')
-        conf = Configuration.Configuration()
-        conf.LoadTrainsConfig()
-        trains = conf.AvailableTrains() or []
-        if trains:
-            trains = trains.keys()
-        if train_to_set not in trains:
-            raise VerifyException(
-                errno.ENOENT,
-                '{0} is not a valid train'.format(train_to_set))
         block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
             raise VerifyException(
@@ -448,8 +438,18 @@ class UpdateConfigureTask(Task):
 
     def run(self, props):
 
-        self.configstore.set('update.train', props.get('train'))
-        self.configstore.set('update.check_auto', props.get('check_auto'))
+        if 'train' in props:
+            train_to_set = props.get('train')
+            conf = Configuration.Configuration()
+            conf.LoadTrainsConfig()
+            trains = conf.AvailableTrains() or []
+            if trains:
+                trains = trains.keys()
+            if train_to_set not in trains:
+                raise TaskException(errno.ENOENT, '{0} is not a valid train'.format(train_to_set))
+            self.configstore.set('update.train', train_to_set)
+        if 'check_auto' in props:
+            self.configstore.set('update.check_auto', props.get('check_auto'))
         self.dispatcher.dispatch_event('update.changed', {
             'operation': 'update',
         })
