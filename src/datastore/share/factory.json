@@ -1356,6 +1356,14 @@
           "builtin": true,
           "pidfile": "/var/run/django.pid",
           "name": "django"
+      },
+      "D33F4044-AA6B-4839-8B0D-16AEAFC626F8": {
+        "rcng": {
+          "rc-scripts": "mdnsd"
+        },
+        "builtin": true,
+        "pidfile":  "/var/run/mdnsd.pid",
+        "name": "mdns"
       }
     },
     "metadata": {
