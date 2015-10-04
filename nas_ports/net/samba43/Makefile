@@ -96,6 +96,10 @@ LIB_DEPENDS+=		libsunacl.so:${PORTSDIR}/sysutils/libsunacl
 BUILD_DEPENDS+=		libarchive>=3.1.2:${PORTSDIR}/archivers/libarchive
 RUN_DEPENDS+=		libarchive>=3.1.2:${PORTSDIR}/archivers/libarchive
 
+# snapper needs dbus 
+LIB_DEPENDS+=		libdbus-1.so:${PORTSDIR}/devel/dbus 
+LIB_DEPENDS+=		libdbus-glib-1.so:${PORTSDIR}/devel/dbus-glib
+
 # External Samba dependencies
 # IDL compiler
 BUILD_DEPENDS+=		p5-Parse-Pidl>=4.3.0:${PORTSDIR}/devel/p5-Parse-Pidl
