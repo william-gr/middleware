@@ -32,7 +32,6 @@ INSTALL_WRKSRC=		${WRKDIR}/${DISTNAME}/pidl
 
 
 post-extract:
-			echo XXX ${WRKSRC}
 			@${RM} -rf ${WRKSRC}/lib/Parse/Yapp ${WRKSRC}/lib/wscript_build
 
 .include "${MASTERDIR}/Makefile"
