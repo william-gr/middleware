@@ -481,6 +481,7 @@ def _init(dispatcher, plugin):
             return
 
         dispatcher.configstore.set('system.hostname', args['hostname'])
+        dispatcher.call_sync('services.restart', 'mdns')
         dispatcher.dispatch_event('system.general.changed', {
             'operation': 'update',
         })
