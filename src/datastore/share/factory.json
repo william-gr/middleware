@@ -1124,6 +1124,18 @@
           "file:local/riak/riak.conf"
         ],
         "name": "riak"
+      },
+      "85DD4270-6B80-11E5-9577-97059C8C98F3": {
+        "dependencies": [
+          "file:local/riak-cs/riak-cs.conf"
+        ],
+        "name": "riak-cs"
+      },
+      "989C33FF-6B81-11E5-9577-97059C8C98F3": {
+        "dependencies": [
+          "file:local/stanchion/stanchion.conf"
+        ],
+        "name": "stanchion"
       }
     },
     "metadata": {
