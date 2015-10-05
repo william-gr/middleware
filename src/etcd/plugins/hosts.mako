@@ -4,5 +4,5 @@
 ::1         ${config.get("system.hostname").split(".")[0]} ${config.get("system.hostname")}
 
 % for host in dispatcher.call_sync("network.hosts.query"):
-    ${host["address"]} ${host["id"]}
+${host["address"]} ${host["id"]}
 % endfor
