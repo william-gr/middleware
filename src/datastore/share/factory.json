@@ -801,7 +801,7 @@
       "service.riak.node_ip": null,
       "service.riak.log_console_level": "INFO",
       "service.riak.storage_backend": "LEVELDB",
-      "service.riak.buckets_default_allow_multi": "TRUE",
+      "service.riak.buckets_default_allow_multi": true,
       "service.riak.riak_control": "ON",
       "service.riak.listener_http_internal": "null",
       "service.riak.listener_http_internal_port": "8098",
