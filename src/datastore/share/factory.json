@@ -1392,6 +1392,14 @@
         "builtin": true,
         "pidfile":  "/var/run/mdnsd.pid",
         "name": "mdns"
+      },
+      "12B2673E-678C-4C5D-8E5B-08AF9DB31592": {
+        "rcng": {
+          "rc-scripts": "ladvd"
+        },
+        "builtin": false,
+        "pidfile":  "/var/run/ladvd.pid",
+        "name": "lldp"
       }
     },
     "metadata": {
