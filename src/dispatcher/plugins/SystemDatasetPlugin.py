@@ -40,10 +40,10 @@ from fnutils.copytree import copytree
 
 SYSTEM_DIR = '/var/db/system'
 LINK_DIRS = {
-    'riak': '/var/db/riak',
-    'riak-cs': '/var/db/riak-cs',
+    'riak': {"owner": "riak", "group": "riak", '/var/db/riak'},
+    'riak-cs': {"owner": "riakcs", "group": "riak", '/var/db/riak-cs'},
     'samba': '/var/db/samba4',
-    'stanchion': '/var/db/stanchion',
+    'stanchion': {"owner": "stanchion", "group": "riak", '/var/db/stanchion'},
     'log': '/var/log'
 }
 SKELETON_DIRS = {
