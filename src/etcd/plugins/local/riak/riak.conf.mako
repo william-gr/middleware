@@ -420,7 +420,7 @@ bitcask.io_mode = erlang
 ## 
 ## Acceptable values:
 ##   - on or off
-riak_control = ${cfg['log_console_level'].lower()}
+riak_control = ${"on" if cfg['raik_control'] else "off"}
 
 ## Authentication mode used for access to the admin panel.
 ## 

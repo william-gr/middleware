@@ -89,7 +89,7 @@ def _init(dispatcher, plugin):
             'log_console_level': {'type': ['string'], 'enum': ['NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT',  'EMERGENCY', 'ERROR']},
             'storage_backend': {'type': ['string'], 'enum': ['BITCASK', 'LEVELDB', 'MEMORY', 'MULTI', 'PREFIX_MULTI']},
             'buckets_default_allow_multi': {'type': 'boolean'},
-            'riak_control': {'type': ['boolean'], 'enum': ['ON', 'OFF']},
+            'riak_control': {'type': 'boolean'},
             'listener_http_internal': {'type': ['string', 'null']},
             'listener_http_internal_port': {'type': ['string', 'null']},
             'listener_protobuf_internal': {'type': ['string', 'null']},
