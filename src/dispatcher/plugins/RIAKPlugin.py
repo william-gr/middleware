@@ -85,7 +85,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'save_description': {'type': 'boolean'},
             'nodename': {'type': ['string', 'null']},
-            'log_console_level': {'type': ['string', 'info']},
+            'log_console_level': {'type': ['string', 'null'], 'enum': ['NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT',  'EMERGENCY', 'ERROR']},
         },
         'additionalProperties': False,
     })
