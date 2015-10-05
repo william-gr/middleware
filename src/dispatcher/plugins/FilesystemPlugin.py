@@ -225,7 +225,9 @@ class SetPermissionsTask(Task):
 
         if permissions.get('modes'):
             modes = permissions['modes']
-            if isinstance(modes, dict):
+            if modes.get('value'):
+                modes = int(modes['value'])
+            else:
                 modes = modes_to_oct(modes)
 
             bsd.lchmod(path, modes, recursive)
@@ -310,7 +312,7 @@ def _init(dispatcher, plugin):
             'user': {'type': ['string', 'null']},
             'group': {'type': ['string', 'null']},
             'modes': {
-                'type': ['object', 'integer', 'null'],
+                'type': ['object', 'null'],
                 'properties': {
                     'user': {'$ref': 'unix-mode-tuple'},
                     'group': {'$ref': 'unix-mode-tuple'},
@@ -327,6 +329,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('unix-permissions', {
         'type': 'object',
         'properties': {
+            'value': {'type': 'integer'},
             'user': {'$ref': 'unix-mode-tuple'},
             'group': {'$ref': 'unix-mode-tuple'},
             'others': {'$ref': 'unix-mode-tuple'}
