@@ -54,6 +54,10 @@ update_cache = CacheStore()
 update_resource_string = 'update:operations'
 
 
+def _depends():
+    return ['SystemDatasetPlugin']
+
+
 def parse_changelog(changelog, start='', end=''):
     "Utility function to parse an available changelog"
     regexp = r'### START (\S+)(.+?)### END \1'
@@ -634,7 +638,6 @@ class UpdateManualTask(ProgressTask):
         self.set_progress(100)
 
 
-# Fix this when the fn10 freenas-pkg tools is updated by sef
 @accepts(bool)
 @description("Applies cached updates")
 class UpdateApplyTask(ProgressTask):
@@ -686,7 +689,8 @@ class UpdateApplyTask(ProgressTask):
         self.message = "Updates Finished Installing Successfully"
         if reboot_post_install:
             self.message = "Scheduling user specified reboot post succesfull update"
-            self.join_subtasks(self.run_subtask('system.reboot'))
+            # Note not using subtasks on purpose as they do not have queuing logic
+            self.dispatcher.submit_task('system.reboot')
         self.set_progress(100)
 
 
@@ -720,8 +724,36 @@ class UpdateVerifyTask(ProgressTask):
         }
 
 
-def _depends():
-    return ['SystemDatasetPlugin']
+@description("Checks for updates from the update server and downloads them if available")
+@accepts()
+@returns(bool)
+class CheckFectchUpdateTask(ProgressTask):
+    def describe(self):
+        return "Checks for updates from the update server and downloads them if available. " +\
+               "Returns Ture if updates were found and applied else False"
+
+    def verify(self):
+        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
+        if block is not None and block.busy:
+            raise VerifyException(errno.EBUSY, (
+                'An Update Operation (Configuration/ Download/ Applying'
+                'the Updates) is already in the queue, please retry later'
+            ))
+
+        return []
+
+    def run(self):
+        self.message = 'Checking for new updates from update server...'
+        self.set_progress(0)
+        self.join_subtasks(self.run_subtask('update.check'))
+        if self.dispatcher.call_sync('update.is_update_available'):
+            self.message = 'New updates found. Downloading them now...'
+            self.set_progress(20)
+            self.join_subtasks(self.run_subtask('update.download'))
+            self.message = 'Updates successfully Downloaded.'
+            self.set_progress(100)
+            return True
+        return False
 
 
 def _init(dispatcher, plugin):
@@ -798,6 +830,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("update.manual", UpdateManualTask)
     plugin.register_task_handler("update.update", UpdateApplyTask)
     plugin.register_task_handler("update.verify", UpdateVerifyTask)
+    plugin.register_task_handler("update.checkfetch", CheckFectchUpdateTask)
 
     # Register Event Types
     plugin.register_event_type('update.in_progress', schema=h.ref('update-progress'))
