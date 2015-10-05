@@ -84,8 +84,8 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'save_description': {'type': 'boolean'},
-            'country_code': {'type': 'string'},
-            'location': {'type': 'string'},
+            'country_code': {'type': ['string', 'null']},
+            'location': {'type': ['string', 'null']},
         },
         'additionalProperties': False,
     })
