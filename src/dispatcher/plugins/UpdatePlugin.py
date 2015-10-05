@@ -635,13 +635,13 @@ class UpdateManualTask(ProgressTask):
 
 
 # Fix this when the fn10 freenas-pkg tools is updated by sef
-@accepts()
+@accepts(bool)
 @description("Applies cached updates")
 class UpdateApplyTask(ProgressTask):
     def describe(self):
         return "Applies cached updates to the system and reboots if necessary"
 
-    def verify(self):
+    def verify(self, reboot_post_install=False):
         return ['root']
 
     def update_progress(self, progress, message):
@@ -649,7 +649,7 @@ class UpdateApplyTask(ProgressTask):
             self.message = message
         self.set_progress(progress)
 
-    def run(self):
+    def run(self, reboot_post_install=False):
         self.message = 'Applying Updates...'
         self.set_progress(0)
         handler = UpdateHandler(self.dispatcher, update_progress=self.update_progress)
@@ -684,6 +684,9 @@ class UpdateApplyTask(ProgressTask):
         handler.finished = True
         handler.emit_update_details()
         self.message = "Updates Finished Installing Successfully"
+        if reboot_post_install:
+            self.message = "Scheduling user specified reboot post succesfull update"
+            self.join_subtasks(self.run_subtask('system.reboot'))
         self.set_progress(100)
 
 
