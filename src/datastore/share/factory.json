@@ -698,7 +698,7 @@
       "service.cifs.description": "FreeNAS Server",
       "service.cifs.dos_charset": "CP437",
       "service.cifs.unix_charset": "UTF-8",
-      "service.cifs.log_level": 0,
+      "service.cifs.log_level": "MINIMUM",
       "service.cifs.syslog": false,
       "service.cifs.local_master": false,
       "service.cifs.domain_logons": false,
