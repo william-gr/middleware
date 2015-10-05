@@ -38,7 +38,7 @@ class RIAKCSProvider(Provider):
     @accepts()
     @returns(h.ref('service-riak-cs'))
     def get_config(self):
-        return ConfigNode('service.riak-cs', self.configstore)
+        return ConfigNode('service.riak_cs', self.configstore)
 
 
 @description('Configure RIAKCS KV service')
@@ -47,22 +47,22 @@ class RIAKCSConfigureTask(Task):
     def describe(self, share):
         return 'Configuring RIAKCS KV service'
 
-    def verify(self, riak-cs):
+    def verify(self, riakcs):
         errors = []
 
-        node = ConfigNode('service.riak-cs', self.configstore).__getstate__()
-        node.update(riak-cs)
+        node = ConfigNode('service.riak_cs', self.configstore).__getstate__()
+        node.update(riakcs)
 
         if errors:
             raise ValidationException(errors)
 
         return ['system']
 
-    def run(self, riak-cs):
+    def run(self, riakcs):
         try:
-            node = ConfigNode('service.riak-cs', self.configstore)
-            node.update(riak-cs)
-            self.dispatcher.call_sync('services.restart', 'riak-cs')
+            node = ConfigNode('service.riak_cs', self.configstore)
+            node.update(riakcs)
+            self.dispatcher.call_sync('services.restart', 'riak_cs')
             self.dispatcher.dispatch_event('service.riak-cs.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -91,7 +91,9 @@ def _init(dispatcher, plugin):
             'stanchion_host__port': {'type': ['string', 'null']},
             'nodename': {'type': ['string', 'null']},
             'node_ip': {'type': ['string', 'null']},
-            'log_console_level': {'type': ['string'], 'enum': ['NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT',  'EMERGENCY', 'ERROR']},
+            'log_console_level': {'type': 'string', 'enum': [
+                'NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT', 'EMERGENCY', 'ERROR'
+            ]},
             'anonymous_user_creation': {'type': 'boolean'},
             'admin_key': {'type': ['string', 'null']},
             'admin_secret': {'type': ['string', 'null']},

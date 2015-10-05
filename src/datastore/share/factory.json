@@ -1129,7 +1129,7 @@
         "dependencies": [
           "file:local/riak-cs/riak-cs.conf"
         ],
-        "name": "riak-cs"
+        "name": "riak_cs"
       },
       "989C33FF-6B81-11E5-9577-97059C8C98F3": {
         "dependencies": [
@@ -1310,6 +1310,7 @@
           "rc-scripts": "riak-cs"
         },
         "builtin": false,
+        "etcd-group": "riak_cs",
         "pidfile": "/var/run/riak-cs/riak-cs.pid",
         "name": "riak_cs"
       },
