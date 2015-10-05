@@ -33,7 +33,7 @@ from task import Task, Provider, TaskException, ValidationException
 logger = logging.getLogger('RIAKCSPlugin')
 
 
-@description('Provides info about RIAKCS service configuration')
+@description('Provides info about RIAK CS service configuration')
 class RIAKCSProvider(Provider):
     @accepts()
     @returns(h.ref('service-riak-cs'))
@@ -41,11 +41,11 @@ class RIAKCSProvider(Provider):
         return ConfigNode('service.riak_cs', self.configstore)
 
 
-@description('Configure RIAKCS KV service')
+@description('Configure RIAK CS service')
 @accepts(h.ref('service-riak-cs'))
 class RIAKCSConfigureTask(Task):
     def describe(self, share):
-        return 'Configuring RIAKCS KV service'
+        return 'Configuring RIAK CS service'
 
     def verify(self, riakcs):
         errors = []
@@ -91,9 +91,7 @@ def _init(dispatcher, plugin):
             'stanchion_host__port': {'type': ['string', 'null']},
             'nodename': {'type': ['string', 'null']},
             'node_ip': {'type': ['string', 'null']},
-            'log_console_level': {'type': 'string', 'enum': [
-                'NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT', 'EMERGENCY', 'ERROR'
-            ]},
+            'log_console_level': {'type': 'string', 'enum': ['NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT', 'EMERGENCY', 'ERROR']},
             'anonymous_user_creation': {'type': 'boolean'},
             'admin_key': {'type': ['string', 'null']},
             'admin_secret': {'type': ['string', 'null']},
