@@ -3,6 +3,7 @@
 
     adv_config = dispatcher.call_sync('system.advanced.get_config')
     gen_config = dispatcher.call_sync('system.general.get_config')
+    lldp_config = dispatcher.call_sync('service.lldp.get_config')
     smartd_config = dispatcher.call_sync('service.smartd.get_config')
     tftp_config = dispatcher.call_sync('service.tftp.get_config')
     ups_config = dispatcher.call_sync('service.ups.get_config')
@@ -84,7 +85,7 @@ ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'lldp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -109,6 +110,18 @@ ipfs_go_path="${config.get("service.ipfs.path")}"
 ipfs_go_path="/var/db/system/ipfs"
 % endif
 % endif
+
+ladvd_flags="-a\
+% if lldp_config['save_description']:
+ -z\
+% endif
+% if lldp_config['country_code']:
+ -c ${lldp_config['country_code']}\
+% endif
+% if lldp_config['location']:
+ -l \"${lldp_config['location']}\"\
+% endif
+"
 
 % if nfs_config['enable']:
 %  if nfs_config['v4']:
