@@ -106,7 +106,7 @@ log.crash.rotation.keep = 5
 ## 
 ## Acceptable values:
 ##   - text
-nodename = riak@127.0.0.1
+nodename = ${cfg['nodename'].lower()}@${cfg['node_ip'].lower()}
 
 ## Cookie for distributed node communication.  All nodes in the
 ## same cluster should use the same cookie or they will not be able to
@@ -285,7 +285,7 @@ platform_log_dir = /var/log/riak
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
-listener.http.internal = 127.0.0.1:8098
+listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listener_http_internal_port'].lower()}
 
 ## listener.protobuf.<name> is an IP address and TCP port that the Riak
 ## Protocol Buffers interface will bind.
@@ -294,7 +294,7 @@ listener.http.internal = 127.0.0.1:8098
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
-listener.protobuf.internal = 127.0.0.1:8087
+listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg['listener_protobuf_internal_port'].lower()}
 
 ## The maximum length to which the queue of pending connections
 ## may grow. If set, it must be an integer > 0. If you anticipate a
@@ -313,6 +313,7 @@ listener.protobuf.internal = 127.0.0.1:8087
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
 ## listener.https.internal = 127.0.0.1:8098
+listener.https.internal = ${cfg['listener_https_internal'].lower()}:${cfg['listener_https_internal_port'].lower()}
 
 ## How Riak will repair out-of-sync keys. Some features require
 ## this to be set to 'active', including search.
@@ -334,7 +335,7 @@ anti_entropy = active
 ## 
 ## Acceptable values:
 ##   - one of: bitcask, leveldb, memory, multi, prefix_multi
-storage_backend = bitcask
+storage_backend = ${cfg['storage_backend'].lower()}
 
 ## Simplify prefix_multi configuration for Riak CS. Keep this
 ## commented out unless Riak is configured for Riak CS.
@@ -362,7 +363,7 @@ object.format = 1
 ## 
 ## Acceptable values:
 ##   - a byte size with units, e.g. 10GB
-object.size.warning_threshold = 5MB
+object.size.warning_threshold = ${cfg['object_size_warning_threshold']}
 
 ## Writing an object bigger than this will send a failure to the
 ## client.
@@ -371,7 +372,7 @@ object.size.warning_threshold = 5MB
 ## 
 ## Acceptable values:
 ##   - a byte size with units, e.g. 10GB
-object.size.maximum = 50MB
+object.size.maximum = ${cfg['object_size_maximum']}
 
 ## Writing an object with more than this number of siblings will
 ## generate a warning in the logs.
@@ -419,7 +420,7 @@ bitcask.io_mode = erlang
 ## 
 ## Acceptable values:
 ##   - on or off
-riak_control = off
+riak_control = ${cfg['log_console_level'].lower()}
 
 ## Authentication mode used for access to the admin panel.
 ## 
