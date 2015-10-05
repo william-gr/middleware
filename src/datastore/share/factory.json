@@ -797,7 +797,7 @@
       "service.rsyncd.auxiliary": null,
       "service.riak.enable": false,
       "service.riak.save_description": true,
-      "service.riak.nodename": null,
+      "service.riak.nodename": "riak",
       "service.riak.node_ip": null,
       "service.riak.log_console_level": "INFO",
       "service.riak.storage_backend": "LEVELDB",
