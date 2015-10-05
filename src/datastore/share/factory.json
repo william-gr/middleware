@@ -798,7 +798,7 @@
       "service.riak.enable": false,
       "service.riak.save_description": true,
       "service.riak.nodename": null,
-      "service.riak.log_console_level": "info",
+      "service.riak.log_console_level": "INFO",
       "service.riak_cs.enable": false,
       "service.stanchion.enable": false,
       "service.swift.enable": false,
