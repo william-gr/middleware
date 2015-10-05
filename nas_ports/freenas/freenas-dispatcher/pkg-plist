@@ -90,6 +90,8 @@ lib/dispatcher/plugins/FTPPlugin.py
 lib/dispatcher/plugins/IPFSPlugin.py
 lib/dispatcher/plugins/NFSPlugin.py
 lib/dispatcher/plugins/RIAKPlugin.py
+lib/dispatcher/plugins/RIAKCSPlugin.py
+lib/dispatcher/plugins/StanchionPlugin.py
 lib/dispatcher/plugins/RsyncdPlugin.py
 lib/dispatcher/plugins/SMARTPlugin.py
 lib/dispatcher/plugins/ShareCIFSPlugin.py
