@@ -1084,6 +1084,12 @@
           "file:local/apache24/httpd.conf"
         ],
         "name": "webdav"
+      },
+      "6C213C0D-B529-4B52-B3BE-D94D2A5823C3": {
+        "dependencies": [
+          "file:local/riak/riak.conf"
+        ],
+        "name": "riak"
       }
     },
     "metadata": {
@@ -1241,6 +1247,7 @@
           "rc-scripts": "riak"
         },
         "builtin": false,
+        "etcd-group": "riak",
         "pidfile": "/var/run/riak/riak.pid",
         "name": "riak"
       },
