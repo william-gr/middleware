@@ -7,7 +7,7 @@
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
-listener =  ${cfg['listener_ip'].lower()}:${cfg['listener_port']}
+listener =  ${cfg['listener_ip'].lower()}:${cfg['listener__port']}
 
 ## Default cert location for https can be overridden
 ## with the ssl config variable, for example:
