@@ -141,7 +141,7 @@ def _init(dispatcher, plugin):
             'afp3_privileges': {'type': 'boolean'},
             'default_file_perms': {'$ref': 'unix-permissions'},
             'default_directory_perms': {'$ref': 'unix-permissions'},
-            'default_umask': {'type': 'integer'},
+            'default_umask': {'$ref': 'unix-permissions'},
             'ro_list': {
                 'type': 'array',
                 'items': {'type': 'string'}
