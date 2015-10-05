@@ -51,7 +51,8 @@ SKELETON_DIRS = {
         'riak': {"owner": "riak", "group": "riak"},
         'riak-cs': {"owner": "riakcs", "group": "riak"},
         'stanchion': {"owner": "stanchion", "group": "riak"},
-        'samba': ['private']
+        'samba': ['private'],
+    },
 }
 
 logger = logging.getLogger('SystemDataset')
