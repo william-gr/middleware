@@ -25,7 +25,6 @@
 #####################################################################
 import errno
 import logging
-import pycountry
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
@@ -54,6 +53,8 @@ class LLDPConfigureTask(Task):
         node = ConfigNode('service.lldp', self.configstore).__getstate__()
         node.update(lldp)
 
+        # Lazy load pycountry due to extra verbose DEBUG logging
+        import pycountry
         if node['country_code'] and node['country_code'] not in pycountry.countries.indices['alpha2']:
             errors.append(('country_code', errno.EINVAL, 'Invalid ISO-3166 alpha 2 code'))
 
