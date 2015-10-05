@@ -126,7 +126,7 @@ class ResourceGraph(object):
 
     def get_resource_dependencies(self, name):
         res = self.get_resource(name)
-        for i in self.resources.out_edges(res):
+        for i, _ in self.resources.in_edges([res]):
             yield i.name
 
     def acquire(self, *names):
@@ -141,7 +141,7 @@ class ResourceGraph(object):
             if not res:
                 raise ResourceError('Resource {0} not found'.format(name))
 
-            for i in nx.ancestors(self.resources, res):
+            for i in nx.descendants(self.resources, res):
                 if i.busy:
                     self.unlock()
                     raise ResourceError('Cannot acquire, some of dependent resources are busy')
@@ -165,7 +165,7 @@ class ResourceGraph(object):
                 self.unlock()
                 return False
 
-            for i in nx.ancestors(self.resources, res):
+            for i in nx.descendants(self.resources, res):
                 if i.busy:
                     self.unlock()
                     return False
