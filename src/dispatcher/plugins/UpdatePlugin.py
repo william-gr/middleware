@@ -642,13 +642,6 @@ class UpdateApplyTask(ProgressTask):
         return "Applies cached updates to the system and reboots if necessary"
 
     def verify(self):
-        block = self.dispatcher.resource_graph.get_resource(update_resource_string)
-        if block is not None and block.busy:
-            raise VerifyException(errno.EBUSY, (
-                'An Update Operation (Configuration/ Download/ Applying '
-                'the Updates) is already in the queue, please retry later'
-            ))
-
         return ['root']
 
     def update_progress(self, progress, message):
