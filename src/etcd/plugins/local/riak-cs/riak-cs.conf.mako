@@ -8,7 +8,7 @@
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
-listener.http.internal = ${cfg['listener_ip_internal'].lower()}:${cfg['listener_ip_internal_port'].lower()}
+listener = ${cfg['listener_ip'].lower()}:${cfg['listener_ip_port'].lower()}
 
 ## Riak node to which Riak CS accesses
 ## 
