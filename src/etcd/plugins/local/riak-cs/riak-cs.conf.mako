@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.riak-cs.get_config')
+    cfg = dispatcher.call_sync('service.riak_cs.get_config')
 %>\
 ## Riak CS http/https port and IP address to listen at for object
 ## storage activity
