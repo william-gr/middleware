@@ -421,7 +421,12 @@ class Client(object):
         self.__send_event(name, params)
 
     def wait_forever(self):
-        self.ws.run_forever()
+        if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
+            import gevent
+            while True:
+                gevent.sleep(60)
+        else:
+            self.ws.run_forever()
 
     def register_event_handler(self, name, handler):
         if name not in self.event_handlers:
