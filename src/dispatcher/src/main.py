@@ -536,7 +536,7 @@ class Dispatcher(object):
                 'args': event_data
             })
 
-    def call_sync(self, name, *args):
+    def call_sync(self, name, *args, **kwargs):
         return self.rpc.call_sync(name, *args)
 
     def call_task_sync(self, name, *args):
