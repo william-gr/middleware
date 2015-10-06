@@ -30,6 +30,9 @@ from __future__ import print_function
 import argparse
 import os
 import sys
+import glob
+import errno
+import shutil
 import subprocess
 import string
 import json
@@ -73,6 +76,27 @@ def do_stop_forked(control, db_dir):
     return subprocess.call([control, db_dir, 'stop'])
 
 
+def do_check_dbdirs(driver_name, db_dir):
+    if driver_name == 'mongodb':
+        for i in glob.glob(os.path.join(db_dir, 'freenas.db/*.ns')):
+            name, ext = os.path.splitext(i)
+            basename = os.path.basename(name)
+            print("Migrating {0} database to per-db directory".format(basename))
+
+            perdb_dir = os.path.join(db_dir, 'freenas.db', name)
+
+            try:
+                os.mkdir(perdb_dir)
+            except OSError, err:
+                if err.errno == errno.EEXIST:
+                    pass
+
+            for j in glob.glob('{0}.*'.format(name)):
+                print("Moving {0} to {1}/".format(j, perdb_dir))
+                os.unlink(os.path.join(perdb_dir, os.path.basename(j)))
+                shutil.move(j, perdb_dir)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
@@ -80,6 +104,7 @@ def main():
     parser.add_argument('--port', help='TCP port number to be used by database server')
     parser.add_argument('--start-forked', action='store_true')
     parser.add_argument('--stop-forked', action='store_true')
+    parser.add_argument('--check-dbdirs', action='store_true')
     args = parser.parse_args()
     config = read_config(args.c)
 
@@ -88,6 +113,9 @@ def main():
     driver_name = ds['driver']
     driver_dir = os.path.join('/usr/local/lib/datastore/drivers', ds['driver'])
     control = os.path.join(driver_dir, 'control')
+
+    if args.check_dbdirs:
+        sys.exit(do_check_dbdirs(driver_name, db_dir))
 
     if args.init:
         sys.exit(do_init(control, db_dir))
