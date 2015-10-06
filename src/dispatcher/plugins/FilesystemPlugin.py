@@ -235,8 +235,8 @@ class SetPermissionsTask(Task):
         if permissions.get('acl'):
             a = acl.ACL()
             a.__setstate__(permissions['acl'])
+            a.apply(path)
             if not recursive:
-                a.apply(path)
                 return
 
             for root, dirs, files in os.walk(path):
