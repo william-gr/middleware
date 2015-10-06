@@ -32,53 +32,69 @@ import uuid
 import logging
 import shutil
 import time
+import pwd
+import grp
 import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, Provider
 from fnutils.copytree import copytree
 
-SYSTEM_DIR = '/var/db/system'
-LINK_DIRS = {
-    'riak': '/var/db/riak',
-    'riak-cs': '/var/db/riak-cs',
-    'samba': '/var/db/samba4',
-    'stanchion': '/var/db/stanchion',
-    'log': '/var/log'
-}
-SKELETON_DIRS = {
-    'log': {
-        'riak': {"owner": "riak", "group": "riak"},
-        'riak-cs': {"owner": "riakcs", "group": "riak"},
-        'stanchion': {"owner": "stanchion", "group": "riak"},
-        'samba': ['private'],
-    },
-}
 
+SYSTEM_DIR = '/var/db/system'
 logger = logging.getLogger('SystemDataset')
 
 
+class Directory(object):
+    def __init__(self, name, **kwargs):
+        self.name = name
+        self.children = []
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
+SKELETON_DIRS = [
+    Directory('log', link='/var/log', children=[
+        Directory('riak', owner='riak', group='riak'),
+        Directory('riak-cs', owner='riakcs', group='riak'),
+        Directory('stanchion', owner='stanchion', group='riak'),
+    ]),
+    Directory('samba', link='/var/db/samba4', children=[
+        Directory('private')
+    ]),
+    Directory('riak', link='/var/db/riak', owner='riak', group='riak'),
+    Directory('riak-cs', link='/var/db/riak-cs', owner='riakcs', group='riak'),
+    Directory('stanchion', link='/var/db/stanchion', owner='stanchion', group='riak'),
+]
+
+
 def link_directories(dispatcher):
-    for name, directory in LINK_DIRS.items():
-        target = dispatcher.call_sync('system_dataset.request_directory', name)
-        if os.path.islink(directory):
-            if os.readlink(directory) == target:
-                # properly linked already
-                continue
+    for d in SKELETON_DIRS:
+        target = dispatcher.call_sync('system_dataset.request_directory', d.name)
+        if hasattr(d, 'link'):
+            if not os.path.islink(d.link) or not os.readlink(d.link) == target:
+                shutil.move(d.link, d.link + '.{0}.bak'.format(int(time.time())))
+                os.symlink(target, d.link)
 
-        shutil.move(directory, directory + '.{0}.bak'.format(int(time.time())))
-        os.symlink(target, directory)
+        if hasattr(d, 'owner'):
+            uid = pwd.getpwnam(d.owner).pw_uid
+            gid = grp.getgrnam(d.group).gr_gid
+            os.chown(target, uid, gid)
 
-        if name in SKELETON_DIRS:
-            for i in SKELETON_DIRS[name]:
-                try:
-                    os.mkdir(os.path.join(target, i))
-                except OSError, err:
-                    if err.errno != errno.EEXIST:
-                        logger.warning('Cannot create skeleton directory {0}: {1}'.format(
-                            os.path.join(target, i),
-                            str(err))
-                        )
+        for c in d.children:
+            try:
+                os.mkdir(os.path.join(target, c.name))
+            except OSError, err:
+                if err.errno != errno.EEXIST:
+                    logger.warning('Cannot create skeleton directory {0}: {1}'.format(
+                        os.path.join(target, c.name),
+                        str(err))
+                    )
+
+            if hasattr(c, 'owner'):
+                uid = pwd.getpwnam(c.owner).pw_uid
+                gid = grp.getgrnam(c.group).gr_gid
+                os.chown(os.path.join(target, c.name), uid, gid)
 
 
 def create_system_dataset(dispatcher, dsid, pool):
