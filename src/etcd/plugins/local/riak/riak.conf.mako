@@ -13,7 +13,7 @@ log.crash.size = 10MB
 log.crash.rotation = $D0
 log.crash.rotation.keep = 5
 % if cfg['nodename'] and cfg['node_ip']:
-nodename = ${cfg['nodename'].lower()}@${cfg['node_ip'].lower()}
+nodename = ${cfg['nodename']}@${cfg['node_ip']}
 % endif
 distributed_cookie = riak
 erlang.async_threads = 64
@@ -25,17 +25,17 @@ platform_etc_dir = /usr/local/etc/riak
 platform_lib_dir = /usr/local/lib/riak/lib
 platform_log_dir = /var/log/riak
 % if cfg['listener_http_internal'] and cfg['listener_http_internal_port']:
-listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listener_http_internal_port']}
+listener.http.internal = ${cfg['listener_http_internal']}:${cfg['listener_http_internal_port']}
 % endif
 % if cfg['listener_protobuf_internal'] and cfg['listener_protobuf_internal_port']:
-listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg['listener_protobuf_internal_port']}
+listener.protobuf.internal = ${cfg['listener_protobuf_internal']}:${cfg['listener_protobuf_internal_port']}
 % endif
 % if cfg['listener_https_internal'] and cfg['listener_https_internal_port']:
-listener.https.internal = ${cfg['listener_https_internal'].lower()}:${cfg['listener_https_internal_port']}
+listener.https.internal = ${cfg['listener_https_internal']}:${cfg['listener_https_internal_port']}
 % endif
 anti_entropy = active
-storage_backend = ${cfg['storage_backend'].lower()}
-buckets.default.allow_mult = ${cfg['buckets_default_allow_multi'].lower()}
+storage_backend = ${cfg['storage_backend']}
+buckets.default.allow_mult = ${"true" if cfg['buckets_default_allow_multi'] else "false"}
 object.format = 1
 object.size.warning_threshold = ${cfg['object_size_warning_threshold']}
 object.size.maximum = ${cfg['object_size_maximum']}
