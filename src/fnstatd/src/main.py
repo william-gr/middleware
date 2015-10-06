@@ -58,7 +58,6 @@ from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 DEFAULT_DBFILE = 'stats.hdf'
 gevent.monkey.patch_all()
-_thread_type = ClientType.GEVENT
 
 
 def to_timedelta(time_val):
