@@ -46,7 +46,7 @@ def fstyp(device):
 
 
 def sockstat(only_connected=False, ports=None):
-    args = ['/usr/bin/sockstat', '-4']
+    args = ['/usr/bin/sockstat', '-46']
 
     if only_connected:
         args.append('-c')
