@@ -229,7 +229,7 @@ class ServerLockProxy(object):
         self.release()
 
     def acquire(self, timeout=None):
-        return self.conn.call_sync('lock.acquire', self.name, timeout)
+        return self.conn.call_sync('lock.acquire', self.name, timeout, timeout=timeout)
 
     def release(self):
         self.conn.call_sync('lock.release', self.name)
