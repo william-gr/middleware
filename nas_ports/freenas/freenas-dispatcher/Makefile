@@ -33,4 +33,13 @@ checksum fetch:
 do-install:
 	${MAKE} -C ${WRKSRC} install STAGEDIR=${STAGEDIR} PREFIX=${PREFIX} PYTHON=${PYTHON_CMD}
 
+post-install:
+	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/dispatcher
+	#cd ${STAGEDIR}${PREFIX}/lib/dispatcher && ${FIND} -E . -regex ".*.pyc?" | ${SED} 's,^./,lib/dispatcher/,g' >> ${TMPPLIST}
+	(cd ${STAGEDIR}${PREFIX}/lib/dispatcher; ${FIND} -E . -type f -regex ".*.pyc?" \
+		| ${SED} -e 's,^\./,,g' \
+		| ${AWK} '{print length, $$0}' | ${SORT} -rn \
+		| ${AWK} '{print "lib/dispatcher/"$$2 }' >> ${TMPPLIST})
+
+
 .include <bsd.port.mk>
