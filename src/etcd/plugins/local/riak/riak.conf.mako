@@ -287,7 +287,9 @@ platform_log_dir = /var/log/riak
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
+% if cfg['listener_http_internal'] and cfg['listener_http_internal_port']:
 listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listener_http_internal_port'].lower()}
+% endif
 
 ## listener.protobuf.<name> is an IP address and TCP port that the Riak
 ## Protocol Buffers interface will bind.
@@ -296,7 +298,9 @@ listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listene
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
+% if cfg['listener_protobuf_internal'] and cfg['listener_protobuf_internal_port']:
 listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg['listener_protobuf_internal_port'].lower()}
+% endif
 
 ## The maximum length to which the queue of pending connections
 ## may grow. If set, it must be an integer > 0. If you anticipate a
@@ -315,7 +319,9 @@ listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg[
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 127.0.0.1:10011
 ## listener.https.internal = 127.0.0.1:8098
+% if cfg['listener_https_internal'] and cfg['listener_https_internal_port']:
 listener.https.internal = ${cfg['listener_https_internal'].lower()}:${cfg['listener_https_internal_port'].lower()}
+% endif
 
 ## How Riak will repair out-of-sync keys. Some features require
 ## this to be set to 'active', including search.
@@ -422,7 +428,7 @@ bitcask.io_mode = erlang
 ## 
 ## Acceptable values:
 ##   - on or off
-riak_control = ${"on" if cfg['raik_control'] else "off"}
+riak_control = ${"on" if cfg['riak_control'] else "off"}
 
 ## Authentication mode used for access to the admin panel.
 ## 

@@ -8,7 +8,9 @@
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
+% if cfg['listener_ip'] and cfg['listener_ip_port']:
 listener = ${cfg['listener_ip'].lower()}:${cfg['listener_ip_port'].lower()}
+% endif 
 
 ## Riak node to which Riak CS accesses
 ## 
@@ -16,7 +18,9 @@ listener = ${cfg['listener_ip'].lower()}:${cfg['listener_ip_port'].lower()}
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
+% if cfg['riak_host_ip'] and cfg['riak_host_ip_port']:
 riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_ip_port'].lower()}
+% endif 
 
 ## Configuration for access to request
 ## serialization service
@@ -25,7 +29,9 @@ riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_ip_port'].lower()}
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
+% if cfg['stanchion_host_ip'] and cfg['stanchion_host_ip_port']:
 stanchion_host = ${cfg['stanchion_host_ip'].lower()}:${cfg['stanchion_host_ip_port'].lower()}
+% endif 
 
 ## SSL configuration for access to request serialization
 ## service. With `on`, Riak CS connects to Stanchion with SSL.

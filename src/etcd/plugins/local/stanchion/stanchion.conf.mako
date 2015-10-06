@@ -7,7 +7,9 @@
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
+% if cfg['listener_ip'] and cfg['listener_port']:
 listener =  ${cfg['listener_ip'].lower()}:${cfg['listener_port']}
+% endif
 
 ## Default cert location for https can be overridden
 ## with the ssl config variable, for example:
@@ -29,7 +31,9 @@ listener =  ${cfg['listener_ip'].lower()}:${cfg['listener_port']}
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
+% if cfg['riak_host_ip'] and cfg['riak_host_port']:
 riak_host = ${cfg['riak_host_ip']}:${cfg['riak_host_port']}
+% endif
 
 ## Admin user credentials. The credentials specified here must
 ## match the admin credentials specified in the riak-cs app.config
