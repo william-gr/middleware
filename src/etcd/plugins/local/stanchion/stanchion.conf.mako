@@ -4,8 +4,8 @@
 % if cfg['listener_ip'] and cfg['listener_port']:
 listener =  ${cfg['listener_ip'].lower()}:${cfg['listener_port']}
 % endif
-% if cfg['riak_host_ip'] and cfg['riak_host_ip_port']:
-riak_host = ${cfg['riak_host_ip']}:${cfg['riak_host_ip_port']}
+% if cfg['riak_host_ip'] and cfg['riak_host_port']:
+riak_host = ${cfg['riak_host_ip']}:${cfg['riak_host_port']}
 % endif
 admin.key = ${cfg['admin_key']}
 admin.secret = ${cfg['admin_secret']}

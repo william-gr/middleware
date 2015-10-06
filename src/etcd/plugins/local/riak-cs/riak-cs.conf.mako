@@ -1,8 +1,8 @@
 <%
     cfg = dispatcher.call_sync('service.riak_cs.get_config')
 %>\
-% if cfg['listener_ip'] and cfg['listener_ip_port']:
-listener = ${cfg['listener_ip'].lower()}:${cfg['listener_ip_port'].lower()}
+% if cfg['listener_ip'] and cfg['listener_port']:
+listener = ${cfg['listener_ip'].lower()}:${cfg['listener_port'].lower()}
 % endif 
 % if cfg['riak_host_ip'] and cfg['riak_host_ip_port']:
 riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_ip_port'].lower()}
