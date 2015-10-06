@@ -31,8 +31,8 @@ listener =  ${cfg['listener_ip'].lower()}:${cfg['listener_port']}
 ## 
 ## Acceptable values:
 ##   - an IP/port pair, e.g. 192.168.1.37:10011
-% if cfg['riak_host_ip'] and cfg['riak_host_port']:
-riak_host = ${cfg['riak_host_ip']}:${cfg['riak_host_port']}
+% if cfg['riak_host_ip'] and cfg['riak_host_ip_port']:
+riak_host = ${cfg['riak_host_ip']}:${cfg['riak_host_ip_port']}
 % endif
 
 ## Admin user credentials. The credentials specified here must
