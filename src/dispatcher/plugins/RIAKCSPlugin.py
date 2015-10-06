@@ -36,13 +36,13 @@ logger = logging.getLogger('RIAKCSPlugin')
 @description('Provides info about RIAK CS service configuration')
 class RIAKCSProvider(Provider):
     @accepts()
-    @returns(h.ref('service-riak-cs'))
+    @returns(h.ref('service-riak_cs'))
     def get_config(self):
         return ConfigNode('service.riak_cs', self.configstore)
 
 
 @description('Configure RIAK CS service')
-@accepts(h.ref('service-riak-cs'))
+@accepts(h.ref('service-riak_cs'))
 class RIAKCSConfigureTask(Task):
     def describe(self, share):
         return 'Configuring RIAK CS service'
@@ -63,7 +63,7 @@ class RIAKCSConfigureTask(Task):
             node = ConfigNode('service.riak_cs', self.configstore)
             node.update(riakcs)
             self.dispatcher.call_sync('services.restart', 'riak_cs')
-            self.dispatcher.dispatch_event('service.riak-cs.changed', {
+            self.dispatcher.dispatch_event('service.riak_cs.changed', {
                 'operation': 'updated',
                 'ids': None,
             })
@@ -80,7 +80,7 @@ def _depends():
 def _init(dispatcher, plugin):
 
     # Register schemas
-    plugin.register_schema_definition('service-riak-cs', {
+    plugin.register_schema_definition('service-riak_cs', {
         'type': 'object',
         'properties': {
             'listener_ip': {'type': ['string', 'null']},
@@ -101,7 +101,7 @@ def _init(dispatcher, plugin):
     })
 
     # Register providers
-    plugin.register_provider("service.riak-cs", RIAKCSProvider)
+    plugin.register_provider("service.riak_cs", RIAKCSProvider)
 
     # Register tasks
-    plugin.register_task_handler("service.riak-cs.configure", RIAKCSConfigureTask)
+    plugin.register_task_handler("service.riak_cs.configure", RIAKCSConfigureTask)
