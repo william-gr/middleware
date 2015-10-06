@@ -410,7 +410,9 @@ platform_log_dir = /var/log/riak-cs
 ## 
 ## Acceptable values:
 ##   - text
+% if cfg['nodename'] and cfg['node_ip']:
 nodename = ${cfg['nodename'].lower()}@${cfg['node_ip'].lower()}
+% endif
 
 ## Cookie for distributed node communication.  All nodes in the
 ## same cluster should use the same cookie or they will not be able to
