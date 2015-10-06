@@ -106,12 +106,6 @@ class NetworkConfigureTask(Task):
         except RpcException, e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
-        # If DNS has change lets reset our DNS resolver to reflect reality
-        if 'dns' in settings:
-            logger.debug('Resetting resolver')
-            del hub.get_hub().resolver
-            hub.get_hub()._resolver = None
-
 
 @accepts(
     {'type': 'string', 'enum': ['VLAN', 'BRIDGE', 'LAGG']},
@@ -397,6 +391,16 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
+
+    def on_resolv_conf_change(args):
+        filename = args.get('filename')
+        if filename != '/etc/resolv.conf':
+            return
+        # If DNS has changed lets reset our DNS resolver to reflect reality
+        logger.debug('Resetting resolver')
+        del hub.get_hub().resolver
+        hub.get_hub()._resolver = None
+
     plugin.register_schema_definition('network-interface', {
         'type': 'object',
         'additionalProperties': False,
@@ -547,3 +551,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('network.interface.configure', ConfigureInterfaceTask)
     plugin.register_task_handler('network.interface.create', CreateInterfaceTask)
     plugin.register_task_handler('network.interface.delete', DeleteInterfaceTask)
+
+    plugin.register_event_handler('etcd.file_generated', on_resolv_conf_change)
