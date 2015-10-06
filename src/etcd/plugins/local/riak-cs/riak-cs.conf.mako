@@ -7,8 +7,8 @@ listener = ${cfg['listener_ip']}:${cfg['listener_port']}
 % if cfg['riak_host_ip'] and cfg['riak_host_port']:
 riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_port']}
 % endif 
-% if cfg['stanchion_host_ip'] and cfg['stanchion_host_ip_port']:
-stanchion_host = ${cfg['stanchion_host_ip'].lower()}:${cfg['stanchion_host_ip_port']}
+% if cfg['stanchion_host_ip'] and cfg['stanchion_host_port']:
+stanchion_host = ${cfg['stanchion_host_ip'].lower()}:${cfg['stanchion_host_port']}
 % endif 
 stanchion.ssl = off
 anonymous_user_creation =  ${"on" if cfg['anonymous_user_creation'] else "off"}
