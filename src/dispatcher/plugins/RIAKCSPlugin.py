@@ -95,7 +95,7 @@ def _init(dispatcher, plugin):
             'anonymous_user_creation': {'type': 'boolean'},
             'admin_key': {'type': ['string', 'null']},
             'admin_secret': {'type': ['string', 'null']},
-            'max_buckets_per_user': {'type': ['string', 'null']},
+            'max_buckets_per_user': {'type': 'integer'},
         },
         'additionalProperties': False,
     })

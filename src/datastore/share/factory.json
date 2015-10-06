@@ -824,7 +824,7 @@
       "service.riak_cs.anonymous_user_creation": true,
       "service.riak_cs.admin_key": "admin-key",
       "service.riak_cs.admin_secret": "admin-secret",
-      "service.riak_cs.max_buckets_per_user": "100",
+      "service.riak_cs.max_buckets_per_user": 100,
       "service.stanchion.enable": false,
       "service.stanchion.listener_ip": "127.0.0.1",
       "service.stanchion.listener_port": 8080,
