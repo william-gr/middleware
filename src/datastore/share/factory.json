@@ -808,7 +808,7 @@
       "service.riak.listener_protobuf_internal": "127.0.0.1",
       "service.riak.listener_protobuf_internal_port": "8087",
       "service.riak.listener_https_internal": "127.0.0.1",
-      "service.riak.listener_https_internal_port": "null",
+      "service.riak.listener_https_internal_port": "10011",
       "service.riak.object_size_warning_threshold": "5MB",
       "service.riak.object_size_maximum": "50MB",
       "service.riak_cs.enable": false,
