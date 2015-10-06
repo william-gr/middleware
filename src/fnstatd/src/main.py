@@ -162,7 +162,7 @@ class DataSource(object):
         change = None
         self.primary_buffer.push(timestamp, value)
 
-        for b in self.config.buckets:
+        for b in self.config.buckets[1:]:
             if timestamp % b.interval.total_seconds() == 0:
                 self.persist(timestamp, self.bucket_buffers[b.index], b)
 
