@@ -76,12 +76,13 @@ class FileGenerationService(RpcService):
             return
 
         text = self.context.generate_file(filename)
-        fd = open(os.path.join(self.context.root, filename), 'w')
+        filepath = os.path.join(self.context.root, filename)
+        fd = open(filepath, 'w')
         fd.write(text)
         fd.close()
 
         self.context.emit_event('etcd.file_generated', {
-            'filename': filename
+            'filename': filepath,
         })
 
     def generate_plugin(self, name):
