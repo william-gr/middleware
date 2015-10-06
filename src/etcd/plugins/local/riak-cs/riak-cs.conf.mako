@@ -2,13 +2,13 @@
     cfg = dispatcher.call_sync('service.riak_cs.get_config')
 %>\
 % if cfg['listener_ip'] and cfg['listener_port']:
-listener = ${cfg['listener_ip'].lower()}:${cfg['listener_port'].lower()}
+listener = ${cfg['listener_ip']}:${cfg['listener_port']}
 % endif 
-% if cfg['riak_host_ip'] and cfg['riak_host_ip_port']:
-riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_ip_port'].lower()}
+% if cfg['riak_host_ip'] and cfg['riak_host_port']:
+riak_host = ${cfg['riak_host_ip'].lower()}:${cfg['riak_host_port']}
 % endif 
 % if cfg['stanchion_host_ip'] and cfg['stanchion_host_ip_port']:
-stanchion_host = ${cfg['stanchion_host_ip'].lower()}:${cfg['stanchion_host_ip_port'].lower()}
+stanchion_host = ${cfg['stanchion_host_ip'].lower()}:${cfg['stanchion_host_ip_port']}
 % endif 
 stanchion.ssl = off
 anonymous_user_creation =  ${"on" if cfg['anonymous_user_creation'] else "off"}
@@ -47,7 +47,7 @@ log.crash.rotation = $D0
 log.crash.rotation.keep = 5
 platform_log_dir = /var/log/riak-cs
 % if cfg['nodename'] and cfg['node_ip']:
-nodename = ${cfg['nodename'].lower()}@${cfg['node_ip'].lower()}
+nodename = ${cfg['nodename'].lower()}@${cfg['node_ip']}
 % endif
 distributed_cookie = riak
 erlang.async_threads = 64

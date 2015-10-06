@@ -25,13 +25,13 @@ platform_etc_dir = /usr/local/etc/riak
 platform_lib_dir = /usr/local/lib/riak/lib
 platform_log_dir = /var/log/riak
 % if cfg['listener_http_internal'] and cfg['listener_http_internal_port']:
-listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listener_http_internal_port'].lower()}
+listener.http.internal = ${cfg['listener_http_internal'].lower()}:${cfg['listener_http_internal_port']}
 % endif
 % if cfg['listener_protobuf_internal'] and cfg['listener_protobuf_internal_port']:
-listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg['listener_protobuf_internal_port'].lower()}
+listener.protobuf.internal = ${cfg['listener_protobuf_internal'].lower()}:${cfg['listener_protobuf_internal_port']}
 % endif
 % if cfg['listener_https_internal'] and cfg['listener_https_internal_port']:
-listener.https.internal = ${cfg['listener_https_internal'].lower()}:${cfg['listener_https_internal_port'].lower()}
+listener.https.internal = ${cfg['listener_https_internal'].lower()}:${cfg['listener_https_internal_port']}
 % endif
 anti_entropy = active
 storage_backend = ${cfg['storage_backend'].lower()}
