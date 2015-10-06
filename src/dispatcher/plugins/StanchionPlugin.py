@@ -84,9 +84,9 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'properties': {
             'listener_ip': {'type': ['string', 'null']},
-            'listener_port': {'type': ['string', 'null']},
+            'listener_port': {'type': ['integer', 'null']},
             'riak_host_ip': {'type': ['string', 'null']},
-            'riak_host__port': {'type': ['string', 'null']},
+            'riak_host_port': {'type': ['integer', 'null']},
             'nodename': {'type': ['string', 'null']},
             'node_ip': {'type': ['string', 'null']},
             'log_console_level': {'type': ['string'], 'enum': ['NONE', 'DEBUG', 'INFO', 'WARNING', 'CRITICAL', 'ALERT',  'EMERGENCY', 'ERROR']},
