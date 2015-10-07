@@ -390,5 +390,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("service.configure", UpdateServiceConfigTask)
     plugin.register_provider("services", ServiceInfoProvider)
 
-    for svc in dispatcher.datastore.query('service_defintions'):
+    for svc in dispatcher.datastore.query('service_definitions'):
         plugin.register_resource(Resource('service:{0}'.format(svc['name'])), parents=['system'])
