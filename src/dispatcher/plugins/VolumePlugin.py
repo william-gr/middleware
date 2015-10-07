@@ -939,6 +939,12 @@ def _init(dispatcher, plugin):
                         'ids': [i]
                     })
 
+    def on_dataset_change(args):
+        dispatcher.dispatch_event('volumes.changed', {
+            'operation': 'create',
+            'ids': [args['guid']]
+        })
+
     plugin.register_schema_definition('volume', {
         'type': 'object',
         'title': 'volume',
@@ -1024,6 +1030,9 @@ def _init(dispatcher, plugin):
     plugin.register_hook('volumes.pre-attach')
 
     plugin.register_event_handler('zfs.pool.changed', on_pool_change)
+    plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_change)
+    plugin.register_event_handler('fs.zfs.dataset.deleted', on_dataset_change)
+    plugin.register_event_handler('fs.zfs.dataset.renamed', on_dataset_change)
     plugin.register_event_type('volumes.changed')
 
     for vol in dispatcher.datastore.query('volumes'):
