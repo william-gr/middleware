@@ -93,9 +93,7 @@ def do_check_dbdirs(driver_name, db_dir):
 
             for j in glob.glob('{0}.*'.format(name)):
                 print("Moving {0} to {1}/".format(j, perdb_dir))
-                existing = os.path.join(perdb_dir, os.path.basename(j))
-                if os.path.exists(existing):
-                    os.unlink(existing)
+                os.unlink(os.path.join(perdb_dir, os.path.basename(j)))
                 shutil.move(j, perdb_dir)
 
 
