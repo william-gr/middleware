@@ -128,8 +128,7 @@ def yesno(val):
 def configure_params(cifs):
     conf = smbconf.SambaConfig('registry')
     conf['netbios name'] = cifs['netbiosname'][0]
-    if len(cifs['netbiosname']) > 1:
-        conf['netbios aliases'] = ' '.join(cifs['netbiosname'][1:])
+    conf['netbios aliases'] = ' '.join(cifs['netbiosname'][1:])
 
     if cifs['bind_addresses']:
         conf['interfaces'] = ' '.join(['127.0.0.1'] + cifs['bind_addresses'])
