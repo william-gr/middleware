@@ -58,6 +58,7 @@ SKELETON_DIRS = [
         Directory('riak', owner='riak', group='riak'),
         Directory('riak-cs', owner='riakcs', group='riak'),
         Directory('stanchion', owner='stanchion', group='riak'),
+        Directory('swift', owner='swift', group='swift'),
     ]),
     Directory('samba', link='/var/db/samba4', children=[
         Directory('private')
@@ -65,6 +66,7 @@ SKELETON_DIRS = [
     Directory('riak', link='/var/db/riak', owner='riak', group='riak'),
     Directory('riak-cs', link='/var/db/riak-cs', owner='riakcs', group='riak'),
     Directory('stanchion', link='/var/db/stanchion', owner='stanchion', group='riak'),
+    Directory('swift', link='/var/db/swift', owner='swift', group='swift'),
 ]
 
 

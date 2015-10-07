@@ -836,6 +836,8 @@
       "service.stanchion.admin_key": "admin-key",
       "service.stanchion.admin_secret": "admin-secret",
       "service.swift.enable": false,
+      "service.swift.swift_hash_path_suffix": "suffix",
+      "service.swift.swift_hash_path_prefix": "prefix",
       "service.glusterd.enable": false,
       "service.tftp.enable": false,
       "service.tftp.path": null,
@@ -1317,6 +1319,7 @@
       "0B1057A8-8923-4B57-B138-87563E0AFD9B": {
         "rcng": {
           "rc-scripts": "swift"
+        "pidfile": "/var/run/swift/swift.pid",
         },
         "builtin": false,
         "name": "swift"
