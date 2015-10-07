@@ -4,7 +4,8 @@
 #
 
 # PROVIDE: fnstatd
-# REQUIRE: datastore dispatcher collectd
+# REQUIRE: datastore dispatcher
+# BEFORE: collectd
 
 . /etc/rc.subr
 
