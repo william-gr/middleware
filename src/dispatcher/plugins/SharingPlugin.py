@@ -76,7 +76,7 @@ class SharesProvider(Provider):
 @description("Creates new share")
 @accepts(h.all_of(
     h.ref('share'),
-    h.required('id', 'type', 'target')
+    h.required('id', 'type', 'target', 'properties')
 ))
 class CreateShareTask(Task):
     def verify(self, share):
