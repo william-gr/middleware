@@ -75,7 +75,8 @@ def link_directories(dispatcher):
         target = dispatcher.call_sync('system_dataset.request_directory', d.name)
         if hasattr(d, 'link'):
             if not os.path.islink(d.link) or not os.readlink(d.link) == target:
-                shutil.move(d.link, d.link + '.{0}.bak'.format(int(time.time())))
+                if os.path.exists(d.link):
+                    shutil.move(d.link, d.link + '.{0}.bak'.format(int(time.time())))
                 os.symlink(target, d.link)
 
         if hasattr(d, 'owner'):
