@@ -99,6 +99,7 @@ def do_check_dbdirs(driver_name, db_dir):
                     os.unlink(existing)
                 shutil.move(j, perdb_dir)
                 moved = True
+
         # Journal might reference old name paths, so rename it to avoid mongodb error
         if moved:
             journal = os.path.join(db_dir, 'freenas.db/journal')
@@ -109,6 +110,9 @@ def do_check_dbdirs(driver_name, db_dir):
                     break
                 i += 1
             shutil.move(journal, name)
+
+        # Just in case, remove old lock file
+        os.unlink(os.path.join(db_dir, 'freenas.db/mongod.lock'))
 
 
 def main():
