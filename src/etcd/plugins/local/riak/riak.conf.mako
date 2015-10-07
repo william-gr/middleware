@@ -34,7 +34,7 @@ listener.protobuf.internal = ${cfg['listener_protobuf_internal']}:${cfg['listene
 listener.https.internal = ${cfg['listener_https_internal']}:${cfg['listener_https_internal_port']}
 % endif
 anti_entropy = active
-storage_backend = ${cfg['storage_backend']}
+storage_backend = ${cfg['storage_backend'].lower()}
 buckets.default.allow_mult = ${"true" if cfg['buckets_default_allow_multi'] else "false"}
 object.format = 1
 object.size.warning_threshold = ${cfg['object_size_warning_threshold']}
