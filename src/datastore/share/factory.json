@@ -1319,8 +1319,8 @@
       "0B1057A8-8923-4B57-B138-87563E0AFD9B": {
         "rcng": {
           "rc-scripts": "swift",
-        "pidfile": "/var/run/swift/swift.pid",
         },
+        "pidfile": "/var/run/swift/swift.pid",
         "builtin": false,
         "name": "swift"
       },
