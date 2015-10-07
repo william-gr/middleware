@@ -43,6 +43,7 @@ class MongodbDatastore(object):
     def __init__(self):
         self.conn = None
         self.db = None
+        self.log_db = None
         self.operators_table = {
             '>': '$gt',
             '<': '$lt',
@@ -109,9 +110,19 @@ class MongodbDatastore(object):
 
         return {'$and': result} if len(result) > 0 else {}
 
+    def _get_db(self, collection):
+        c = self.db['collections'].find_one({"_id": collection})
+        typ = c['attributes'].get('type', 'config')
+
+        if typ == 'log':
+            return self.log_db[collection]
+
+        return self.db[collection]
+
     def connect(self, dsn, database='freenas'):
         self.conn = MongoClient(dsn)
         self.db = self.conn[database]
+        self.log_db = self.conn[database + '-log']
 
     def collection_create(self, name, pkey_type='uuid', attributes=None):
         attributes = attributes or {}
@@ -180,7 +191,8 @@ class MongodbDatastore(object):
         select = kwargs.pop('select', None)
         result = []
 
-        cur = self.db[collection].find(self._build_query(args))
+        db = self._get_db(collection)
+        cur = db.find(self._build_query(args))
         if count:
             return cur.count()
 
@@ -245,7 +257,8 @@ class MongodbDatastore(object):
             yield i
 
     def get_one(self, collection, *args, **kwargs):
-        obj = self.db[collection].find_one(self._build_query(args))
+        db = self._get_db(collection)
+        obj = db.find_one(self._build_query(args))
         if obj is None:
             return None
 
@@ -253,7 +266,8 @@ class MongodbDatastore(object):
         return obj
 
     def get_by_id(self, collection, pkey):
-        obj = self.db[collection].find_one({'_id': pkey})
+        db = self._get_db(collection)
+        obj = db.find_one({'_id': pkey})
         if obj is None:
             return None
 
@@ -290,7 +304,8 @@ class MongodbDatastore(object):
             obj['created-at'] = t
 
         try:
-            self.db[collection].insert(obj)
+            db = self._get_db(collection)
+            db.insert(obj)
         except pymongo.errors.DuplicateKeyError:
             raise DuplicateKeyException('Document with given key already exists')
 
@@ -319,10 +334,12 @@ class MongodbDatastore(object):
             if not self.get_by_id(collection, pkey):
                 obj['created-at'] = t
 
-        self.db[collection].update({'_id': pkey}, obj, upsert=upsert)
+        db = self._get_db(collection)
+        db.update({'_id': pkey}, obj, upsert=upsert)
 
     def upsert(self, collection, pkey, obj, config=False):
         return self.update(collection, pkey, obj, upsert=True, config=config)
 
     def delete(self, collection, pkey):
-        self.db[collection].remove(pkey)
+        db = self._get_db(collection)
+        db.remove(pkey)
