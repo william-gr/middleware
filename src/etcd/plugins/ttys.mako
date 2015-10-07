@@ -68,7 +68,7 @@ ttyv8	"/usr/local/bin/xdm -nodaemon"	xterm	off secure
 # Serial terminals
 # The 'dialup' keyword identifies dialin lines to login, fingerd etc.
 % if adv.get('console_cli'):
-sercons	"/usr/libexec/getty freenas_serial${adv.get('serial_speed')}"	vt100	${serial} secure
+sercons	"/usr/libexec/getty cli_serial${adv.get('serial_speed')}"	vt100	${serial} secure
 % else:
 sercons	"/usr/libexec/getty std.${adv.get('serial_speed')}"	vt100	${serial} secure
 % endif
