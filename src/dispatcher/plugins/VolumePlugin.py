@@ -754,7 +754,7 @@ class DatasetDeleteTask(Task):
 
     def run(self, pool_name, path):
         self.join_subtasks(self.run_subtask('zfs.umount', path))
-        self.join_subtasks(self.run_subtask('zfs.destroy', pool_name, path))
+        self.join_subtasks(self.run_subtask('zfs.destroy', path))
 
 
 @description("Configures/Updates an existing Dataset's properties")
