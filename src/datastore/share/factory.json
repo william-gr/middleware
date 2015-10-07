@@ -827,7 +827,7 @@
       "service.riak_cs.max_buckets_per_user": 100,
       "service.stanchion.enable": false,
       "service.stanchion.listener_ip": "127.0.0.1",
-      "service.stanchion.listener_port": 8080,
+      "service.stanchion.listener_port": 8085,
       "service.stanchion.riak_host_ip": "127.0.0.1",
       "service.stanchion.riak_host_port": 8087,
       "service.stanchion.nodename": "stanchion",

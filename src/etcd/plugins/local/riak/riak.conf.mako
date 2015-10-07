@@ -52,3 +52,4 @@ search.solr.start_timeout = 30s
 search.solr.port = 8093
 search.solr.jmx_port = 8985
 search.solr.jvm_options = -d64 -Xms1g -Xmx1g -XX:+UseStringCache -XX:+UseCompressedOops
+ssl.cacertfile = $(platform_etc_dir)/cacertfile.pem
