@@ -173,7 +173,6 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('cifs-share', {
         'type': 'object',
         'properties': {
-            'id': {'type': 'string'},
             'comment': {'type': 'string'},
             'read_only': {'type': 'boolean'},
             'guest_ok': {'type': 'boolean'},
