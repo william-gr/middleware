@@ -99,20 +99,21 @@ class FilesystemProvider(Provider):
             'permissions': {
                 'acls': a.__getstate__(),
                 'modes': {
+                    'value': st.st_mode & 0o777,
                     'user': {
-                        'read': st.st_mode & stat.S_IRUSR,
-                        'write': st.st_mode & stat.S_IWUSR,
-                        'execute': st.st_mode & stat.S_IXUSR
+                        'read': bool(st.st_mode & stat.S_IRUSR),
+                        'write': bool(st.st_mode & stat.S_IWUSR),
+                        'execute': bool(st.st_mode & stat.S_IXUSR)
                     },
                     'group': {
-                        'read': st.st_mode & stat.S_IRGRP,
-                        'write': st.st_mode & stat.S_IWGRP,
-                        'execute': st.st_mode & stat.S_IXGRP
+                        'read': bool(st.st_mode & stat.S_IRGRP),
+                        'write': bool(st.st_mode & stat.S_IWGRP),
+                        'execute': bool(st.st_mode & stat.S_IXGRP)
                     },
                     'others': {
-                        'read': st.st_mode & stat.S_IROTH,
-                        'write': st.st_mode & stat.S_IWOTH,
-                        'execute': st.st_mode & stat.S_IXOTH
+                        'read': bool(st.st_mode & stat.S_IROTH),
+                        'write': bool(st.st_mode & stat.S_IWOTH),
+                        'execute': bool(st.st_mode & stat.S_IXOTH)
                     },
                 }
             }
@@ -311,14 +312,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'user': {'type': ['string', 'null']},
             'group': {'type': ['string', 'null']},
-            'modes': {
-                'type': ['object', 'null'],
-                'properties': {
-                    'user': {'$ref': 'unix-mode-tuple'},
-                    'group': {'$ref': 'unix-mode-tuple'},
-                    'others': {'$ref': 'unix-mode-tuple'}
-                }
-            },
+            'modes': {'$ref': 'unix-permissions'},
             'acl': {
                 'type': ['array', 'null'],
                 'items': {'$ref': 'acl-entry'}
