@@ -26,7 +26,7 @@
 /usr/local/lib/etcd/plugins/local/riak-cs/riak-cs.conf.mako
 /usr/local/lib/etcd/plugins/local/stanchion/stanchion.conf.mako
 /usr/local/lib/etcd/plugins/local/haproxy.conf.mako
-/usr/local/lib/etcd/plugins/local/gip.lsp.conf.mako
+/usr/local/lib/etcd/plugins/local/gip.lsp.mako
 /usr/local/lib/etcd/plugins/mail/aliases.py
 /usr/local/lib/etcd/plugins/master.passwd.mako
 /usr/local/lib/etcd/plugins/motd.mako
