@@ -77,11 +77,6 @@ class UserProvider(Provider):
     @query('user')
     def query(self, filter=None, params=None):
         def extend(user):
-            sessions = self.dispatcher.call_sync('sessions.query', [
-                ('username', '=', user['username']),
-                ('active', '=', True)
-            ])
-
             # If there's no 'attributes' property, put empty dict in that place
             if 'attributes' not in user:
                 user['attributes'] = {}
@@ -89,12 +84,6 @@ class UserProvider(Provider):
             # If there's no 'groups' property, put empty array in that place
             if 'groups' not in user:
                 user['groups'] = []
-
-            # Add information about active sessions
-            user.update({
-                'logged-in': len(sessions) > 0,
-                'sessions': sessions
-            })
 
             return user
 
@@ -156,7 +145,7 @@ class GroupProvider(Provider):
 @accepts(h.all_of(
     h.ref('user'),
     h.required('username', 'group'),
-    h.forbidden('builtin', 'logged-in', 'sessions'),
+    h.forbidden('builtin'),
     h.object({'password': {'type': 'string'}}),
     h.any_of(
         h.required('password'),
@@ -294,7 +283,7 @@ class UserDeleteTask(Task):
     int,
     h.all_of(
         h.ref('user'),
-        h.forbidden('builtin', 'logged-in', 'sessions'),
+        h.forbidden('builtin'),
         h.object({'password': {'type': 'string'}}),
     )
 )
@@ -541,7 +530,6 @@ def _init(dispatcher, plugin):
             'unixhash': {'type': ['string', 'null']},
             'smbhash': {'type': ['string', 'null']},
             'sshpubkey': {'type': ['string', 'null']},
-            'logged-in': {'type': 'boolean', 'readOnly': True},
             'attributes': {'type': 'object'},
             'groups': {
                 'type': 'array',
@@ -549,11 +537,6 @@ def _init(dispatcher, plugin):
                     'type': 'integer'
                 }
             },
-            'sessions': {
-                'type': 'array',
-                'readOnly': True,
-                'items': {'$ref': 'session'}
-            }
         },
         'additionalProperties': False,
     })
