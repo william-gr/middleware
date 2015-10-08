@@ -2,17 +2,17 @@ PREFIX ?= /usr/local
 PYTHON ?= python
 
 install:
-	install -d ${PREFIX}/lib/datastore
-	install -d ${PREFIX}/lib/datastore/drivers
-	install -d ${PREFIX}/share/datastore
-	install sbin/dsutil ${PREFIX}/sbin/
-	install sbin/dsdump ${PREFIX}/sbin/
-	install sbin/dsrestore ${PREFIX}/sbin/
-	install sbin/dsmigrate ${PREFIX}/sbin/
-	install sbin/dspasswd ${PREFIX}/sbin/
-	install sbin/dsinit ${PREFIX}/sbin/
-	install etc/datastore ${PREFIX}/etc/rc.d/
-	install share/factory.json ${PREFIX}/share/datastore/
-	cp -R test ${PREFIX}/share/datastore/
-	cp -R drivers/ ${PREFIX}/lib/datastore/drivers/
-	${PYTHON} setup.py install --prefix=${PREFIX}
+	install -d ${STAGEDIR}${PREFIX}/lib/datastore
+	install -d ${STAGEDIR}${PREFIX}/lib/datastore/drivers
+	install -d ${STAGEDIR}${PREFIX}/share/datastore
+	install sbin/dsutil ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dsdump ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dsrestore ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dsmigrate ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dspasswd ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dsinit ${STAGEDIR}${PREFIX}/sbin/
+	install etc/datastore ${STAGEDIR}${PREFIX}/etc/rc.d/
+	install share/factory.json ${STAGEDIR}${PREFIX}/share/datastore/
+	cp -R test ${STAGEDIR}${PREFIX}/share/datastore/
+	cp -R drivers/ ${STAGEDIR}${PREFIX}/lib/datastore/drivers/
+	${PYTHON} setup.py install --root=${STAGEDIR} --prefix=${PREFIX}
