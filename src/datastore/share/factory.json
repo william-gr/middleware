@@ -838,6 +838,13 @@
       "service.swift.enable": false,
       "service.swift.swift_hash_path_suffix": "suffix",
       "service.swift.swift_hash_path_prefix": "prefix",
+      "service.haproxy.enable": false,
+      "service.haproxy.http_ip": "127.0.0.1",
+      "service.haproxy.http_port": 8080,
+      "service.haproxy.https_ip": "127.0.0.1",
+      "service.haproxy.https_port": 8080,
+      "service.haproxy.frontend_mode": "http",
+      "service.haproxy.backend_mode": "http",
       "service.glusterd.enable": false,
       "service.tftp.enable": false,
       "service.tftp.path": null,
@@ -1316,13 +1323,21 @@
         "pidfile": "/var/run/riak-cs/riak-cs.pid",
         "name": "riak_cs"
       },
-      "0B1057A8-8923-4B57-B138-87563E0AFD9B": {
+      "A80D48F4-6D89-11E5-A3C7-C3D881054C8B": {
         "rcng": {
           "rc-scripts": "swift"
         },
         "pidfile": "/var/run/swift/swift.pid",
         "builtin": false,
         "name": "swift"
+      },
+      "670716BC-6D8A-11E5-A3C7-C3D881054C8B": {
+        "rcng": {
+          "rc-scripts": "haproxy"
+        },
+        "pidfile": "/var/run/haproxy.pid",
+        "builtin": false,
+        "name": "haproxy"
       },
       "0B1057A8-8923-4B57-B138-87563E0AFE9B": {
         "rcng": {
