@@ -207,5 +207,5 @@ def _init(dispatcher, plugin):
 
     for s in dispatcher.datastore.query('shares', ('type', '=', 'cifs')):
         smb_share = smbconf.SambaShare()
-        convert_share(smb_share, s['target'], s['properties'])
+        convert_share(smb_share, s['target'], s.get('properties', {}))
         smb_conf.shares[s['id']] = smb_share
