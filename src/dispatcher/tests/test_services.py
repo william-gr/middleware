@@ -290,7 +290,32 @@ class ServicesTest(BaseTestCase):
         if not self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
     	self.assertTaskCompletion(self.submitTask('service.configure', sname, \
-    		{"port": 875}))    	
+    		{"port": 875})) 
+
+############# webdav   
+    def test_start_stop_webdav(self):
+        sname = str(inspect.stack()[0][3].split('_')[-1])
+        if self.isRunning(sname): 
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+
+    def test_restart_webdav(self):
+        sname = str(inspect.stack()[0][3].split('_')[-1])
+        
+        if not self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start')) 
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+
+    def atest_configure_webdav(self):
+        '''
+        Configure service
+        '''
+        sname = inspect.stack()[0][3].split('_')[-1]
+        if not self.isRunning(sname):
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+        self.assertTaskCompletion(self.submitTask('service.configure', sname, \
+            {"port": 80})) 
+
 
 ######## HELPERS
     def isRunning(self, sname):
@@ -300,7 +325,7 @@ class ServicesTest(BaseTestCase):
         return False		
 
     ######################### QUERY
-    def test_query(self):
+    def test_query_all_services(self):
         services = self.conn.call_sync('services.query')
         for s in services:
             print s

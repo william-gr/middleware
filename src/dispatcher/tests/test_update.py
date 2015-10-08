@@ -36,27 +36,19 @@ class Updater(BaseTestCase):
         self.task_timeout = 30
         super(Updater, self).tearDown()
 
-    def test_query_update(self):
-    
-        config = self.conn.call_sync('update.get_config')
-        print "Update configuration " + str(config)
+    def test_query_update_info(self):
         check = self.conn.call_sync('update.is_update_available')
-        
         if check:
-            print "Update available: " + str(check)
-            changelog = self.conn.call_sync('update.obtain_changelog')
-            self.assertIsNotNone(changelog)
-            print "Changelog: " + str(changelog)
-            trains = self.conn.call_sync('update.trains')
-            self.assertIsNotNone(trains)
-            print "Trains available: " + str(trains)
-
             info = self.conn.call_sync('update.update_info')
-            self.assertIsNotNone(info)
             print "Update info: " + str(info) 
-            ops = self.conn.call_sync('update.get_update_ops')
+            self.assertIsNotNone(info)
+
+    def test_obtain_opts(self): 
+        check = self.conn.call_sync('update.is_update_available')
+        ops = self.conn.call_sync('update.get_update_ops')
+        if check:
+            print "Update ops: " + str(ops)   
             self.assertIsNotNone(ops)
-            print "Update ops: " + str(ops)
 
     def test_query_current_train(self):
         config = self.conn.call_sync('update.get_config')
@@ -64,12 +56,22 @@ class Updater(BaseTestCase):
         self.assertIsNotNone(config)
         self.assertEqual(train, config['train'])
 
+    def test_obtain_changelog(self):
+        check = self.conn.call_sync('update.is_update_available')
+        changelog = self.conn.call_sync('update.obtain_changelog')
+        if check:
+            self.assertIsNotNone(changelog) 
+
+    def test_query_trains(self):
+        trains = self.conn.call_sync('update.trains')
+        print "Trains available: " + str(trains)  
+        self.assertIsNotNone(trains)
+
     def test_check_for_update(self):
         tid = self.submitTask('update.check', {
             'check_now': False,
             })
         self.assertTaskCompletion(tid)
-        
     
     def test_update_verify(self):
     	'''
@@ -78,21 +80,9 @@ class Updater(BaseTestCase):
     	'''
     	self.task_timeout = 300
         tid = self.submitTask('update.verify')
+        self.assertTaskCompletion(tid)
 
-        self.assertTaskCompletion(tid)  
-         	
-          
-
-    def update(self):
-
-        tid = self.submitTask('update.check', {
-            'update_now': True,
-            
-        })
-        if self.conn.call_sync('update.is_update_available'):
-            self.assertTaskCompletion(tid) 
-
-
+    
 
 if __name__ == '__main__':
     unittest.main()	

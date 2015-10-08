@@ -36,3 +36,6 @@ if not overall:
         print '========================================='
 
     
+if not overall:
+    exit(-1)
+exit(0)    
