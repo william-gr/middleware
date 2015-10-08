@@ -1148,7 +1148,7 @@
       },
       "3865CEDA-6DAF-11E5-A3C7-C3D881054C8B": {
         "dependencies": [
-          "file:local/haproxy.conf"
+          "file:local/haproxy.conf",
           "file:local/gip.lsp"
         ],
         "name": "haproxy"
