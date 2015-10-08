@@ -1145,6 +1145,12 @@
           "file:local/stanchion/stanchion.conf"
         ],
         "name": "stanchion"
+      },
+      "3865CEDA-6DAF-11E5-A3C7-C3D881054C8B": {
+        "dependencies": [
+          "file:local/haproxy.conf"
+        ],
+        "name": "haproxy"
       }
     },
     "metadata": {
