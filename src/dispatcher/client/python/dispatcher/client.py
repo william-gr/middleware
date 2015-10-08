@@ -275,6 +275,8 @@ class Client(object):
                     call.completed.set()
                     if call.callback is not None:
                         call.callback(msg['args'])
+
+                    del self.pending_calls[str(call.id)]
                 else:
                     if self.error_callback is not None:
                         self.error_callback(ClientError.SPURIOUS_RPC_RESPONSE, msg['id'])
@@ -285,6 +287,7 @@ class Client(object):
                     call.result = None
                     call.error = msg['args']
                     call.completed.set()
+                    del self.pending_calls[str(call.id)]
                 if self.error_callback is not None:
                     self.error_callback(ClientError.RPC_CALL_ERROR)
 
@@ -407,7 +410,6 @@ class Client(object):
                 call.error['message'],
                 call.error['extra'] if 'extra' in call.error else None)
 
-        del self.pending_calls[str(call.id)]
         return call.result
 
     def call_task_sync(self, name, *args):
