@@ -87,8 +87,8 @@ def _init(dispatcher, plugin):
             'http_port': {'type': ['integer', 'null']},
             'https_ip': {'type': ['string', 'null']},
             'https_port': {'type': ['integer', 'null']},
-            'frontend_mode': {'type': 'string', 'enum': ['HTTP']},
-            'backend_mode': {'type': 'string', 'enum': ['HTTPS']},
+            'frontend_mode': {'type': 'string', 'enum': ['HTTP','TCP']},
+            'backend_mode': {'type': 'string', 'enum': ['HTTPS','TCP']},
         },
         'additionalProperties': False,
     })
