@@ -407,6 +407,7 @@ class Client(object):
                 call.error['message'],
                 call.error['extra'] if 'extra' in call.error else None)
 
+        del self.pending_calls[str(call.id)]
         return call.result
 
     def call_task_sync(self, name, *args):
