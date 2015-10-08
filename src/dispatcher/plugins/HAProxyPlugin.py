@@ -83,12 +83,12 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('service-haproxy', {
         'type': 'object',
         'properties': {
-            'haproxy_http_ip': {'type': ['string', 'null']},
-            'haproxy_http_port': {'type': ['string', 'null']},
-            'haproxy_https_ip': {'type': ['string', 'null']},
-            'haproxy_https_port': {'type': ['string', 'null']},
-            'haproxy_frontend_mode': {'type': ['string', 'null']},
-            'haproxy_backend_mode': {'type': ['string', 'null']},
+            'http_ip': {'type': ['string', 'null']},
+            'http_port': {'type': ['integer', 'null']},
+            'https_ip': {'type': ['string', 'null']},
+            'https_port': {'type': ['integer', 'null']},
+            'frontend_mode': {'type': 'string', 'enum': ['HTTP']},
+            'backend_mode': {'type': 'string', 'enum': ['HTTPS']},
         },
         'additionalProperties': False,
     })
