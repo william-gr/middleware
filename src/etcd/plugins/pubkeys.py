@@ -32,6 +32,8 @@ import os
 def run(context):
     for user in context.client.call_sync('users.query'):
         home = user['home']
+        uid = user['id']
+        gid = user['group']
         filename = os.path.join(home, '.ssh', 'authorized_keys')
 
         if not os.path.isdir(home):
@@ -40,6 +42,7 @@ def run(context):
 
         if not os.path.isdir(os.path.join(home, '.ssh')):
             os.mkdir(os.path.join(home, '.ssh'))
+            os.chown(os.path.join(home, '.ssh'), uid, gid)
 
         if 'sshpubkey' not in user or user['sshpubkey'] is None:
             if os.path.isfile(filename):
@@ -48,6 +51,7 @@ def run(context):
             fd = open(filename, 'w')
             fd.write(user['sshpubkey'])
             fd.close()
+            os.chown(filename, uid, gid)
 
             context.emit_event('etcd.file_generated', {
                 'filename': filename
