@@ -210,11 +210,11 @@ class RpcException(Exception):
     def __init__(self, code, message, extra=None, stacktrace=None):
         self.code = code
         self.message = message
-        self.extra = extra
+        self.extra = extra if extra else ''
         self.stacktrace = stacktrace or traceback.format_exc()
 
     def __str__(self):
-        return "{}: {}".format(errno.errorcode[self.code], self.message)
+        return "{0}: {1} {2}".format(errno.errorcode[self.code], self.message, self.extra)
 
 
 class ServerLockProxy(object):
@@ -293,6 +293,10 @@ class SchemaHelper(object):
     @staticmethod
     def no(sch):
         return {'not': convert_schema(sch)}
+
+    @staticmethod
+    def one_of(*args):
+        return {'OneOf': map(convert_schema, args)}
 
     @staticmethod
     def ref(target, **kwargs):
