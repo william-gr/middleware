@@ -87,7 +87,9 @@ def spawn_thread(*args, **kwargs):
         return Thread(*args, **kwargs)
 
     if _thread_type == ClientType.GEVENT:
-        return Greenlet(*args, **kwargs)
+        run = kwargs.pop('target')
+        args = kwargs.pop('args')
+        return Greenlet(run, *args)
 
 
 class Client(object):
