@@ -39,7 +39,7 @@
         return ' '.join(result)
 %>\
 % if config.get('v4'):
-% if confi.get('v4_kerberos'):
+% if config.get('v4_kerberos'):
 V4: / -sec=krb5:krb5i:krb5p
 % else:
 V4: / -sec=sys:krb5:krb5i:krb5p
