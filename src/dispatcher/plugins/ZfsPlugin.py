@@ -1145,6 +1145,9 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.rename', ZfsRenameTask)
     plugin.register_task_handler('zfs.clone', ZfsCloneTask)
 
+    if not os.path.isdir('/data/zfs'):
+        os.mkdir('/data/zfs')
+
     try:
         zfs = libzfs.ZFS()
         # Try to reimport Pools into the system after upgrade, this checks
