@@ -30,6 +30,7 @@ import socket
 import os
 import time
 import paramiko
+import socket
 from abc import ABCMeta, abstractmethod
 
 class ClientTransportBuilder(object):
@@ -78,7 +79,7 @@ class ClientTransportSSH(ClientTransportBase):
         
     def connect(self, url, sock, **kwargs):
         self.url = url
-        self.sock = sock_port
+        self.sock = sock
         self.timeout = kwargs.get('timeout',30)
         self.hostname = url.hostname
         self.username = url.username
@@ -141,25 +142,31 @@ class ClientTransportSSH(ClientTransportBase):
             if i == self.timeout:
                 raise RuntimeError("Could not connect to %s. Giving up" % hostname)
         
-        self.channel = ssh.get_transport().open_session()
+        self.channel = self.ssh.get_transport().open_session()
         self.stdin, self.stdout, self.stderr = self.ssh.exec_command("python -u /usr/local/libexec/dispatcher/ssh_transport_catcher")
         
         from dispatcher.client import spawn_thread
         t = spawn_thread(target = self.send)
+        t.setDaemon(True)
         t.start()
-        t = spawn_thread(target = self.recv)
-        t.start()
+        t1 = spawn_thread(target = self.recv)
+        t1.setDaemon(True)
+        t1.start()
+        t2 = spawn_thread(target = self.close)
+        t2.setDaemon(True)
+        t2.start()
+
     
     def send(self):
         while not self.terminated:
-            data_to_send = sock.recv(self.buffer_size)
+            data_to_send = self.sock.recv(self.buffer_size)
             self.stdin.write(data_to_send)
             self.stdin.flush()
     
     def recv(self):
         while not self.terminated:
             data_received = self.stdout.read(self.buffer_size)
-            sock.send(data_received)
+            self.sock.send(data_received)
             
     def close(self):
         exit_status = self.channel.recv_exit_status()

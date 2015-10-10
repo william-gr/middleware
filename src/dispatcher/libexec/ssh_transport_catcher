@@ -76,6 +76,7 @@ class TransportCatcherSSH(object):
         self.wait_forever()
         self.send(self.pack('transport', 'setup', client_address))
         t = spawn_thread(target=self.send)
+        t.setDaemon(True)
         t.start()
         
         

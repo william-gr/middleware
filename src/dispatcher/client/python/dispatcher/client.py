@@ -352,13 +352,13 @@ class Client(object):
             ws_url = 'ws://{0}:{1}/socket'.format(self.hostname, self.port)
             self.ws = self.WebSocketHandler(ws_url, self)
             self.ws.connect()
+            self.opened.wait()
         else:
             builder = ClientTransportBuilder()
             self.transport = builder.create(self.scheme)
-            self.ws = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.transport.connect(self.parsed_url, self.ws, **kwargs)
+            self.ws, ext_sock = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.transport.connect(self.parsed_url, ext_sock, **kwargs)
             self.wait_forever()
-        self.opened.wait()
 
     def login_user(self, username, password, timeout=None):
         call = self.PendingCall(uuid.uuid4(), 'auth')
@@ -487,8 +487,9 @@ class Client(object):
         self.__send_event(name, params)
         
     def sock_recv(self):
+        recv_data = None
         while recv_data is None:
-            recv_data = ws.recv(self.buffer_size)
+            recv_data = self.ws.recv(self.buffer_size)
         self.decode(recv_data)
 
     def wait_forever(self):
@@ -501,6 +502,7 @@ class Client(object):
                 self.ws.run_forever()
         else:
             t = spawn_thread(target = self.sock_recv)
+            t.setDaemon(True)
             t.start()
 
     def register_event_handler(self, name, handler):
