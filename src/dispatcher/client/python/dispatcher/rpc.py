@@ -296,7 +296,7 @@ class SchemaHelper(object):
 
     @staticmethod
     def one_of(*args):
-        return {'OneOf': map(convert_schema, args)}
+        return {'oneOf': map(convert_schema, args)}
 
     @staticmethod
     def ref(target, **kwargs):
