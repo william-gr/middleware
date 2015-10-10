@@ -1,0 +1,96 @@
+#!/usr/local/bin/python2.7
+#+
+# Copyright 2014 iXsystems, Inc.
+# All rights reserved
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted providing that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#####################################################################
+
+import sys
+import os
+import uuid
+from jsonenc import dumps
+from ws4py.client.geventclient import WebSocketClient
+from dispatcher.client import ClientType    
+from gevent.lock import RLock
+from gevent.event import Event
+from gevent.greenlet import Greenlet
+
+_thread_type = ClientType.GEVENT
+
+class TransportCatcherSSH(object):
+    class WebSocketHandler(WebSocketClient):
+        def __init__(self, url, parent):
+            super(TransportCatcherSSH.WebSocketHandler, self).__init__(url)
+            self.parent = parent
+
+        def closed(self, code, reason=None):
+            self.parent.terminated = 1
+            self.parent.ws.close()
+            exit(0)
+            
+        def received_message(self, message):
+            sys.stdout.write(message)
+            sys.stdout.flush()
+            
+    def __init__(self):
+        self.hostname = '127.0.0.1'
+        self.port = 5000
+        self.buffer_size = 65536
+        self.ws = None
+        self.terminated = None
+                
+    def wait_forever(self):
+        import gevent
+        while True:
+            gevent.sleep(60)
+            
+    def start(self):
+        ws_url = 'ws://{0}:{1}/socket'.format(hostname, port)
+        self.ws = WebSocketClient(ws_url, self)
+        
+        ssh_client_data = os.getenv("SSH_CLIENT")
+        addr, temp, port = ssh_client_data.split(" ", 3)
+        client_address = [addr, port]
+        
+        self.wait_forever()
+        self.send(self.pack('transport', 'setup', client_address))
+        t = spawn_thread(target=self.send)
+        t.start()
+        
+        
+    def send(self):
+        while not self.terminated:
+            self.ws.send(sys.stdin.read(self.buffer_size))
+            
+    def pack(self, namespace, name, args, id=None):
+        return dumps({
+            'namespace': namespace,
+            'name': name,
+            'args': args,
+            'id': str(id if id is not None else uuid.uuid4())
+        })
+        
+catcher = TransportCatcherSSH()
+catcher.start()
+    

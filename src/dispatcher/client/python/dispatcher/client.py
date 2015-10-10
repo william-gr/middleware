@@ -30,9 +30,12 @@ import os
 import enum
 import uuid
 import errno
+import socket
 from jsonenc import dumps, loads
 from dispatcher import rpc
+from dispatcher.client_transport import ClientTransportBuilder
 from fnutils.query import matches
+from ws4py.compat import urlsplit
 
 
 class ClientError(enum.Enum):
@@ -156,6 +159,14 @@ class Client(object):
         self.token = None
         self.event_distribution_lock = RLock()
         self.default_timeout = 10
+        self.username = None
+        self.hostname = None
+        self.port = None
+        self.scheme = None
+        self.scheme_default_port = None
+        self.transport = None
+        self.parsed_url = None
+        self.buffer_size = None
 
     def __pack(self, namespace, name, args, id=None):
         return dumps({
@@ -225,6 +236,9 @@ class Client(object):
         self.event_distribution_lock.release()
 
     def decode(self, msg):
+        if self.client_transport is not None:
+            wait_forever()
+        
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
             return
@@ -293,10 +307,57 @@ class Client(object):
                 if self.error_callback is not None:
                     self.error_callback(ClientError.RPC_CALL_ERROR)
 
-    def connect(self, hostname, port=5000):
-        url = 'ws://{0}:{1}/socket'.format(hostname, port)
-        self.ws = self.WebSocketHandler(url, self)
-        self.ws.connect()
+    def parse_url(self, url):
+        self.parsed_url = urlsplit(url, scheme="http")
+        self.scheme = self.parsed_url.scheme
+        self.hostname = self.parsed_url.hostname
+        self.username = self.parsed_url.username
+        self.port = self.parsed_url.port
+
+    def connect(self, url, **kwargs):
+        self.parse_url(url)
+        if self.scheme is None:
+            self.scheme = kwargs.get('scheme',"ws")
+        else:
+            if 'scheme' in kwargs:
+                raise ValueError('Connection scheme cannot be delared in both url and arguments.')
+        if self.scheme is "http":
+            self.scheme = "ws"
+        if self.scheme is "ws":
+            self.scheme_default_port = 5000
+
+        if self.username is None:
+                self.username = kwargs.get('username',None)
+        else:
+            if 'username' in kwargs:
+                raise ValueError('Username cannot be delared in both url and arguments.')
+        if self.username is not None and self.scheme is "ws":
+            raise ValueError('Username cannot be delared at this state for ws transport type.')
+
+        if self.hostname is None:
+            self.hostname = kwargs.get('hostname',"127.0.0.1")
+        else:
+            if 'hostname' in kwargs:
+                raise ValueError('Host name cannot be delared in both url and arguments.')
+
+        if self.port is None:
+            self.port = kwargs.get('port',self.scheme_default_port)
+        else:
+            if 'port' in kwargs:
+                raise ValueError('Port cannot be delared in both url and arguments.')
+                
+        self.buffer_size = kwargs.get('buffer_size', 65536)
+
+        if self.scheme is "ws":
+            ws_url = 'ws://{0}:{1}/socket'.format(self.hostname, self.port)
+            self.ws = self.WebSocketHandler(ws_url, self)
+            self.ws.connect()
+        else:
+            builder = ClientTransportBuilder()
+            self.transport = builder.create(self.scheme)
+            self.ws = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.transport.connect(self.parsed_url, self.ws, **kwargs)
+            self.wait_forever()
         self.opened.wait()
 
     def login_user(self, username, password, timeout=None):
@@ -424,14 +485,23 @@ class Client(object):
 
     def emit_event(self, name, params):
         self.__send_event(name, params)
+        
+    def sock_recv(self):
+        while recv_data is None:
+            recv_data = ws.recv(self.buffer_size)
+        self.decode(recv_data)
 
     def wait_forever(self):
-        if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
-            import gevent
-            while True:
-                gevent.sleep(60)
+        if self.client_transport is None:
+            if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
+                import gevent
+                while True:
+                    gevent.sleep(60)
+            else:
+                self.ws.run_forever()
         else:
-            self.ws.run_forever()
+            t = spawn_thread(target = self.sock_recv)
+            t.start()
 
     def register_event_handler(self, name, handler):
         if name not in self.event_handlers:

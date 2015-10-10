@@ -128,11 +128,11 @@ class PluginService(RpcService):
 
     def __client_disconnected(self, args):
         for name, svc in self.services.items():
-            if args['address'] == svc.connection.ws.handler.client_address:
+            if args['address'] == svc.connection.real_client_address:
                 self.unregister_service(name, svc.connection)
 
         for name, conn in self.schemas.items():
-            if args['address'] == conn.ws.handler.client_address:
+            if args['address'] == conn.real_client_address:
                 self.unregister_schema(name, conn)
 
     def initialize(self, context):
@@ -150,7 +150,7 @@ class PluginService(RpcService):
         self.services[name] = wrapper
         self.__dispatcher.rpc.register_service_instance(name, wrapper)
         self.__dispatcher.dispatch_event('plugin.service_registered', {
-            'address': sender.ws.handler.client_address,
+            'address': sender.real_client_address,
             'service-name': name,
             'description': "Service {0} registered".format(name)
         })
@@ -169,7 +169,7 @@ class PluginService(RpcService):
 
         self.__dispatcher.rpc.unregister_service(name)
         self.__dispatcher.dispatch_event('plugin.service_unregistered', {
-            'address': sender.ws.handler.client_address,
+            'address': sender.real_client_address,
             'service-name': name,
             'description': "Service {0} unregistered".format(name)
         })

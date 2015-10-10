@@ -62,6 +62,7 @@ from datastore import get_datastore
 from datastore.config import ConfigStore
 from dispatcher.jsonenc import loads, dumps
 from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
+from dispatcher.has_external_transport import ServerTransportBuilder
 from resources import ResourceGraph
 from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
 from schemas import register_general_purpose_schemas
@@ -343,6 +344,7 @@ class Dispatcher(object):
         self.rpc.register_service('lock', LockService)
 
         self.register_event_type('server.client_connected')
+        self.register_event_type('server.client_transport_connected')
         self.register_event_type('server.client_disconnected')
         self.register_event_type('server.client_logged')
         self.register_event_type('server.plugin.load_error')
@@ -756,17 +758,20 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.event_masks = set()
         self.rlock = RLock()
         self.event_subscription_lock = RLock()
+        self.has_external_transport = False
+        self.real_client_address = None
 
     def on_open(self):
-        trace_log('Client {0} connected', self.ws.handler.client_address)
+        self.real_client_address = self.ws.handler.client_address
+        trace_log('Client {0} connected', self.real_client_address)
         self.server.connections.append(self)
         self.dispatcher.dispatch_event('server.client_connected', {
-            'address': self.ws.handler.client_address,
-            'description': "Client {0} connected".format(self.ws.handler.client_address)
+            'address': self.real_client_address,
+            'description': "Client {0} connected".format(self.real_client_address)
         })
 
     def on_close(self, reason):
-        trace_log('Client {0} disconnected', self.ws.handler.client_address)
+        trace_log('Client {0} disconnected', self.real_client_address)
         self.server.connections.remove(self)
 
         if self.user:
@@ -778,12 +783,12 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                     ev.decref()
 
         self.dispatcher.dispatch_event('server.client_disconnected', {
-            'address': self.ws.handler.client_address,
-            'description': "Client {0} disconnected".format(self.ws.handler.client_address)
+            'address': self.real_client_address,
+            'description': "Client {0} disconnected".format(self.real_client_address)
         })
 
     def on_message(self, message, *args, **kwargs):
-        trace_log('{0} -> {1}', self.ws.handler.client_address, unicode(message))
+        trace_log('{0} -> {1}', self.real_client_address, unicode(message))
 
         if not type(message) is str:
             return
@@ -805,6 +810,16 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             return
 
         method(message["id"], message["args"])
+        
+    def on_transport_setup(self, id, client_address):
+        self.has_external_transport = True
+        trace_log('Client {0} is from now on client {1}', self.real_client_address, client_address)
+        self.dispatcher.dispatch_event('server.client_transport_connected', {
+            'old_address': self.real_client_address,
+            'new_address': client_address,
+            'description': "Client {0} is from now on client {1}", self.real_client_address, client_address)
+        })
+        self.real_client_address = client_address
 
     def on_events_subscribe(self, id, event_masks):
         # Confirming the event masks is a flat list
@@ -897,7 +912,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.user = self.dispatcher.auth.get_service(service_name)
         self.open_session()
         self.dispatcher.dispatch_event('server.service_logged', {
-            'address': self.ws.handler.client_address,
+            'address': self.real_client_address,
             'name': service_name,
             'description': "Service {0} logged in".format(service_name)
         })
@@ -907,7 +922,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         resource = data.get('resource', None)
         lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         token = self.dispatcher.token_store.lookup_token(token)
-        client_addr, client_port = self.ws.handler.client_address
+        client_addr, client_port = self.real_client_address
 
         if not token:
             self.emit_rpc_error(id, errno.EACCES, "Incorrect or expired token")
@@ -941,7 +956,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         password = data['password']
         lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         self.resource = data.get('resource', None)
-        client_addr, client_port = self.ws.handler.client_address[:2]
+        client_addr, client_port = self.real_client_address[:2]
 
         user = self.dispatcher.auth.get_user(username)
 
@@ -949,15 +964,19 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
             return
 
-        if client_addr in ('127.0.0.1', '::1'):
+        if client_addr in ('127.0.0.1', '::1') or self.has_external_transport is not None:
             # If client is connecting from localhost, omit checking password
             # and instead verify his username using sockstat(1). Also make
             # token lifetime None for such users (as we do not want their
             # sessions to timeout)
-            if not user.check_local(client_addr, client_port, self.dispatcher.port):
-                self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
-                return
-            lifetime = None
+            # If client is connecting using transport layer other than raw ws
+            # authentication part is held by transport layer itself so we do not
+            # check password correctness but be aware such users sessions will timeout.
+            if self.has_external_transport is None:
+                if not user.check_local(client_addr, client_port, self.dispatcher.port):
+                    self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
+                    return
+                lifetime = None
         else:
             if not user.check_password(password):
                 self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
@@ -1059,7 +1078,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         greenlet.start()
 
     def open_session(self):
-        client_addr, client_port = self.ws.handler.client_address[:2]
+        client_addr, client_port = self.real_client_address[:2]
         self.session_id = self.dispatcher.datastore.insert('sessions', {
             'started-at': time.time(),
             'address': client_addr,
@@ -1172,14 +1191,14 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.dispatcher.logger.error(repr(obj))
             return
 
-        trace_log('{0} <- {1}', self.ws.handler.client_address, data)
+        trace_log('{0} <- {1}', self.real_client_address, data)
 
         with self.rlock:
             try:
                 self.ws.send(data)
             except WebSocketError, err:
                 self.dispatcher.logger.error(
-                    'Cannot send message to %s: %s', self.ws.handler.client_address, str(err))
+                    'Cannot send message to %s: %s', self.real_client_address, str(err))
 
 
 class ShellConnection(WebSocketApplication, EventEmitter):

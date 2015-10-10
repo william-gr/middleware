@@ -4,6 +4,8 @@
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client.py
+%%PYTHON_SITELIBDIR%%/dispatcher/client_transport.py
+%%PYTHON_SITELIBDIR%%/dispatcher/client_transport.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client.pyc
