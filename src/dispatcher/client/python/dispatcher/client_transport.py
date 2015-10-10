@@ -27,6 +27,7 @@
 
 from __future__ import print_function
 import socket
+import os
 import time
 import paramiko
 from abc import ABCMeta, abstractmethod
@@ -38,18 +39,6 @@ class ClientTransportBuilder(object):
             return ClientTransportSSH()
         else:
             raise ValueError('Unsupported type of connection scheme.')
-
-from dispatcher.client import ClientType            
-if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
-    from gevent.lock import RLock
-    from gevent.event import Event
-    from gevent.greenlet import Greenlet
-    _thread_type = ClientType.GEVENT
-else:
-    from threading import Thread
-    from threading import Event
-    from threading import RLock
-    _thread_type = ClientType.THREADED
 
 class ClientTransportBase(object):
 

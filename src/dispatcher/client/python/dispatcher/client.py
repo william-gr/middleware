@@ -236,7 +236,7 @@ class Client(object):
         self.event_distribution_lock.release()
 
     def decode(self, msg):
-        if self.client_transport is not None:
+        if self.transport is not None:
             wait_forever()
         
         if 'namespace' not in msg:
@@ -492,7 +492,7 @@ class Client(object):
         self.decode(recv_data)
 
     def wait_forever(self):
-        if self.client_transport is None:
+        if self.transport is None:
             if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
                 import gevent
                 while True:

@@ -62,7 +62,6 @@ from datastore import get_datastore
 from datastore.config import ConfigStore
 from dispatcher.jsonenc import loads, dumps
 from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
-from dispatcher.has_external_transport import ServerTransportBuilder
 from resources import ResourceGraph
 from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
 from schemas import register_general_purpose_schemas
@@ -817,7 +816,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.dispatcher.dispatch_event('server.client_transport_connected', {
             'old_address': self.real_client_address,
             'new_address': client_address,
-            'description': "Client {0} is from now on client {1}", self.real_client_address, client_address)
+            'description': "Client {0} is from now on client {1}".format(self.real_client_address, client_address)
         })
         self.real_client_address = client_address
 
