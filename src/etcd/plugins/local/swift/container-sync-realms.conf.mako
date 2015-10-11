@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_sync_realms.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 # [DEFAULT]
 # The number of seconds between checking the modified time of this config file
