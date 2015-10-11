@@ -44,7 +44,7 @@ from gevent.event import Event, AsyncResult
 from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
-from task import TaskException, TaskAbortException, TaskStatus, TaskState
+from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
 
 
 TASKPROXY_PATH = '/usr/local/libexec/taskproxy'
@@ -469,6 +469,10 @@ class Balancer(object):
                 self.task_list.append(task)
                 task.ended.set()
                 self.distribution_lock.release()
+
+                if not isinstance(Exception, VerifyException):
+                    self.dispatcher.report_error('Task {0} verify() method raised invalid exception', err)
+
                 continue
 
             task.set_state(TaskState.WAITING)
