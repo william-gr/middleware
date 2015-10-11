@@ -4,7 +4,9 @@
 global
     log 127.0.0.1     local0
     log 127.0.0.1     local1 notice
-    maxconn           256000
+% if cfg['global_maxconn']:
+    maxconn           ${cfg['global_maxconn']}
+% endif
     spread-checks     5
     daemon
 
@@ -15,7 +17,9 @@ defaults
     option            allbackups
     no option         httpclose
     retries           3
-    maxconn           256000
+% if cfg['defaults_maxconn']:
+    maxconn           ${cfg['defaults_maxconn']}
+% endif
     timeout connect   5000
     timeout client    5000
     timeout server    5000

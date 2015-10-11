@@ -83,6 +83,8 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('service-haproxy', {
         'type': 'object',
         'properties': {
+            'global_maxconn': {'type': ['integer', 'null']},
+            'defaults_maxconn': {'type': ['integer', 'null']},
             'http_ip': {'type': ['string', 'null']},
             'http_port': {'type': ['integer', 'null']},
             'https_ip': {'type': ['string', 'null']},

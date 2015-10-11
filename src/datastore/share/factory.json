@@ -839,6 +839,8 @@
       "service.swift.swift_hash_path_suffix": "suffix",
       "service.swift.swift_hash_path_prefix": "prefix",
       "service.haproxy.enable": false,
+      "service.haproxy.global_maxconn": 256000,
+      "service.haproxy.defaults_maxconn": 256000,
       "service.haproxy.http_ip": "127.0.0.1",
       "service.haproxy.http_port": 8080,
       "service.haproxy.https_ip": "127.0.0.1",
