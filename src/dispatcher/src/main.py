@@ -687,7 +687,11 @@ class Dispatcher(object):
 
     def report_error(self, message, exception):
         if not os.path.isdir('/var/tmp/crash'):
-            os.mkdir('/var/tmp/crash')
+            try:
+                os.mkdir('/var/tmp/crash')
+            except:
+                # at least we tried
+                return
 
         report = {
             'type': 'exception',
@@ -697,8 +701,12 @@ class Dispatcher(object):
             'traceback': traceback.format_exc()
         }
 
-        with tempfile.NamedTemporaryFile(dir='/var/tmp/crash', suffix='.json', prefix='report-', delete=False) as f:
-            json.dump(report, f, indent=4)
+        try:
+            with tempfile.NamedTemporaryFile(dir='/var/tmp/crash', suffix='.json', prefix='report-', delete=False) as f:
+                json.dump(report, f, indent=4)
+        except:
+            # at least we tried
+            pass
 
     def die(self):
         self.logger.warning('Exiting from "die" command')
