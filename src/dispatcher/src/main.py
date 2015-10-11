@@ -43,6 +43,8 @@ import time
 import uuid
 import errno
 import setproctitle
+import traceback
+import tempfile
 import pty
 import termios
 
@@ -149,6 +151,7 @@ class Plugin(object):
             self.dispatcher.dispatch_event('server.plugin.initialized', {"name": os.path.basename(self.filename)})
         except Exception, err:
             self.dispatcher.logger.exception('Plugin %s exception', self.filename)
+            self.dispatcher.report_error('Cannot initalize plugin {0}'.format(self.filename), err)
             raise RuntimeError('Cannot load plugin {0}: {1}'.format(self.filename, str(err)))
 
     def register_event_handler(self, name, handler):
@@ -489,6 +492,7 @@ class Dispatcher(object):
             self.plugins[name] = plugin
         except Exception, err:
             self.logger.exception("Cannot load plugin from %s", path)
+            self.report_error('Cannot load plugin from {0}'.format(path), err)
             self.dispatch_event("server.plugin.load_error", {"name": os.path.basename(path)})
             return
 
@@ -520,7 +524,8 @@ class Dispatcher(object):
                 for h in self.event_handlers[name]:
                     try:
                         gevent.spawn(h, args)
-                    except:
+                    except BaseException, err:
+                        self.report_error('Event handler for event {0} failed'.format(name), err)
                         self.logger.exception('Event handler for event %s failed', name)
 
             if 'nolog' in args and args['nolog']:
@@ -632,7 +637,8 @@ class Dispatcher(object):
             try:
                 if not h(args):
                     return False
-            except:
+            except BaseException, err:
+                self.report_error('Hook for {0} with args {1} failed'.format(name, args), err)
                 return False
 
         return True
@@ -678,6 +684,21 @@ class Dispatcher(object):
     def get_lock(self, name):
         self.call_sync('lock.init', name)
         return ServerLockProxy(self, name)
+
+    def report_error(self, message, exception):
+        if not os.path.isdir('/var/tmp/crash'):
+            os.mkdir('/var/tmp/crash')
+
+        report = {
+            'type': 'exception',
+            'application': 'dispatcher',
+            'message': message,
+            'exception': str(exception),
+            'traceback': traceback.format_exc()
+        }
+
+        with tempfile.NamedTemporaryFile(dir='/var/tmp/crash', suffix='.json', prefix='report-', delete=False) as f:
+            json.dump(report, f, indent=4)
 
     def die(self):
         self.logger.warning('Exiting from "die" command')
