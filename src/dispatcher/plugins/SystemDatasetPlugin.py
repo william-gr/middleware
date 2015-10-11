@@ -108,7 +108,10 @@ def create_system_dataset(dispatcher, dsid, pool):
     try:
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
     except libzfs.ZFSException:
-        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {'mountpoint': 'none'})
+        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {
+            'mountpoint': 'none',
+            'sharenfs': 'off'
+        })
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
 
     try:
