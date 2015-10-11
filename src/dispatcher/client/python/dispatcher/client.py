@@ -237,7 +237,7 @@ class Client(object):
 
     def decode(self, msg):
         if self.transport is not None:
-            wait_forever()
+            self.wait_forever()
         
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
@@ -490,7 +490,7 @@ class Client(object):
         recv_data = None
         while recv_data is None:
             recv_data = self.ws.recv(self.buffer_size)
-        self.decode(recv_data)
+        self.decode(loads(unicode(recv_data)))
 
     def wait_forever(self):
         if self.transport is None:

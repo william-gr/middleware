@@ -142,8 +142,9 @@ class ClientTransportSSH(ClientTransportBase):
             if i == self.timeout:
                 raise RuntimeError("Could not connect to %s. Giving up" % hostname)
         
+        
+        self.stdin, self.stdout, self.stderr = self.ssh.exec_command("python /usr/local/libexec/dispatcher/ssh_transport_catcher", bufsize = 0)
         self.channel = self.ssh.get_transport().open_session()
-        self.stdin, self.stdout, self.stderr = self.ssh.exec_command("python -u /usr/local/libexec/dispatcher/ssh_transport_catcher")
         
         from dispatcher.client import spawn_thread
         t = spawn_thread(target = self.send)
@@ -155,20 +156,37 @@ class ClientTransportSSH(ClientTransportBase):
         t2 = spawn_thread(target = self.close)
         t2.setDaemon(True)
         t2.start()
+        t3 = spawn_thread(target = self.err)
+        t3.setDaemon(True)
+        t3.start()
 
     
     def send(self):
         while not self.terminated:
             data_to_send = self.sock.recv(self.buffer_size)
-            self.stdin.write(data_to_send)
+            print("Data to send")
+            print("%s" % data_to_send)
+            self.stdin.write(data_to_send + '\n')
             self.stdin.flush()
+            print("Data sent")
     
     def recv(self):
         while not self.terminated:
-            data_received = self.stdout.read(self.buffer_size)
+            data_received = self.stdout.readline()
+            data_received = data_received[:-1]
+            #print("Data received")
+            print("%s" % data_received)
             self.sock.send(data_received)
             
     def close(self):
         exit_status = self.channel.recv_exit_status()
+        print("SSH tunel has closed")
         self.sock.close()
         exit()
+        
+    def err(self):
+        while not self.terminated:
+            err = self.stderr._read(self.buffer_size)
+            if err is not None:
+                print("Error received %s <----" % err)
+                exit(1)
