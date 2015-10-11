@@ -4,9 +4,7 @@
 global
     log 127.0.0.1     local0
     log 127.0.0.1     local1 notice
-% if cfg['global_maxconn'] 
-    maxconn           ${cfg['global_maxconn']}
-% endif
+    maxconn           256000
     spread-checks     5
     daemon
 
@@ -17,9 +15,7 @@ defaults
     option            allbackups
     no option         httpclose
     retries           3
-% if cfg['defaults_maxconn'] 
-    maxconn           ${cfg['defaults_maxconn']}
-% endif
+    maxconn           256000
     timeout connect   5000
     timeout client    5000
     timeout server    5000
@@ -50,19 +46,8 @@ backend riak_cs_backend
     option            httpchk GET /riak-cs/ping
     timeout connect 60s
     timeout http-request 60s
-% if cfg['backend_server_one_name'] and cfg['backend_server_one_host']:
-    server ${cfg['backend_server_one_name'].lower()} ${cfg['backend_server_one_host'].lower()}:${cfg['backend_server_one_port']} weight ${cfg['backend_server_one_weight']} maxconn 1024 check
-% endif
-% if cfg['backend_server_two_name'] and cfg['backend_server_two_host']:
-    server ${cfg['backend_server_two_name'].lower()} ${cfg['backend_server_two_host'].lower()}:${cfg['backend_server_two_port']} weight ${cfg['backend_server_two_weight']} maxconn 1024 check
-% endif
-% if cfg['backend_server_three_name'] and cfg['backend_server_three_host']:
-    server ${cfg['backend_server_three_name'].lower()} ${cfg['backend_server_three_host'].lower()}:${cfg['backend_server_three_port']} weight ${cfg['backend_server_three_weight']} maxconn 1024 check
-% endif
-% if cfg['backend_server_four_name'] and cfg['backend_server_four_host']:
-    server ${cfg['backend_server_four_name'].lower()} ${cfg['backend_server_four_host'].lower()}:${cfg['backend_server_four_port']} weight ${cfg['backend_server_four_weight']} maxconn 1024 check
-% endif
-% if cfg['backend_server_five_name'] and cfg['backend_server_five_host']:
-    server ${cfg['backend_server_five_name'].lower()} ${cfg['backend_server_five_host'].lower()}:${cfg['backend_server_five_port']} weight ${cfg['backend_server_five_weight']} maxconn 1024 check
-% endif
-#   server riak5 r1s05.example.com:8081 weight 1 maxconn 1024 check
+#    server riak1 r1s01.example.com:8081 weight 1 maxconn 1024 check
+#    server riak2 r1s02.example.com:8081 weight 1 maxconn 1024 check
+#    server riak3 r1s03.example.com:8081 weight 1 maxconn 1024 check
+#    server riak4 r1s04.example.com:8081 weight 1 maxconn 1024 check
+#    server riak5 r1s05.example.com:8081 weight 1 maxconn 1024 check
