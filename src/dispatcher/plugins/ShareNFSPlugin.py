@@ -70,6 +70,12 @@ class CreateNFSShareTask(Task):
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
         self.dispatcher.call_sync('services.ensure_started', 'nfs')
         self.dispatcher.call_sync('services.reload', 'nfs')
+
+        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        self.join_subtasks(self.run_subtask('zfs.configure', dataset['pool'], dataset['name'], {
+            'sharenfs': {'value': opts(share)}
+        }))
+
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'create',
             'ids': [share['id']]
@@ -90,7 +96,12 @@ class UpdateNFSShareTask(Task):
         share.update(updated_fields)
         self.datastore.update('shares', name, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
-        self.dispatcher.call_sync('services.reload', 'nfs')
+
+        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        self.join_subtasks(self.run_subtask('zfs.configure', dataset['pool'], dataset['name'], {
+            'sharenfs': {'value': opts(share)}
+        }))
+
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'update',
             'ids': [name]
@@ -107,13 +118,69 @@ class DeleteNFSShareTask(Task):
         return ['service:nfs']
 
     def run(self, name):
+        share = self.datastore.get_by_id('shares', name)
         self.datastore.delete('shares', name)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
         self.dispatcher.call_sync('services.reload', 'nfs')
+
+        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        self.join_subtasks(self.run_subtask('zfs.configure', dataset, {
+            'sharenfs': {'value': 'off'}
+        }))
+
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'delete',
             'ids': [name]
         })
+
+
+def dataset_for_mountpoint(dispatcher, mountpoint):
+    return dispatcher.call_sync(
+        'zfs.dataset.query',
+        [('mountpoint', '=', mountpoint)],
+        {'single': True}
+    )
+
+
+def opts(share):
+    if 'properties' not in share:
+        return 'on'
+
+    result = []
+    properties = share['properties']
+
+    if properties.get('alldirs'):
+        result.append('-alldirs')
+
+    if properties.get('read_only'):
+        result.append('-ro')
+
+    if properties.get('security'):
+        result.append('-sec={0}'.format(':'.join(properties['security'])))
+
+    if properties.get('mapall_user'):
+        if 'mapall_group' in properties:
+            result.append('-mapall={mapall_user}:{mapall_group}'.format(**properties))
+        else:
+            result.append('-mapall={mapall_user}'.format(**properties))
+
+    elif properties.get('maproot_user'):
+        if 'maproot_group' in properties:
+            result.append('-maproot={maroot_user}:{maproot_group}'.format(**properties))
+        else:
+            result.append('-maproot={maroot_user}'.format(**properties))
+
+    for host in properties.get('hosts', []):
+        if '/' in host:
+            result.append('-network={0}'.format(host))
+            continue
+
+        result.append(host)
+
+    if not result:
+        return 'on'
+
+    return ' '.join(result)
 
 
 def _metadata():
@@ -121,6 +188,10 @@ def _metadata():
         'type': 'sharing',
         'method': 'nfs'
     }
+
+
+def _depends():
+    return ['ZfsPlugin']
 
 
 def _init(dispatcher, plugin):
@@ -157,3 +228,9 @@ def _init(dispatcher, plugin):
     # Start NFS server if there are any configured shares
     if dispatcher.datastore.exists('shares', ('type', '=', 'nfs')):
         dispatcher.call_sync('services.ensure_started', 'nfs')
+
+    for share in dispatcher.datastore.query('shares', ('type', '=', 'nfs')):
+        dataset = dataset_for_mountpoint(dispatcher, share['target'])
+        dispatcher.call_task_sync('zfs.configure', dataset['pool'], dataset['name'], {
+            'sharenfs': {'value': opts(share)}
+        })
