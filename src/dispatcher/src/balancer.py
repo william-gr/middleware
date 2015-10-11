@@ -114,6 +114,12 @@ class TaskExecutor(object):
         try:
             self.result.get()
         except BaseException, e:
+            if not isinstance(e, TaskException):
+                self.balancer.dispatcher.report_error(
+                    'Task {0} raised exception other than TaskException'.format(self.task.name),
+                    e
+                )
+
             self.task.error = serialize_error(e)
             self.task.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
                 "stacktrace": traceback.format_exc()
