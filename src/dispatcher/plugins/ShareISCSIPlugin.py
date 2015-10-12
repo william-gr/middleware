@@ -224,6 +224,7 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
         'properties': {
             'serial': {'type': 'string'},
+            'naa': {'type': 'string'},
             'size': {'type': 'integer'},
             'block_size': {
                 'type': 'integer',
@@ -232,7 +233,8 @@ def _init(dispatcher, plugin):
             'physical_block_size': {'type': 'boolean'},
             'available_space_threshold': {'type': 'integer'},
             'tpc': {'type': 'boolean'},
-            'xen_compat': {'type': 'boolean'},
+            'vendor_id': {'type': ['string', 'null']},
+            'device_id': {'type': ['string', 'null']},
             'rpm': {
                 'type': 'string',
                 'enum': ['UNKNOWN', 'SSD', '5400', '7200', '10000', '15000']
