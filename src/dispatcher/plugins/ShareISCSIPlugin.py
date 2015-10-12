@@ -26,6 +26,8 @@
 #####################################################################
 
 import errno
+import uuid
+import hashlib
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
@@ -77,6 +79,15 @@ class CreateISCSIShareTask(Task):
         props = share['properties']
         if not props.get('properties.serial'):
             props['serial'] = self.dispatcher.call_sync('shares.iscsi.generate_serial')
+
+        props.setdefault('block_size', 512)
+        props.setdefault('physical_block_size', True)
+        props.setdefault('tpc', False)
+        props.setdefault('xen', False)
+        props.setdefault('rpm', 'SSD')
+        props.setdefault('vendor_id', None)
+        props.setdefault('device_id', None)
+        props['naa'] = generate_naa()
 
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
@@ -211,6 +222,10 @@ class DeleteISCSIAuthGroupTask(Task):
         pass
 
 
+def generate_naa():
+    return '0x6589cfc000000{0}'.format(hashlib.sha256(str(uuid.uuid4())).hexdigest()[0:19])
+
+
 def _metadata():
     return {
         'type': 'sharing',
@@ -323,4 +338,6 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.iscsi.auth.delete", DeleteISCSIAuthGroupTask)
 
     plugin.register_provider("shares.iscsi", ISCSISharesProvider)
+    plugin.register_provider("shares.iscsi.target", ISCSITargetsProvider)
+    plugin.register_provider("shares.iscsi.auth", ISCSIAuthProvider)
     plugin.register_event_type('shares.iscsi.changed')
