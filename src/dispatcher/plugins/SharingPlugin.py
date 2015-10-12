@@ -129,6 +129,7 @@ class DeleteShareTask(Task):
             'ids': [name]
         })
 
+
 @description("Deletes all shares dependent on specified volume/dataset")
 @accepts(str)
 class DeleteDependentShares(Task):
