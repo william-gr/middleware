@@ -238,7 +238,7 @@ class Client(object):
     def decode(self, msg):
         if self.transport is not None:
             self.wait_forever()
-        
+
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
             return
@@ -310,13 +310,20 @@ class Client(object):
     def parse_url(self, url):
         self.parsed_url = urlsplit(url, scheme="http")
         self.scheme = self.parsed_url.scheme
-        self.hostname = self.parsed_url.hostname
         self.username = self.parsed_url.username
         self.port = self.parsed_url.port
+        if self.parsed_url.hostname:
+            self.hostname = self.parsed_url.hostname
+        elif self.parsed_url.netloc:
+            self.hostname = self.parsed_url.netloc
+            if '@' in self.hostname:
+                temp, self.hostname = self.hostname.split('@')
+        elif self.parsed_url.path:
+            self.hostname = self.parsed_url.path
 
     def connect(self, url, **kwargs):
         self.parse_url(url)
-        if self.scheme is None:
+        if not self.scheme:
             self.scheme = kwargs.get('scheme',"ws")
         else:
             if 'scheme' in kwargs:
@@ -326,26 +333,26 @@ class Client(object):
         if self.scheme is "ws":
             self.scheme_default_port = 5000
 
-        if self.username is None:
+        if not self.username:
                 self.username = kwargs.get('username',None)
         else:
             if 'username' in kwargs:
                 raise ValueError('Username cannot be delared in both url and arguments.')
-        if self.username is not None and self.scheme is "ws":
+        if self.username and self.scheme is "ws":
             raise ValueError('Username cannot be delared at this state for ws transport type.')
 
-        if self.hostname is None:
+        if not self.hostname:
             self.hostname = kwargs.get('hostname',"127.0.0.1")
         else:
             if 'hostname' in kwargs:
                 raise ValueError('Host name cannot be delared in both url and arguments.')
 
-        if self.port is None:
+        if not self.port:
             self.port = kwargs.get('port',self.scheme_default_port)
         else:
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
-                
+
         self.buffer_size = kwargs.get('buffer_size', 65536)
 
         if self.scheme is "ws":
@@ -399,6 +406,8 @@ class Client(object):
         self.token = call.result[0]
 
     def disconnect(self):
+        if self.transport is not None:
+            self.transport.close()
         self.ws.close()
 
     def enable_server(self):
@@ -485,7 +494,7 @@ class Client(object):
 
     def emit_event(self, name, params):
         self.__send_event(name, params)
-        
+
     def sock_recv(self):
         recv_data = None
         while recv_data is None:

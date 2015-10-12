@@ -33,8 +33,23 @@ import paramiko
 import socket
 from abc import ABCMeta, abstractmethod
 
+_debug_log_file = None
+
+def debug_log(message, *args):
+    global _debug_log_file
+
+    if os.getenv('DISPATCHER_TRANSPORT_DEBUG'):
+        if not _debug_log_file:
+            try:
+                _debug_log_file = open('/var/tmp/dispatchertransport.{0}.log'.format(os.getpid()), 'w')
+            except OSError:
+                pass
+
+        debug_log(message.format(*args), file=_debug_log_file)
+        _debug_log_file.flush()
+
 class ClientTransportBuilder(object):
-    
+
     def create(self, scheme):
         if 'ssh' in scheme:
             return ClientTransportSSH()
@@ -44,15 +59,15 @@ class ClientTransportBuilder(object):
 class ClientTransportBase(object):
 
     __metaclass__ = ABCMeta
-    
+
     @abstractmethod
     def connect(self, url, sock, **kwargs):
         return
-        
+
     @abstractmethod
     def send(self):
         return
-        
+
     @abstractmethod
     def recv(self):
         return
@@ -64,7 +79,6 @@ class ClientTransportSSH(ClientTransportBase):
         self.channel = None
         self.url = None
         self.sock = None
-        self.timeout = None
         self.hostname = None
         self.username = None
         self.password = None
@@ -72,80 +86,96 @@ class ClientTransportSSH(ClientTransportBase):
         self.pkey = None
         self.key_filename = None
         self.buffer_size = None
-        self.terminated = None
+        self.terminated = False
         self.stdin = None
         self.stdout = None
         self.stderr = None
-        
+
     def connect(self, url, sock, **kwargs):
         self.url = url
         self.sock = sock
-        self.timeout = kwargs.get('timeout',30)
-        self.hostname = url.hostname
         self.username = url.username
         self.port = url.port
-        
-        if self.username is None:
+
+        if url.hostname:
+            self.hostname = url.hostname
+        elif url.netloc:
+            self.hostname = url.netloc
+            if '@' in self.hostname:
+                temp, self.hostname = self.hostname.split('@')
+        elif url.path:
+            self.hostname = url.path
+
+        if not self.username:
                 self.username = kwargs.get('username',None)
         else:
             if 'username' in kwargs:
                 raise ValueError('Username cannot be delared in both url and arguments.')
-        if self.username is None:
+        if not self.username:
             raise ValueError('Username is not declared.')
-            
-        if self.hostname is None:
+
+        if not self.hostname:
                 self.hostname = kwargs.get('hostname',None)
         else:
             if 'hostname' in kwargs:
                 raise ValueError('Hostname cannot be delared in both url and arguments.')
-        if self.hostname is None:
+        if not self.hostname:
             raise ValueError('Hostname is not declared.')
-            
-        if self.port is None:
+
+        if not self.port:
                 self.port = kwargs.get('port',22)
         else:
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
-                
+
         self.buffer_size = kwargs.get('buffer_size',65536)
-                
+
         self.password = kwargs.get('password',None)
         self.pkey = kwargs.get('pkey',None)
         self.key_filename = kwargs.get('key_filename',None)
-        if self.pkey is None and self.password is None and self.key_filename is None:
+        if not self.pkey and not self.password and not self.key_filename:
             raise ValueError('No password, key_filename nor pkey for authentication declared.')
 
-        i = 1
-        while True:
-            print("Trying to connect to %s (%i/%i)" % (self.hostname, i, self.timeout))
+        debug_log('Trying to connect to %s' % self.hostname)
 
-            try:
-                self.ssh = paramiko.SSHClient()
-                self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                self.ssh.connect(self.hostname,
-                                port = self.port, 
-                                username = self.username, 
-                                password = self.password, 
-                                pkey = self.pkey,
-                                key_filename = self.key_filename)
-                print("Connected to %s" % self.hostname)
-                break
+        try:
+            self.ssh = paramiko.SSHClient()
+            self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh.connect(self.hostname,
+                            port = self.port,
+                            username = self.username,
+                            password = self.password,
+                            pkey = self.pkey,
+                            key_filename = self.key_filename)
+            debug_log('Connected to %s' % self.hostname)
 
-            except paramiko.AuthenticationException:
-                raise RuntimeError("Authentication failed when connecting to %s" % self.hostname)
+        except paramiko.AuthenticationException as err:
+            debug_log('Authentication exception: %s' % err)
+            raise
 
-            except:
-                print("Could not connect via SSH to %s, waiting for it to start" % self.hostname)
-                i += 1
-                time.sleep(2)
+        except paramiko.BadAuthenticationType as err:
+            ddebug_log('Bad authentication type exception: %s' % err)
+            raise
 
-            if i == self.timeout:
-                raise RuntimeError("Could not connect to %s. Giving up" % hostname)
-        
-        
+        except paramiko.BadHostKeyException as err:
+            debug_log('Bad host key exception: %s' % err)
+            raise
+
+        except paramiko.ChannelException as err:
+            debug_log('Channel exception: %s' % err)
+            raise
+
+        except paramiko.PartialAuthentication as err:
+            debug_log('Partial authentication exception: %s' % err)
+            raise
+
+        except paramiko.SSHException as err:
+            debug_log('SSH exception: %s' % err)
+            raise
+
         self.stdin, self.stdout, self.stderr = self.ssh.exec_command("python /usr/local/libexec/dispatcher/ssh_transport_catcher", bufsize = 0)
         self.channel = self.ssh.get_transport().open_session()
-        
+
         from dispatcher.client import spawn_thread
         t = spawn_thread(target = self.send)
         t.setDaemon(True)
@@ -153,40 +183,35 @@ class ClientTransportSSH(ClientTransportBase):
         t1 = spawn_thread(target = self.recv)
         t1.setDaemon(True)
         t1.start()
-        t2 = spawn_thread(target = self.close)
+        t2 = spawn_thread(target = self.closed)
         t2.setDaemon(True)
         t2.start()
-        t3 = spawn_thread(target = self.err)
-        t3.setDaemon(True)
-        t3.start()
 
-    
     def send(self):
-        while not self.terminated:
+        while self.terminated is False:
             data_to_send = self.sock.recv(self.buffer_size)
-            print("Data to send")
-            print("%s" % data_to_send)
-            self.stdin.write(data_to_send + '\n')
-            self.stdin.flush()
-            print("Data sent")
-    
+            if self.terminated is False:
+                self.stdin.write(str(data_to_send) + '\n')
+                self.stdin.flush()
+                debug_log("Sent data: %s" % data_to_send)
+
     def recv(self):
-        while not self.terminated:
+        while self.terminated is False:
             data_received = self.stdout.readline()
             data_received = data_received[:-1]
-            #print("Data received")
-            print("%s" % data_received)
-            self.sock.send(data_received)
-            
-    def close(self):
+            debug_log("Received data: %s" % data_received)
+            if self.terminated is False:
+                self.sock.send(data_received)
+
+    def closed(self):
         exit_status = self.channel.recv_exit_status()
-        print("SSH tunel has closed")
+        debug_log("Transport connection has closed.")
+        self.terminated = True
+        self.ssh.close()
         self.sock.close()
-        exit()
-        
-    def err(self):
-        while not self.terminated:
-            err = self.stderr._read(self.buffer_size)
-            if err is not None:
-                print("Error received %s <----" % err)
-                exit(1)
+
+    def close(self):
+        debug_log("Transport connection closed by client.")
+        self.terminated = True
+        self.ssh.close()
+        self.sock.close()
