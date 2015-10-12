@@ -34,6 +34,7 @@ import glob
 import imp
 import json
 import fcntl
+import datetime
 import logging
 import logging.config
 import logging.handlers
@@ -694,6 +695,7 @@ class Dispatcher(object):
                 return
 
         report = {
+            'timestmp': str(datetime.datetime.now()),
             'type': 'exception',
             'application': 'dispatcher',
             'message': message,
