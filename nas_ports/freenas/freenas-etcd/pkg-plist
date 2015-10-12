@@ -41,5 +41,6 @@
 /usr/local/lib/etcd/plugins/ssh/sshd_config.mako
 /usr/local/lib/etcd/plugins/ssh/sshd_keys.py
 /usr/local/lib/etcd/plugins/exports.mako
+/usr/local/lib/etcd/plugins/ctl.py
 /usr/local/etc/rc.d/etcd
 /usr/local/sbin/etcd
