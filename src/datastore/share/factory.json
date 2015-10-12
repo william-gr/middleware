@@ -780,6 +780,7 @@
             "service.ftp.tls_options": [],
             "service.ftp.tls_ssl_certificate": null,
             "service.ftp.auxiliary": null,
+            "service.fnstatd.enable": true,
             "service.lldp.enable": false,
             "service.lldp.save_description": true,
             "service.lldp.country_code": null,

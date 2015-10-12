@@ -161,11 +161,14 @@ def umount_system_dataset(dispatcher, dsid, pool):
         logger.error('Cannot unmount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
 
 
-def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
+def move_system_dataset(dispatcher, dsid, services, src_pool, dst_pool):
     logger.warning('Migrating system dataset from pool {0} to {1}'.format(src_pool, dst_pool))
     tmpath = os.tempnam('/tmp')
     create_system_dataset(dispatcher, dsid, dst_pool)
     mount_system_dataset(dispatcher, dsid, dst_pool, tmpath)
+
+    for s in services:
+        dispatcher.call_sync('services.ensure_stopped', s)
 
     try:
         copytree(SYSTEM_DIR, tmpath)
@@ -178,6 +181,9 @@ def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
     umount_system_dataset(dispatcher, dsid, src_pool)
     mount_system_dataset(dispatcher, dsid, dst_pool, SYSTEM_DIR)
     remove_system_dataset(dispatcher, dsid, src_pool)
+
+    for s in services:
+        dispatcher.call_sync('services.ensure_started', s, timeout=20)
 
 
 class SystemDatasetProvider(Provider):
@@ -224,8 +230,22 @@ class SystemDatasetConfigure(Task):
 
     def run(self, pool):
         status = self.dispatcher.call_sync('system_dataset.status')
+        services = self.configstore.get('system.dataset.services')
+        restart = filter(
+            lambda s: self.configstore.get('service.{0}.enable'.format(s)),
+            services
+        )
+
+        logger.warning('Services to be restarted: {0}'.format(', '.join(restart)))
+
         if status['pool'] != pool:
-            move_system_dataset(self.dispatcher, self.configstore.get('system.dataset.id'), status['pool'], pool)
+            move_system_dataset(
+                self.dispatcher,
+                self.configstore.get('system.dataset.id'),
+                restart,
+                status['pool'],
+                pool
+            )
 
         self.configstore.set('system.dataset.pool', pool)
 
