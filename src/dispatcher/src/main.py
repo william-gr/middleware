@@ -787,12 +787,12 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_message(self, message, *args, **kwargs):
-        
+
         #if self.has_external_transport is True and message is None:
         #    return
         #else:
             trace_log('{0} -> {1}', self.real_client_address, unicode(message))
-            
+
             if not type(message) is str:
                 return
 
@@ -814,14 +814,14 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 return
 
             method(message["id"], message["args"])
-        
+
     def on_transport_setup(self, id, client_address):
         self.has_external_transport = True
-        trace_log('Client {0} is from now on client {1}', self.real_client_address, client_address)
+        trace_log('Client transport layer set up - client {0} is from now on client {1}', self.real_client_address, client_address)
         self.dispatcher.dispatch_event('server.client_transport_connected', {
             'old_address': self.real_client_address,
             'new_address': client_address,
-            'description': "Client {0} is from now on client {1}".format(self.real_client_address, client_address)
+            'description': "Client transport layer set up - client {0} is from now on client {1}".format(self.real_client_address, client_address)
         })
         self.real_client_address = client_address
 
