@@ -3,9 +3,9 @@
 %%PYTHON_SITELIBDIR%%/dispatcherclient.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
-%%PYTHON_SITELIBDIR%%/dispatcher/client.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client_transport.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client_transport.pyc
+%%PYTHON_SITELIBDIR%%/dispatcher/client.py
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client.pyc
@@ -17,6 +17,10 @@
 %%PYTHON_SITELIBDIR%%/dispatcher/shell.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/file.py
 %%PYTHON_SITELIBDIR%%/dispatcher/file.pyc
+%%PYTHON_SITELIBDIR%%/dispatcher/transport_catcher_base.py
+%%PYTHON_SITELIBDIR%%/dispatcher/transport_catcher_base.pyc
+%%PYTHON_SITELIBDIR%%/dispatcher/transport_ws_handler.py
+%%PYTHON_SITELIBDIR%%/dispatcher/transport_ws_handler.pyc
 lib/dispatcher/src/frontend/templates/nav.html
 lib/dispatcher/src/frontend/templates/tasks.html
 lib/dispatcher/src/frontend/templates/events.html
@@ -36,6 +40,7 @@ lib/dispatcher/src/frontend/static/jquery.jsonview.js
 lib/dispatcher/src/frontend/static/jquery.jsonview.css
 lib/dispatcher/src/frontend/static/main.css
 libexec/dispatcher/notify-pam
+libexec/dispatcher/ssh_transport_catcher
 etc/rc.d/dispatcher
 sbin/dispatcherd
 sbin/dispatcherctl
