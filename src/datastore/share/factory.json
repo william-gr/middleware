@@ -848,6 +848,7 @@
       "service.haproxy.frontend_mode": "HTTP",
       "service.haproxy.backend_mode": "HTTP",
       "service.glusterd.enable": false,
+      "service.glusterd.working_directory": "glusterd",
       "service.tftp.enable": false,
       "service.tftp.path": null,
       "service.tftp.allow_new_files": false,
@@ -1154,7 +1155,23 @@
           "file:local/gip.lsp"
         ],
         "name": "haproxy"
-      }
+      },
+      "BA5E4AE6-700F-11E5-AE5B-3B8C385E7527": {
+        "dependencies": [
+          "file:local/swift/swift.conf"
+        ],
+        "name": "swift"
+      },
+      "DF9C5217-700E-11E5-AE5B-3B8C385E7527": {
+        "dependencies": [
+          "file:local/glusterfs/glusterd.vol",
+          "file:local/glusterfs/glusterfs-logrotate",
+          "file:local/glusterfs/glusterfs-georep-logrotate",
+          "file:local/glusterfs/gluster-rsyslog-5.8.conf",
+          "file:local/glusterfs/gluster-rsyslog-7.2.conf"
+        ],
+        "name": "glusterd"
+      } 
     },
     "metadata": {
       "attributes": {
@@ -1348,12 +1365,21 @@
         "builtin": false,
         "name": "haproxy"
       },
-      "0B1057A8-8923-4B57-B138-87563E0AFE9B": {
+      "3993A3F3-7010-11E5-AE5B-3B8C385E7527": {
         "rcng": {
           "rc-scripts": "glusterd"
         },
+        "pidfile": "/var/run/glusterd.pid",
         "builtin": false,
         "name": "glusterd"
+      },
+      "66BA27F6-7010-11E5-AE5B-3B8C385E7527": {
+        "rcng": {
+          "rc-scripts": "swift"
+        },
+        "pidfile": "/var/run/swift.pid",
+        "builtin": false,
+        "name": "swift"
       },
       "EFC90340-F09F-43DC-A1AB-20467F0A148A": {
         "rcng": {
