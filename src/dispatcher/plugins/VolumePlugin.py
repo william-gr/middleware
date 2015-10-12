@@ -1007,7 +1007,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('volumes')
     plugin.register_provider('volumes', VolumeProvider)
     plugin.register_provider('volumes.snapshots', SnapshotProvider)
     plugin.register_task_handler('volume.create', VolumeCreateTask)

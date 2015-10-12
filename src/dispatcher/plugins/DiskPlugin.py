@@ -899,7 +899,6 @@ def _init(dispatcher, plugin):
         'enum': SelfTestType.__members__.keys()
     })
 
-    dispatcher.require_collection('disks', ttl_index='delete_at')
     plugin.register_provider('disks', DiskProvider)
     plugin.register_event_handler('system.device.attached', on_device_attached)
     plugin.register_event_handler('system.device.detached', on_device_detached)
