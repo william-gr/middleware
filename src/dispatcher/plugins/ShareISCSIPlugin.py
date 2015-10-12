@@ -25,13 +25,11 @@
 #
 #####################################################################
 
-import os
 import errno
-from gevent import Timeout
-from task import Task, TaskStatus, Provider, TaskException
+from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from resources import Resource
+from fnutils.query import wrap
 
 
 @description("Provides info about configured iSCSI shares")
@@ -39,6 +37,30 @@ class ISCSISharesProvider(Provider):
     @private
     @accepts(str)
     def get_connected_clients(self, share_name):
+        pass
+
+    def generate_serial(self):
+        nic = wrap(self.dispatcher.call_sync('network.interfaces.query', [('type', '=', 'ETHER')], {'single': True}))
+        laddr = nic['status.link_address'].replace(':', '')
+        idx = 0
+
+        while True:
+            serial = '{0}{1:02}'.format(laddr, idx)
+            if not self.datastore.exists('shares', ('properties.serial', '=', serial)):
+                return serial
+
+            idx += 1
+
+        raise RpcException(errno.EBUSY, 'No free serial numbers found')
+
+
+class ISCSITargetsProvider(Provider):
+    def query(self, filter=None, params=None):
+        pass
+
+
+class ISCSIAuthProvider(Provider):
+    def query(self, filter=None, params=None):
         pass
 
 
@@ -52,6 +74,10 @@ class CreateISCSIShareTask(Task):
         return ['service:iscsi']
 
     def run(self, share):
+        props = share['properties']
+        if not props.get('properties.serial'):
+            props['serial'] = self.dispatcher.call_sync('shares.iscsi.generate_serial')
+
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
         self.dispatcher.call_sync('services.ensure_started', 'iscsi')
@@ -109,6 +135,82 @@ class DeleteiSCSIShareTask(Task):
         })
 
 
+class CreateISCSITargetTask(Task):
+    def verify(self, target):
+        return ['service:iscsi']
+
+    def run(self, target):
+        id = self.datastore.insert('iscsi.targets', target)
+        self.dispatcher.dispatch_event('iscsi.target.changed', {
+            'operation': 'create',
+            'ids': [id]
+        })
+
+        return id
+
+
+class UpdateISCSITargetTask(Task):
+    def verify(self, id, updated_params):
+        if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
+
+        return ['service:iscsi']
+
+    def run(self, id, updated_params):
+        target = self.datastore.get_by_id('iscsi.targets', id)
+        target.update(updated_params)
+        self.datastore.update('iscsi.targets', id, target)
+        self.dispatcher.dispatch_event('iscsi.target.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
+
+
+class DeleteISCSITargetTask(Task):
+    def verify(self, id):
+        if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
+
+        return ['service:iscsi']
+
+    def run(self, id):
+        self.datastore.delete('iscsi.targets', id)
+        self.dispatcher.dispatch_event('iscsi.target.changed', {
+            'operation': 'delete',
+            'ids': [id]
+        })
+
+
+class CreateISCSIAuthGroupTask(Task):
+    def verify(self, auth_group):
+        return ['service:iscsi']
+
+    def run(self, auth_group):
+        pass
+
+
+class UpdateISCSIAuthGroupTask(Task):
+    def verify(self, id, updated_params):
+        if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Auth group {0} does not exist'.format(id))
+
+        return ['service:iscsi']
+
+    def run(self, id, updated_params):
+        pass
+
+
+class DeleteISCSIAuthGroupTask(Task):
+    def verify(self, id):
+        if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Auth group {0} does not exist'.format(id))
+
+        return ['service:iscsi']
+
+    def run(self, id):
+        pass
+
+
 def _metadata():
     return {
         'type': 'sharing',
@@ -127,7 +229,7 @@ def _init(dispatcher, plugin):
                 'type': 'integer',
                 'enum': [512, 1024, 2048, 4096]
             },
-            'disable_physical_block_size': {'type': 'boolean'},
+            'physical_block_size': {'type': 'boolean'},
             'available_space_threshold': {'type': 'integer'},
             'tpc': {'type': 'boolean'},
             'xen_compat': {'type': 'boolean'},
@@ -176,12 +278,16 @@ def _init(dispatcher, plugin):
         }
     })
 
-    plugin.register_schema_definition('iscsi-initiator-group', {
+    plugin.register_schema_definition('iscsi-auth-group', {
         'type': 'object',
         'additionalProperties': False,
         'properties': {
             'id': {'type': 'integer'},
             'description': {'type': 'string'},
+            'users': {
+                'type': 'array',
+                'items': {'$ref': 'iscsi-user'}
+            },
             'initiators': {
                 'type': 'array',
                 'items': {'type': 'string'}
@@ -193,8 +299,26 @@ def _init(dispatcher, plugin):
         }
     })
 
+    plugin.register_schema_definition('iscsi-user', {
+        'type': 'object',
+        'additionalProperties': False,
+        'properties': {
+            'name': {'type': 'string'},
+            'secret': {'type': 'string'},
+            'peer_name': {'type': 'string'},
+            'peer_secret': {'type': 'string'}
+        }
+    })
+
     plugin.register_task_handler("share.iscsi.create", CreateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.update", UpdateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.delete", DeleteiSCSIShareTask)
+    plugin.register_task_handler("share.iscsi.target.create", CreateISCSITargetTask)
+    plugin.register_task_handler("share.iscsi.target.update", UpdateISCSITargetTask)
+    plugin.register_task_handler("share.iscsi.target.delete", DeleteISCSITargetTask)
+    plugin.register_task_handler("share.iscsi.auth.create", CreateISCSIAuthGroupTask)
+    plugin.register_task_handler("share.iscsi.auth.update", UpdateISCSIAuthGroupTask)
+    plugin.register_task_handler("share.iscsi.auth.delete", DeleteISCSIAuthGroupTask)
+
     plugin.register_provider("shares.iscsi", ISCSISharesProvider)
     plugin.register_event_type('shares.iscsi.changed')
