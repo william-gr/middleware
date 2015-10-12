@@ -1641,5 +1641,29 @@
         },
         "data": {
         }
+    },
+    {
+        "metadata": {
+            "name": "iscsi.targets",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+        "metadata": {
+            "name": "iscsi.auth",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
     }
 ]
