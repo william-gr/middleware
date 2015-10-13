@@ -87,6 +87,7 @@ class CreateISCSIShareTask(Task):
             'tpc': False,
             'vendor_id': None,
             'device_id': None,
+            'rpm': 'SSD'
         })
 
         props['naa'] = generate_naa()
