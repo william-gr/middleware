@@ -35,8 +35,9 @@ from ws4py.exc import HandshakeError
 from dispatcher.jsonenc import dumps
 from dispatcher.client import spawn_thread
 from dispatcher.client import ClientType
-from dispatcher.transport_ws_handler import TransportWSHandler
-from dispatcher.transport_catcher_base import TransportCatcherBase, debug_log
+sys.path.append('/usr/local/lib/dispatcher/src/')
+from transport_ws_handler import TransportWSHandler
+from transport_catcher_base import TransportCatcherBase, debug_log
 
 _thread_type = ClientType.THREADED
 
