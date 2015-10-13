@@ -33,6 +33,7 @@ from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts
 from task import Task, Provider, TaskException, ValidationException
 from fnutils import exclude
 
+
 logger = logging.getLogger('ISCSIPlugin')
 
 
@@ -61,7 +62,13 @@ class ISCSIConfigureTask(Task):
             node.update(exclude(iscsi, 'portals'))
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
-            self.dispatcher.call_sync('services.reload', 'ctl')
+
+            if not node['enable']:
+                self.dispatcher.call_sync('services.ensure_stopped', 'ctl')
+            else:
+                self.dispatcher.call_sync('services.ensure_started', 'ctl')
+                self.dispatcher.call_sync('services.reload', 'ctl')
+
             self.dispatcher.dispatch_event('service.iscsi.changed', {
                 'operation': 'updated',
                 'ids': None,
