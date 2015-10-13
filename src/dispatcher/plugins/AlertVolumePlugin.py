@@ -50,7 +50,7 @@ def _init(dispatcher, plugin):
                 'severity': 'CRITICAL',
             })
 
-    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status')
+    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status', 'Volume Status')
 
     # TODO: register event handler
 
