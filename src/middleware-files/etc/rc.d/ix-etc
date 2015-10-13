@@ -12,7 +12,7 @@
 etc_start()
 {
 	/usr/local/sbin/dispatcherctl call plugin.wait_for_service '"etcd.generation"'
-	/usr/local/sbin/dispatcherctl call etcd.generation.generate_all --timeout 20
+	/usr/local/sbin/dispatcherctl call etcd.generation.generate_all --timeout 30
 	killall -ALRM sh
 }
 
