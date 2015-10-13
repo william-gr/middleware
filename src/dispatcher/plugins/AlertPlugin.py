@@ -96,7 +96,7 @@ class AlertsProvider(Provider):
     def get_registered_alerts(self):
         return registered_alerts
 
-    @accepts(str)
+    @accepts(str, str)
     def register_alert(self, name, verbose_name=None):
         if name not in registered_alerts:
             registered_alerts[name] = {
