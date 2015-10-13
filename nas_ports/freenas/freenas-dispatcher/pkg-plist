@@ -17,10 +17,6 @@
 %%PYTHON_SITELIBDIR%%/dispatcher/shell.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/file.py
 %%PYTHON_SITELIBDIR%%/dispatcher/file.pyc
-%%PYTHON_SITELIBDIR%%/dispatcher/transport_catcher_base.py
-%%PYTHON_SITELIBDIR%%/dispatcher/transport_catcher_base.pyc
-%%PYTHON_SITELIBDIR%%/dispatcher/transport_ws_handler.py
-%%PYTHON_SITELIBDIR%%/dispatcher/transport_ws_handler.pyc
 lib/dispatcher/src/frontend/templates/nav.html
 lib/dispatcher/src/frontend/templates/tasks.html
 lib/dispatcher/src/frontend/templates/events.html
