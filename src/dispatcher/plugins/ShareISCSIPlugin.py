@@ -147,12 +147,14 @@ class DeleteiSCSIShareTask(Task):
         })
 
 
+@accepts(h.ref('iscsi-target'))
 class CreateISCSITargetTask(Task):
     def verify(self, target):
         return ['service:ctl']
 
     def run(self, target):
         normalize(target, {
+            'description': None,
             'extents': []
         })
 
@@ -165,6 +167,7 @@ class CreateISCSITargetTask(Task):
         return id
 
 
+@accepts(str, h.ref('iscsi-target'))
 class UpdateISCSITargetTask(Task):
     def verify(self, id, updated_params):
         if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
@@ -182,6 +185,7 @@ class UpdateISCSITargetTask(Task):
         })
 
 
+@accepts(str)
 class DeleteISCSITargetTask(Task):
     def verify(self, id):
         if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
@@ -197,6 +201,7 @@ class DeleteISCSITargetTask(Task):
         })
 
 
+@accepts(h.ref('iscsi-auth-group'))
 class CreateISCSIAuthGroupTask(Task):
     def verify(self, auth_group):
         return ['service:ctl']
@@ -205,6 +210,7 @@ class CreateISCSIAuthGroupTask(Task):
         pass
 
 
+@accepts(str, h.href('iscsi-auth-group'))
 class UpdateISCSIAuthGroupTask(Task):
     def verify(self, id, updated_params):
         if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
@@ -216,6 +222,7 @@ class UpdateISCSIAuthGroupTask(Task):
         pass
 
 
+@accepts(str)
 class DeleteISCSIAuthGroupTask(Task):
     def verify(self, id):
         if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
