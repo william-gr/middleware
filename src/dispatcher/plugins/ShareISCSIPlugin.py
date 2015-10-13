@@ -31,6 +31,7 @@ import hashlib
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
+from fnutils import normalize
 from fnutils.query import wrap
 
 
@@ -80,15 +81,15 @@ class CreateISCSIShareTask(Task):
         if not props.get('properties.serial'):
             props['serial'] = self.dispatcher.call_sync('shares.iscsi.generate_serial')
 
-        props.setdefault('block_size', 512)
-        props.setdefault('physical_block_size', True)
-        props.setdefault('tpc', False)
-        props.setdefault('xen', False)
-        props.setdefault('rpm', 'SSD')
-        props.setdefault('vendor_id', None)
-        props.setdefault('device_id', None)
-        props['naa'] = generate_naa()
+        normalize(props, {
+            'block_size': 512,
+            'physical_block_size': True,
+            'tpc': False,
+            'vendor_id': None,
+            'device_id': None,
+        })
 
+        props['naa'] = generate_naa()
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
         self.dispatcher.call_sync('services.ensure_started', 'iscsi')
@@ -265,7 +266,14 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'extents': {
                 'type': 'array',
-                'items': {'type': 'string'},
+                'items': {
+                    'type': 'object',
+                    'additionalProperties': False,
+                    'properties': {
+                        'name': {'type': 'string'},
+                        'number': {'type': 'integer'}
+                    }
+                },
             }
         }
     })
