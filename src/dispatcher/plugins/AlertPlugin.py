@@ -25,6 +25,7 @@
 #
 #####################################################################
 import errno
+from datetime import datetime
 
 from datastore import DatastoreException
 from dispatcher.rpc import (
@@ -65,6 +66,9 @@ class AlertsProvider(Provider):
                 errno.ENOENT,
                 "Alert {0} not registered".format(alert['name'])
             )
+
+        if 'when' not in alert:
+            alert['when'] = datetime.now().isoformat()
 
         # Try to find the first matching namespace
         emitters = None
