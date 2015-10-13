@@ -74,7 +74,7 @@ class CreateISCSIShareTask(Task):
         return "Creating iSCSI share {0}".format(share['id'])
 
     def verify(self, share):
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, share):
         props = share['properties']
@@ -108,7 +108,7 @@ class UpdateISCSIShareTask(Task):
         return "Updating iSCSI share {0}".format(name)
 
     def verify(self, name, updated_fields):
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, name, updated_fields):
         share = self.datastore.get_by_id('shares', name)
@@ -131,7 +131,7 @@ class DeleteiSCSIShareTask(Task):
         return "Deleting iSCSI share {0}".format(name)
 
     def verify(self, name):
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, name):
         share = self.datastore.get_by_id('shares', name)
@@ -149,9 +149,13 @@ class DeleteiSCSIShareTask(Task):
 
 class CreateISCSITargetTask(Task):
     def verify(self, target):
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, target):
+        normalize(target, {
+            'extents': []
+        })
+
         id = self.datastore.insert('iscsi.targets', target)
         self.dispatcher.dispatch_event('iscsi.target.changed', {
             'operation': 'create',
@@ -166,7 +170,7 @@ class UpdateISCSITargetTask(Task):
         if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
             raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
 
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, id, updated_params):
         target = self.datastore.get_by_id('iscsi.targets', id)
@@ -183,7 +187,7 @@ class DeleteISCSITargetTask(Task):
         if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
             raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
 
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, id):
         self.datastore.delete('iscsi.targets', id)
@@ -195,7 +199,7 @@ class DeleteISCSITargetTask(Task):
 
 class CreateISCSIAuthGroupTask(Task):
     def verify(self, auth_group):
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, auth_group):
         pass
@@ -206,7 +210,7 @@ class UpdateISCSIAuthGroupTask(Task):
         if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
             raise VerifyException(errno.ENOENT, 'Auth group {0} does not exist'.format(id))
 
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, id, updated_params):
         pass
@@ -217,7 +221,7 @@ class DeleteISCSIAuthGroupTask(Task):
         if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
             raise VerifyException(errno.ENOENT, 'Auth group {0} does not exist'.format(id))
 
-        return ['service:iscsi']
+        return ['service:ctl']
 
     def run(self, id):
         pass
