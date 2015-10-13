@@ -33,7 +33,7 @@ from task import Task, TaskStatus, Provider, TaskException
 from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from utils import first_or_default
+from utils import first_or_default, normalize
 
 
 @description("Provides info about configured CIFS shares")
@@ -53,6 +53,18 @@ class CreateCIFSShareTask(Task):
         return ['service:cifs']
 
     def run(self, share):
+        normalize(share['properties'], {
+            'read_only': False,
+            'guest_ok': False,
+            'guest_only': False,
+            'browseable': True,
+            'recyclebin': False,
+            'show_hidden_files': False,
+            'vfs_objects': [],
+            'hosts_allow': None,
+            'hosts_deny': None
+        })
+        
         self.datastore.insert('shares', share)
 
         try:
