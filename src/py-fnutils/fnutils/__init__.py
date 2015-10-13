@@ -51,6 +51,11 @@ def extend(d, d2):
     return ret
 
 
+def normalize(d, d2):
+    for k, v in d2.items():
+        d.setdefault(k, v)
+
+
 def force_none(v):
     if not v:
         return None
