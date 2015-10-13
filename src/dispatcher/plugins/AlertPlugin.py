@@ -203,7 +203,9 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'severity': {'$ref': 'alert-severity'},
             'when': {'type': 'string'},
-        }
+        },
+        'additionalProperties': False,
+        'required': ['name', 'severity'],
     })
 
     plugin.register_schema_definition('alert-filter', {
@@ -221,7 +223,8 @@ def _init(dispatcher, plugin):
                     'enum': ['UI', 'EMAIL'],
                 },
             },
-        }
+        },
+        'additionalProperties': False,
     })
 
     dispatcher.require_collection('alerts')
