@@ -59,12 +59,12 @@ class ISCSISharesProvider(Provider):
 
 class ISCSITargetsProvider(Provider):
     def query(self, filter=None, params=None):
-        pass
+        return self.datastore.query('iscsi.targets', *(filter or []), **(params or {}))
 
 
 class ISCSIAuthProvider(Provider):
     def query(self, filter=None, params=None):
-        pass
+        return self.datastore.query('iscsi.auth', *(filter or []), **(params or {}))
 
 
 @description("Adds new iSCSI share")
