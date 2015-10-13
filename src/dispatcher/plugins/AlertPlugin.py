@@ -25,6 +25,8 @@
 #
 #####################################################################
 import errno
+import logging
+import socket
 from datetime import datetime
 
 from datastore import DatastoreException
@@ -37,6 +39,7 @@ from dispatcher.rpc import (
 )
 from task import Provider, Task, TaskException, VerifyException, query
 
+logger = logging.getLogger('AlertPlugin')
 registered_alerts = {}
 
 
@@ -91,6 +94,15 @@ class AlertsProvider(Provider):
 
         if 'UI' in emitters:
             self.datastore.insert('alerts', alert)
+
+        if 'EMAIL' in emitters:
+            try:
+                self.dispatcher.call_sync('mail.send', {
+                    'subject': '{0}: {1}'.format(socket.gethostname(), alertprops['verbose_name']),
+                    'message': '{0} - {1}'.format(alert['severity'], alert['description']),
+                })
+            except RpcException:
+                logger.error('Failed to send email alert', exc_info=True)
 
     @returns(h.array(str))
     def get_registered_alerts(self):
@@ -191,6 +203,10 @@ class AlertFilterUpdateTask(Task):
             'operation': 'update',
             'ids': [id],
         })
+
+
+def _depends():
+    return ['MailPlugin']
 
 
 def _init(dispatcher, plugin):
