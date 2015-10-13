@@ -77,8 +77,15 @@ def generate_luns(context):
 def generate_targets(context):
     result = {}
 
-    for group in context.datastore.query('iscsi.targets'):
-        pass
+    for i in context.datastore.query('iscsi.targets'):
+        target = {
+            'lun': i['extents']
+        }
+
+        if i.get('description'):
+            target['alias'] = i['description']
+
+        result[i['id']] = target
 
     return result
 
@@ -86,14 +93,29 @@ def generate_targets(context):
 def generate_auth_groups(context):
     result = {}
 
-    for group in context.datastore.query('iscsi.auth'):
-        pass
+    for i in context.datastore.query('iscsi.auth'):
+        group = {}
+
+        result[i['id']] = group
 
     return result
 
 
 def generate_portal_groups(context):
     result = {}
+
+    for i in context.datastore.query('iscsi.portals'):
+        portal = {
+            'listen': map(lambda l: '{0}:{1}'.format(l['address'], l['port']), i['listen']),
+        }
+
+        if i.get('discovery_auth_group'):
+            portal['discovery-auth-group'] = i['discovery_auth_group']
+
+        if i.get('discovery_auth_method'):
+            portal['discovery-auth-method'] = i['discovery_auth_method']
+
+        result[i['id']] = portal
 
     return result
 
