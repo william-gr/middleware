@@ -1387,14 +1387,6 @@
                 "builtin": false,
                 "name": "glusterd"
             },
-            "66BA27F6-7010-11E5-AE5B-3B8C385E7527": {
-                "rcng": {
-                    "rc-scripts": "swift"
-                },
-                "pidfile": "/var/run/swift.pid",
-                "builtin": false,
-                "name": "swift"
-            },
             "EFC90340-F09F-43DC-A1AB-20467F0A148A": {
                 "rcng": {
                     "rc-scripts": "ipfs-go"
