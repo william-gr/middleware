@@ -191,12 +191,17 @@ class AlertFilterUpdateTask(Task):
 
 def _init(dispatcher, plugin):
 
+    plugin.register_schema_definition('alert-severity', {
+        'type': 'string',
+        'enum': ['CRITICAL', 'WARNING', 'INFO'],
+    })
+
     plugin.register_schema_definition('alert', {
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
             'description': {'type': 'string'},
-            'severity': {'type': 'string'},
+            'severity': {'$ref': 'alert-severity'},
             'when': {'type': 'string'},
         }
     })
@@ -207,7 +212,7 @@ def _init(dispatcher, plugin):
             'name': {'type': 'string'},
             'severity': {
                 'type': 'array',
-                'items': {'type': 'string'},
+                'items': {'$ref': 'alert-severity'},
             },
             'emitters': {
                 'type': 'array',
