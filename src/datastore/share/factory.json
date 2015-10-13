@@ -22,7 +22,7 @@
                 "email": null,
                 "group": 922,
                 "home": "/data",
-                "full_name": "WebDAV Anonymous User",
+                "full_name": "MongoDB pseudo-user",
                 "username": "mongodb",
                 "sshpubkey": null,
                 "shell": "/usr/sbin/nologin",
