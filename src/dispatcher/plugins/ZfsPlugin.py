@@ -840,7 +840,7 @@ def _init(dispatcher, plugin):
             Resource('zfs:{0}'.format(args['ds'])),
             parents=['zpool:{0}'.format(args['pool'])])
         dispatcher.dispatch_event('zfs.pool.changed', {
-            'operation': 'create',
+            'operation': 'update',
             'ids': [guid]
         })
 

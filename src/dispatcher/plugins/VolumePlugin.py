@@ -941,7 +941,7 @@ def _init(dispatcher, plugin):
 
     def on_dataset_change(args):
         dispatcher.dispatch_event('volumes.changed', {
-            'operation': 'create',
+            'operation': 'update',
             'ids': [args['guid']]
         })
 
