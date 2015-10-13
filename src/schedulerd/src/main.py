@@ -254,7 +254,14 @@ class Context(object):
         self.client.call_sync('task.wait', tid, timeout=None)
         result = self.client.call_sync('task.status', tid)
         if result['state'] != 'FINISHED':
-            pass
+            try:
+                self.client.call_sync('alerts.emit', {
+                    'name': 'scheduler.task.failed',
+                    'severity': 'CRITICAL',
+                    'description': 'Task {0} has failed: {1}'.format(kwargs['name'], result['error']['message']),
+                })
+            except RpcException as e:
+                self.logger.error('Failed to emit alert', exc_info=True)
 
         del self.active_tasks[kwargs['id']]
         self.datastore.insert('schedulerd.runs', {
