@@ -124,6 +124,15 @@ class DevdEventSource(EventSource):
         self.register_event_type("system.network.interface.link_down")
         self.register_event_type("fs.zfs.scrub.start")
         self.register_event_type("fs.zfs.scrub.finish")
+        self.register_event_type("fs.zfs.scrub.aborted")
+        self.register_event_type("fs.zfs.resilver.started")
+        self.register_event_type("fs.zfs.resilver.finished")
+        self.register_event_type("fs.zfs.pool.created")
+        self.register_event_type("fs.zfs.pool.destroyed")
+        self.register_event_type("fs.zfs.dataset.created")
+        self.register_event_type("fs.zfs.dataset.deleted")
+        self.register_event_type("fs.zfs.dataset.renamed")
+        self.register_event_type("fs.zfs.pool.updated")
 
     def __tokenize(self, line):
         return {i.split("=")[0]: i.split("=")[1] for i in line.split()}
