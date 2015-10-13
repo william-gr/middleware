@@ -39,22 +39,16 @@ def _init(dispatcher, plugin):
 
     def volumes_status():
         for volume in dispatcher.rpc.call_sync('volumes.query'):
-
-            continue  # FIXME: pool status not implemented
-            status = dispatcher.call_task_sync(
-                'zfs.pool.status', volume['name']
-            )
-            if status['status'] != 'ONLINE':
-
-                dispatcher.rpc.call_sync('alerts.emit', {
-                    'name': 'volumes.status',
-                    'description': 'The volume {0} state is {1}'.format(
-                        volume['name'],
-                        status['status'],
-                    ),
-                    'severity': 'CRITICAL',
-                    'when': str(datetime.now()),
-                })
+            if volume['status'] == 'ONLINE':
+                continue
+            dispatcher.rpc.call_sync('alerts.emit', {
+                'name': 'volumes.status',
+                'description': 'The volume {0} state is {1}'.format(
+                    volume['name'],
+                    volume['status'],
+                ),
+                'severity': 'CRITICAL',
+            })
 
     dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status')
 
