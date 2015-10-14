@@ -40,9 +40,10 @@ from fnutils.query import wrap
 class ISCSISharesProvider(Provider):
     @private
     @accepts(str)
-    def get_connected_clients(self, share_name):
+    def get_connected_clients(self, share_name=None):
         pass
 
+    @returns(str)
     def generate_serial(self):
         nic = wrap(self.dispatcher.call_sync('network.interfaces.query', [('type', '=', 'ETHER')], {'single': True}))
         laddr = nic['status.link_address'].replace(':', '')
@@ -103,7 +104,6 @@ class CreateISCSIShareTask(Task):
         props['naa'] = generate_naa()
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
-        self.dispatcher.call_sync('services.ensure_started', 'iscsi')
         self.dispatcher.call_sync('services.reload', 'iscsi')
 
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
@@ -153,8 +153,6 @@ class DeleteiSCSIShareTask(Task):
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
         self.dispatcher.call_sync('services.reload', 'iscsi')
 
-        pass
-
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
             'operation': 'delete',
             'ids': [name]
@@ -173,6 +171,7 @@ class CreateISCSITargetTask(Task):
     def run(self, target):
         normalize(target, {
             'description': None,
+            'auth_group': 'no-authentication',
             'extents': []
         })
 
@@ -202,6 +201,8 @@ class UpdateISCSITargetTask(Task):
         target = self.datastore.get_by_id('iscsi.targets', id)
         target.update(updated_params)
         self.datastore.update('iscsi.targets', id, target)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
+        self.dispatcher.call_sync('services.reload', 'iscsi')
         self.dispatcher.dispatch_event('iscsi.target.changed', {
             'operation': 'update',
             'ids': [id]
@@ -218,21 +219,35 @@ class DeleteISCSITargetTask(Task):
 
     def run(self, id):
         self.datastore.delete('iscsi.targets', id)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
+        self.dispatcher.call_sync('services.reload', 'iscsi')
         self.dispatcher.dispatch_event('iscsi.target.changed', {
             'operation': 'delete',
             'ids': [id]
         })
 
 
-@accepts(h.ref('iscsi-auth-group'))
+@accepts(
+    h.all_of(
+        h.ref('iscsi-auth-group'),
+        h.required('name', 'type')
+    )
+)
 class CreateISCSIAuthGroupTask(Task):
     def verify(self, auth_group):
         return ['service:ctl']
 
     def run(self, auth_group):
         normalize(auth_group, {
+            'users': None,
             'initiators': None,
             'networks': None
+        })
+
+        id = self.datastore.insert('iscsi.auth', auth_group)
+        self.dispatcher.dispatch_event('iscsi.auth.changed', {
+            'operation': 'create',
+            'ids': [id]
         })
 
 
@@ -245,7 +260,15 @@ class UpdateISCSIAuthGroupTask(Task):
         return ['service:ctl']
 
     def run(self, id, updated_params):
-        pass
+        ag = self.datastore.get_by_id('iscsi.auth', id)
+        ag.update(updated_params)
+        self.datastore.update('iscsi.auth', id, ag)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
+        self.dispatcher.call_sync('services.reload', 'iscsi')
+        self.dispatcher.dispatch_event('iscsi.auth.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
 
 
 @accepts(str)
@@ -257,7 +280,13 @@ class DeleteISCSIAuthGroupTask(Task):
         return ['service:ctl']
 
     def run(self, id):
-        pass
+        self.datastore.delete('iscsi.auth', id)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
+        self.dispatcher.call_sync('services.reload', 'iscsi')
+        self.dispatcher.dispatch_event('iscsi.auth.changed', {
+            'operation': 'delete',
+            'ids': [id]
+        })
 
 
 def generate_naa():
@@ -308,6 +337,8 @@ def _init(dispatcher, plugin):
         'properties': {
             'id': {'type': 'string'},
             'description': {'type': 'string'},
+            'auth_group': {'type': 'string'},
+            'auth_type': {'type': 'string'},
             'extents': {
                 'type': 'array',
                 'items': {
@@ -351,18 +382,22 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'additionalProperties': False,
         'properties': {
-            'id': {'type': 'integer'},
+            'id': {'type': 'string'},
             'description': {'type': 'string'},
+            'type': {
+                'type': 'string',
+                'enum': ['NONE', 'DENY', 'CHAP', 'CHAP_MUTUAL']
+            },
             'users': {
-                'type': 'array',
+                'type': ['array', 'null'],
                 'items': {'$ref': 'iscsi-user'}
             },
             'initiators': {
-                'type': 'array',
+                'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
             'networks': {
-                'type': 'array',
+                'type': ['array', 'null'],
                 'items': {'type': 'string'}
             },
         }
@@ -374,8 +409,8 @@ def _init(dispatcher, plugin):
         'properties': {
             'name': {'type': 'string'},
             'secret': {'type': 'string'},
-            'peer_name': {'type': 'string'},
-            'peer_secret': {'type': 'string'}
+            'peer_name': {'type': ['string', 'null']},
+            'peer_secret': {'type': ['string', 'null']}
         }
     })
 
