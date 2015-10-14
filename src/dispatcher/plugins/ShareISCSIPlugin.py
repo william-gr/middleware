@@ -245,6 +245,8 @@ class CreateISCSIAuthGroupTask(Task):
         })
 
         id = self.datastore.insert('iscsi.auth', auth_group)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
+        self.dispatcher.call_sync('services.reload', 'iscsi')
         self.dispatcher.dispatch_event('iscsi.auth.changed', {
             'operation': 'create',
             'ids': [id]
