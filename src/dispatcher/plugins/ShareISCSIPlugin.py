@@ -408,9 +408,9 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
         'properties': {
             'name': {'type': 'string'},
-            'secret': {'type': 'string'},
+            'secret': {'type': 'string', 'minLength': 12, 'maxLength': 16},
             'peer_name': {'type': ['string', 'null']},
-            'peer_secret': {'type': ['string', 'null']}
+            'peer_secret': {'type': ['string', 'null'], 'minLength': 12, 'maxLength': 16}
         }
     })
 
