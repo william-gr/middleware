@@ -230,10 +230,13 @@ class CreateISCSIAuthGroupTask(Task):
         return ['service:ctl']
 
     def run(self, auth_group):
-        pass
+        normalize(auth_group, {
+            'initiators': None,
+            'networks': None
+        })
 
 
-@accepts(str, h.href('iscsi-auth-group'))
+@accepts(str, h.ref('iscsi-auth-group'))
 class UpdateISCSIAuthGroupTask(Task):
     def verify(self, id, updated_params):
         if not self.datastore.exists('iscsi.auth', ('id', '=', id)):
