@@ -130,8 +130,6 @@ class UpdateISCSIShareTask(Task):
         self.datastore.update('shares', name, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
 
-        pass
-
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
             'operation': 'update',
             'ids': [name]
@@ -363,7 +361,7 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'discovery_auth_metod': {
                 'type': 'string',
-                'enum': ['NONE', 'CHAP', 'MUTUAL_CHAP']
+                'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
             },
             'discovery_auth_group': {'type': ['integer', 'null']},
             'listen': {
