@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+import os
 import errno
 import uuid
 import hashlib
@@ -74,6 +75,14 @@ class CreateISCSIShareTask(Task):
         return "Creating iSCSI share {0}".format(share['id'])
 
     def verify(self, share):
+        if share['target'][0] == '/':
+            # File extent
+            if not os.path.exists(share['target']):
+                raise VerifyException(errno.ENOENT, "Extent file does not exist")
+        else:
+            if not os.path.exists(convert_share_target(share['target'])):
+                raise VerifyException(errno.ENOENT, "Extent ZVol does not exist")
+
         return ['service:ctl']
 
     def run(self, share):
@@ -90,6 +99,7 @@ class CreateISCSIShareTask(Task):
             'rpm': 'SSD'
         })
 
+        share['target'] = convert_share_target(share['target'])
         props['naa'] = generate_naa()
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'iscsi')
@@ -112,6 +122,9 @@ class UpdateISCSIShareTask(Task):
         return ['service:ctl']
 
     def run(self, name, updated_fields):
+        if 'target' in updated_fields:
+            updated_fields['target'] = convert_share_target(updated_fields['target'])
+
         share = self.datastore.get_by_id('shares', name)
         share.update(updated_fields)
         self.datastore.update('shares', name, share)
@@ -246,6 +259,13 @@ class DeleteISCSIAuthGroupTask(Task):
 
 def generate_naa():
     return '0x6589cfc000000{0}'.format(hashlib.sha256(str(uuid.uuid4())).hexdigest()[0:19])
+
+
+def convert_share_target(target):
+    if target[0] == '/':
+        return target
+
+    return os.path.join('/dev/zvol', target)
 
 
 def _metadata():
