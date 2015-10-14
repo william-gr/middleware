@@ -151,6 +151,10 @@ class DeleteiSCSIShareTask(Task):
 @accepts(h.ref('iscsi-target'))
 class CreateISCSITargetTask(Task):
     def verify(self, target):
+        for i in target['extents']:
+            if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
+                raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
+
         return ['service:ctl']
 
     def run(self, target):
@@ -173,6 +177,11 @@ class UpdateISCSITargetTask(Task):
     def verify(self, id, updated_params):
         if not self.datastore.exists('iscsi.targets', ('id', '=', id)):
             raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
+
+        if 'extents' in updated_params:
+            for i in updated_params['extents']:
+                if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
+                    raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
 
         return ['service:ctl']
 
