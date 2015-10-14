@@ -170,7 +170,10 @@ def _init(dispatcher, plugin):
             'host': {'type': 'string'},
             'share': {'type': 'string'},
             'user': {'type': ['string', 'null']},
-            'connected_at': {'type': ['string', 'null']}
+            'connected_at': {'type': ['string', 'null']},
+            'extra': {
+                'type': 'object'
+            }
         }
     })
 
