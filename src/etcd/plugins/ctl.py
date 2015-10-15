@@ -38,6 +38,12 @@ def convert_rpm(rpm):
     return str(rpm)
 
 
+def redact(config):
+    for i in config['auth-group']:
+        i['secret'] = 'REDACTED'
+        i['peer-secret'] = 'REDACTED'
+
+
 def generate_luns(context):
     result = {}
 
@@ -93,8 +99,24 @@ def generate_targets(context):
 def generate_auth_groups(context):
     result = {}
 
+    def generate_chap_user(user):
+        return {
+            'user': user['name'],
+            'secret': user['secret']
+        }
+
     for i in context.datastore.query('iscsi.auth'):
         group = {}
+
+        if i.get('users'):
+            group['chap'] = map(generate_chap_user, i['users'])
+            group['chap-mutual'] = map(generate_chap_user, i['users'])
+
+        if i.get('initiators'):
+            group['initiator-name'] = i['initiators']
+
+        if i.get('networks'):
+            group['initiator-portal'] = i['networks']
 
         result[i['id']] = group
 
@@ -130,6 +152,9 @@ def run(context):
 
     with open('/etc/ctl.conf', 'w') as f:
         json.dump(config, f, indent=4)
+
+    with open('/etc/ctl.conf.shadow', 'w') as f:
+        json.dump(redact(config), f, indent=4)
 
     context.emit_event('etcd.file_generated', {
         'name': '/etc/ctl.conf'
