@@ -105,7 +105,7 @@ class SystemInfoProvider(Provider):
     @accepts()
     @returns(h.ref('system-time'))
     def time(self):
-        boot_time = datetime.fromtimestamp(psutil.BOOT_TIME, tz=tz.tzlocal())
+        boot_time = datetime.fromtimestamp(psutil.boot_time(), tz=tz.tzlocal())
         return {
             'system_time': datetime.now(tz=tz.tzlocal()).isoformat(),
             'boot_time': boot_time.isoformat(),
