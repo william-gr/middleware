@@ -946,7 +946,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.user = token.user
         self.token = self.dispatcher.token_store.issue_token(
-            Token(user=self.user,
+            Token(
+                user=self.user,
                 lifetime=lifetime,
                 revocation_function=self.logout
             )
