@@ -97,12 +97,16 @@ class Main(object):
         logger.debug('jdata: {0}'.format(json.dumps(jdata)))
 
         try:
-            requests.post(API_ENDPOINT_PATH, json=jdata)
+            response = requests.post(API_ENDPOINT_PATH, json=jdata, headers={'Content-Type': 'application/json'})
+            if response.status_code != 200:
+                logger.warning('Cannot send report {0}: Server error code: {1}'.format(path, response.status_code))
         except BaseException, err:
             logger.warning('Cannot send report {0}: {1}'.format(path, str(err)))
 
+        os.unlink(path)
+
     def main(self):
-        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        logging.basicConfig(stream=sys.stdout)
 
         for i in os.listdir(REPORTS_PATH):
             self.send_report(os.path.join(REPORTS_PATH, i))
