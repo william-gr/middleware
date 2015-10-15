@@ -13,7 +13,10 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS Command Line Iterface
 
-RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}natural>0:${PORTSDIR}/devel/py-natural \
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}enum34>0:${PORTSDIR}/devel/py-enum34 \
+		${PYTHON_PKGNAMEPREFIX}icu>0:${PORTSDIR}/devel/py-icu \
+		${PYTHON_PKGNAMEPREFIX}natural>0:${PORTSDIR}/devel/py-natural \
+		${PYTHON_PKGNAMEPREFIX}ply>0:${PORTSDIR}/devel/py-ply \
 		${PYTHON_PKGNAMEPREFIX}tables>0:${PORTSDIR}/devel/py-tables
 
 USES=		python
