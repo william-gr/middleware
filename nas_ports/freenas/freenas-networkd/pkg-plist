@@ -1,3 +1,4 @@
-/usr/local/lib/networkd/src/main.py
-/usr/local/etc/rc.d/networkd
-/usr/local/sbin/networkd
+lib/networkd/src/main.py
+lib/networkd/src/main.pyc
+etc/rc.d/networkd
+sbin/networkd
