@@ -13,6 +13,10 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS stats collecting daemon
 
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}numpy>0:${PORTSDIR}/math/py-numpy \
+		${PYTHON_PKGNAMEPREFIX}pandas>0:${PORTSDIR}/math/py-pandas \
+		${PYTHON_PKGNAMEPREFIX}tables>0:${PORTSDIR}/devel/py-tables
+
 USES=		python
 EXTRACT_ONLY=
 
