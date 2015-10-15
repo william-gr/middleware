@@ -13,15 +13,18 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS periodic tasks daemon
 
+RUN_DEPENDS=	\
+		${PYTHON_PKGNAMEPREFIX}apscheduler>0:${PORTSDIR}/devel/py-apscheduler \
+		${PYTHON_PKGNAMEPREFIX}pytz>0:${PORTSDIR}/devel/py-pytz \
+		${PYTHON_PKGNAMEPREFIX}setproctitle>0:${PORTSDIR}/devel/py-setproctitle
+
 USES=		python
 EXTRACT_ONLY=
 
-NO_BUILD= 	yes
+NO_BUILD=	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/schedulerd
-
-USES=		python
 
 checksum fetch:
 	echo ${.TARGET} not needed because building direct
