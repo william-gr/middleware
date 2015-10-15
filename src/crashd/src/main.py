@@ -53,10 +53,19 @@ class Handler(FileSystemEventHandler):
         self.context = context
 
     def on_created(self, event):
-        name, ext = os.path.splitext(os.path.basename(event.src_path))
+        self.context.send_report(event.src_path)
+
+
+class Main(object):
+    def __init__(self):
+        self.observer = None
+        self.hostuuid = sysctl.sysctlbyname('kern.hostuuid')
+
+    def send_report(self, path):
+        name, ext = os.path.splitext(os.path.basename(path))
 
         try:
-            with open(event.src_path) as f:
+            with open(path) as f:
                 data = f.read()
         except:
             return
@@ -64,10 +73,10 @@ class Handler(FileSystemEventHandler):
         if ext == '.json':
             try:
                 jdata = json.loads(data)
-                jdata['type'] = getattr(ReportType, jdata['type'].upper())
+                jdata['type'] = int(getattr(ReportType, jdata['type'].upper()))
             except ValueError:
-                logger.warning('Cannot decode JSON from {0}'.format(event.src_path))
-                os.unlink(event.src_path)
+                logger.warning('Cannot decode JSON from {0}'.format(path))
+                os.unlink(path)
                 return
 
         elif ext == '.log':
@@ -77,27 +86,30 @@ class Handler(FileSystemEventHandler):
             }
 
         else:
-            logger.warning('Unknown file type: {0}, removing {1}'.format(ext, event.src_path))
-            os.unlink(event.src_path)
+            logger.warning('Unknown file type: {0}, removing {1}'.format(ext, path))
+            os.unlink(path)
             return
 
-        jdata['uuid'] = self.context.hostuuid
+        jdata['uuid'] = self.hostuuid
         jdata['format'] = 'json'
+
+        logger.debug('Sending report {0}...'.format(path))
+        logger.debug('jdata: {0}'.format(json.dumps(jdata)))
 
         try:
             requests.post(API_ENDPOINT_PATH, json=jdata)
-        except:
-            pass
-
-
-class Main(object):
-    def __init__(self):
-        self.observer = None
-        self.hostuuid = sysctl.sysctlbyname('kern.hostuuid')
+        except BaseException, err:
+            logger.warning('Cannot send report {0}: {1}'.format(path, str(err)))
 
     def main(self):
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+        for i in os.listdir(REPORTS_PATH):
+            self.send_report(os.path.join(REPORTS_PATH, i))
+
         self.observer = Observer()
         self.observer.schedule(Handler(self), path=REPORTS_PATH, recursive=False)
+        self.observer.start()
         self.observer.join()
 
 
