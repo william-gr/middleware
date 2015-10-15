@@ -27,6 +27,7 @@
 
 import time
 from task import Provider, query
+from auth import Token
 from dispatcher.rpc import (description, pass_sender, returns, accepts,
                             SchemaHelper as h)
 
@@ -51,17 +52,26 @@ class SessionProvider(Provider):
             # like etcd, statd and so on.
             if hasattr(conn.user, 'uid'):
                 live_user_session_ids.append(conn.session_id)
-        return self.datastore.query('sessions',
-                                    ('id',
-                                     'in',
-                                     live_user_session_ids),
-                                    **({}))
+        return self.datastore.query('sessions', ('id', 'in', live_user_session_ids))
 
-    @description("Returns the loggedin user for the current session")
+    @description("Returns the logged in user for the current session")
     @returns(str)
     @pass_sender
     def whoami(self, sender):
         return sender.user.name
+
+    @description("Returns new, valid authentication token")
+    @returns(str)
+    @pass_sender
+    def create_token(self, sender):
+        lifetime = self.configstore.get("middleware.token_lifetime")
+        return self.dispatcher.token_store.issue_token(
+            Token(
+                user=self.user,
+                lifetime=lifetime,
+                revocation_function=sender.logout
+            )
+        )
 
 
 def _init(dispatcher, plugin):
