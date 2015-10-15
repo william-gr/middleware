@@ -13,15 +13,16 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS /etc filesystem daemon
 
+RUN_DEPENDS=	\
+		${PYTHON_PKGNAMEPREFIX}mako>0:${PORTSDIR}/textproc/py-mako
+
 USES=		python
 EXTRACT_ONLY=
 
-NO_BUILD= 	yes
+NO_BUILD=	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/etcd
-
-USES=		python
 
 checksum fetch:
 	echo ${.TARGET} not needed because building direct
