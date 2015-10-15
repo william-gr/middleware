@@ -1,17 +1,14 @@
-#
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       freenas-schedulerd
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-schedulerd
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
 
-CATEGORIES=     freenas
-VALID_CATEGORIES+= freenas
+CATEGORIES=	freenas
+VALID_CATEGORIES+=	freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS periodic tasks daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS periodic tasks daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}apscheduler>0:${PORTSDIR}/devel/py-apscheduler \
@@ -27,9 +24,12 @@ ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/schedulerd
 
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 do-install:
 	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
+
+post-install:
+	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/schedulerd
 
 .include <bsd.port.mk>
