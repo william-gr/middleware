@@ -39,7 +39,9 @@ class BaseTestCase(unittest.TestCase):
             self.state = None
             self.message = None
             self.result = None
+            self.name = None
             self.ended = Event()
+            
 
     def __init__(self, methodName):
         super(BaseTestCase, self).__init__(methodName)
@@ -65,12 +67,17 @@ class BaseTestCase(unittest.TestCase):
         self.tasks_lock.acquire()
         try:
             tid = self.conn.call_sync('task.submit', name, args)
+            
         except RpcException:
             self.tasks_lock.release()
             raise
+        except Exception:
+            self.tasks_lock.release()
+            raise    
 
         self.tasks[tid] = self.TaskState()
         self.tasks[tid].tid = tid
+        self.tasks[tid].name = name
         self.tasks_lock.release()
         return tid
 
@@ -96,17 +103,34 @@ class BaseTestCase(unittest.TestCase):
         return t.result
 
     def on_event(self, name, args):
-        self.tasks_lock.acquire()
 
+        self.tasks_lock.acquire()
         if name == 'task.updated':
-            t = self.tasks[args['id']]
-            t.state = args['state']
-            if t.state in ('FINISHED', 'FAILED'):
-                t.result = args['result'] if 'result' in args else None
-                t.ended.set()
+            #DEBUG
+            #print 'ARGS IS ' + str(args)
+            #print 'TASK LIST IS ' + str(self.tasks)
+            #for pc in self.conn.pending_calls.keys():
+            #    print 'PENDING CALL METHOD ' + str(self.conn.pending_calls[pc].method) + \
+            #    ' and ID ' + str(self.conn.pending_calls[pc].id)
+
+            if args['id'] not in self.tasks.keys():
+                if args['state'] == 'EXECUTING':
+                    self.tasks_lock.release()
+                    return
+            else:           
+                t = self.tasks[args['id']]
+                t.state = args['state']
+                if t.state in ('FINISHED', 'FAILED'):
+                    t.result = args['result'] if 'result' in args else None
+                    t.ended.set()
 
         elif name == 'task.progress':
-            t = self.tasks[args['id']]
-            t.message = args['message']
-
+            if args['id'] not in self.tasks.keys():
+                if args['state'] == 'EXECUTING':
+                    self.tasks_lock.release()
+                    return
+            else:
+                t = self.tasks[args['id']]
+                t.message = args['message']
+        
         self.tasks_lock.release()

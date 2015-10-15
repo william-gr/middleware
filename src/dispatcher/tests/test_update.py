@@ -40,14 +40,13 @@ class Updater(BaseTestCase):
         check = self.conn.call_sync('update.is_update_available')
         if check:
             info = self.conn.call_sync('update.update_info')
-            print "Update info: " + str(info) 
+            #print "Update info: " + str(info)  # debug 
             self.assertIsNotNone(info)
 
     def test_obtain_opts(self): 
         check = self.conn.call_sync('update.is_update_available')
         ops = self.conn.call_sync('update.get_update_ops')
         if check:
-            print "Update ops: " + str(ops)   
             self.assertIsNotNone(ops)
 
     def test_query_current_train(self):

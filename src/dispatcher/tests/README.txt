@@ -16,6 +16,15 @@ python <name of the python test file>: python test_services.py
 To run all the test modules:
 python runtests.py
 
+To run one test module:
+
+python test_storage.py
+
+To run only one function in one module, for example:
+
+python test_storage.py VolumeTest.test_create_volume_auto_stripe
+
+
 For development: The scemas, tasks, rpc calls, etc are accessible from the GUI of the freeNAS 10 running server: 
 
 To check the tasks: http://10.5.0.160:8180/apidoc/tasks
