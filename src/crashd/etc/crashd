@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# $FreeBSD$
+#
+
+# PROVIDE: crashd
+# REQUIRE: datastore
+. /etc/rc.subr
+
+name="crashd"
+rcvar="crashd_enable"
+pidfile="/var/run/crashd.pid"
+command="/usr/sbin/daemon"
+start_precmd="prestart"
+
+prestart()
+{
+    rc_flags="-P ${pidfile} -f -r /usr/local/sbin/crashd ${rc_flags}"
+}
+
+load_rc_config $name
+run_rc_command $*

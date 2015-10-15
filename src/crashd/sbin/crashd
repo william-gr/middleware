@@ -1,0 +1,3 @@
+#!/bin/sh
+LIBDIR=/usr/local/lib/crashd/src
+exec /usr/local/bin/python2.7 $LIBDIR/main.py $* < /dev/null > /var/log/crashd.log 2>&1
