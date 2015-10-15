@@ -8,7 +8,6 @@ LoadPlugin aggregation
 LoadPlugin cpu
 LoadPlugin df
 LoadPlugin disk
-LoadPlugin geom_stat
 LoadPlugin interface
 LoadPlugin load
 LoadPlugin memory
@@ -58,10 +57,6 @@ LoadPlugin write_graphite
 </Plugin>
 
 <Plugin "zfs_arc">
-</Plugin>
-
-<Plugin "geom_stat">
-        Filter "^([a]?da|ciss|md|mfi|md|xbd|vtbd)[0123456789]+(p[0123456789]+)?(\.eli)?$"
 </Plugin>
 
 <Plugin "df">
