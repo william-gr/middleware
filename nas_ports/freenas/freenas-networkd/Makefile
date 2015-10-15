@@ -13,10 +13,13 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS network configuration daemon
 
+RUN_DEPENDS=	\
+		${PYTHON_PKGNAMEPREFIX}ipaddress>0:${PORTSDIR}/net/py-ipaddress
+
 USES=		python
 EXTRACT_ONLY=
 
-NO_BUILD= 	yes
+NO_BUILD=	yes
 MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/networkd
