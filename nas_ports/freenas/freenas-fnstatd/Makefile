@@ -1,13 +1,13 @@
 # $FreeBSD$
 
-PORTNAME=       freenas-fnstatd
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-fnstatd
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
-CATEGORIES=     freenas
-VALID_CATEGORIES+= freenas
+CATEGORIES=	freenas
+VALID_CATEGORIES+=	freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS stats collecting daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS stats collecting daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil \
@@ -30,5 +30,12 @@ checksum fetch:
 
 do-install:
 	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
+
+post-install:
+	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/fnstatd
+	(cd ${STAGEDIR}${PREFIX}/lib/fnstatd; ${FIND} -E . -type f -regex ".*.pyc?" \
+		| ${SED} -e 's,^\./,,g' \
+		| ${AWK} '{print length, $$0}' | ${SORT} -rn \
+		| ${AWK} '{print "lib/fnstatd/"$$2 }' >> ${TMPPLIST})
 
 .include <bsd.port.mk>
