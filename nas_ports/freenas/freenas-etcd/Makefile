@@ -30,4 +30,11 @@ checksum fetch:
 do-install:
 	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
 
+post-install:
+	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/etcd
+	(cd ${STAGEDIR}${PREFIX}/lib/etcd; ${FIND} -E . -type f -regex ".*.pyc?" \
+		| ${SED} -e 's,^\./,,g' \
+		| ${AWK} '{print length, $$0}' | ${SORT} -rn \
+		| ${AWK} '{print "lib/etcd/"$$2 }' >> ${TMPPLIST})
+
 .include <bsd.port.mk>
