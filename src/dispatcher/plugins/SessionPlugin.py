@@ -67,7 +67,7 @@ class SessionProvider(Provider):
         lifetime = self.configstore.get("middleware.token_lifetime")
         return self.dispatcher.token_store.issue_token(
             Token(
-                user=self.user,
+                user=sender.user.name,
                 lifetime=lifetime,
                 revocation_function=sender.logout
             )
