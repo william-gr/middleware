@@ -33,6 +33,8 @@ import enum
 import logging
 import datetime
 import requests
+import time
+from threading import RLock
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from bsd import sysctl
@@ -40,6 +42,7 @@ from bsd import sysctl
 
 REPORTS_PATH = '/var/tmp/crash'
 API_ENDPOINT_PATH = 'https://ext-data.ixsystems.com/wormhole/api/v1/errors/add/index.php'
+RETRY_TIMEOUT = 300
 logger = logging.getLogger('crashd')
 
 
@@ -53,12 +56,14 @@ class Handler(FileSystemEventHandler):
         self.context = context
 
     def on_created(self, event):
-        self.context.send_report(event.src_path)
+        with self.context.lock:
+            self.context.send_report(event.src_path)
 
 
 class Main(object):
     def __init__(self):
         self.observer = None
+        self.lock = RLock()
         self.hostuuid = sysctl.sysctlbyname('kern.hostuuid')
 
     def send_report(self, path):
@@ -100,21 +105,26 @@ class Main(object):
             response = requests.post(API_ENDPOINT_PATH, json=jdata, headers={'Content-Type': 'application/json'})
             if response.status_code != 200:
                 logger.warning('Cannot send report {0}: Server error code: {1}'.format(path, response.status_code))
+                return
         except BaseException, err:
             logger.warning('Cannot send report {0}: {1}'.format(path, str(err)))
+            return
 
         os.unlink(path)
 
     def main(self):
         logging.basicConfig(stream=sys.stdout)
 
-        for i in os.listdir(REPORTS_PATH):
-            self.send_report(os.path.join(REPORTS_PATH, i))
-
         self.observer = Observer()
         self.observer.schedule(Handler(self), path=REPORTS_PATH, recursive=False)
         self.observer.start()
-        self.observer.join()
+
+        while True:
+            for i in os.listdir(REPORTS_PATH):
+                with self.lock:
+                    self.send_report(os.path.join(REPORTS_PATH, i))
+
+            time.sleep(RETRY_TIMEOUT)
 
 
 if __name__ == '__main__':
