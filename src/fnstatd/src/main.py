@@ -1,5 +1,5 @@
 #!/usr/local/bin/python2.7
-#+
+#
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
@@ -29,14 +29,12 @@
 
 import os
 import sys
-import time
 import math
 import errno
 import argparse
 import json
 import logging
 import setproctitle
-import numpy
 import dateutil.parser
 import dateutil.tz
 import tables
@@ -49,7 +47,7 @@ import gevent
 import gevent.monkey
 import gevent.socket
 from gevent.server import StreamServer
-from dispatcher.client import Client, ClientError, ClientType, _thread_type
+from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
@@ -80,7 +78,7 @@ def to_timedelta(time_val):
 
 
 def round_timestamp(timestamp, frequency):
-    return int(frequency * round(float(timestamp)/frequency))
+    return int(frequency * round(float(timestamp) / frequency))
 
 
 def parse_datetime(s):
