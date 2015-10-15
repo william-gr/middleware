@@ -1,0 +1,4 @@
+lib/crashd/src/main.py
+lib/crashd/src/main.pyc
+etc/rc.d/crashd
+bin/crashd
