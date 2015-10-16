@@ -168,7 +168,7 @@ class DataSource(object):
             value = None
 
         if value is not None and self.last_value is not None:
-            change = self.last_value
+            change = value - self.last_value
 
         self.context.client.emit_event('statd.{0}.pulse'.format(self.name), {
             'value': value,
