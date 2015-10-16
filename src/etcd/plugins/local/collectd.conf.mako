@@ -13,7 +13,6 @@ LoadPlugin load
 LoadPlugin memory
 LoadPlugin network
 LoadPlugin processes
-LoadPlugin rrdtool
 LoadPlugin swap
 LoadPlugin uptime
 LoadPlugin syslog
@@ -48,12 +47,6 @@ LoadPlugin write_graphite
     Disk "/^md/"
     Disk "/^pass/"
     IgnoreSelected true
-</Plugin>
-
-<Plugin "rrdtool">
-    DataDir "/var/db/system/rrd"
-    CacheTimeout 120
-    CacheFlush 900
 </Plugin>
 
 <Plugin "zfs_arc">
