@@ -692,7 +692,7 @@ class Dispatcher(object):
                 return
 
         report = {
-            'timestmp': str(datetime.datetime.now()),
+            'timestamp': str(datetime.datetime.now()),
             'type': 'exception',
             'application': 'dispatcher',
             'message': message,
