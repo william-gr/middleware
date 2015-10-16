@@ -27,11 +27,14 @@
 
 import os
 import errno
-from gevent import Timeout
+import logging
 from task import Task, TaskStatus, Provider, TaskException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from resources import Resource
+
+
+logger = logging.getLogger(__name__)
 
 
 @description("Provides info about configured NFS shares")
@@ -231,6 +234,13 @@ def _init(dispatcher, plugin):
 
     for share in dispatcher.datastore.query('shares', ('type', '=', 'nfs')):
         dataset = dataset_for_mountpoint(dispatcher, share['target'])
+        if not dataset:
+            logger.warning('Invalid share: {0} pointing to {1}, target dataset doesn\'t exist'.format(
+                share['id'],
+                share['target']
+            ))
+            continue
+            
         dispatcher.call_task_sync('zfs.configure', dataset['pool'], dataset['name'], {
             'sharenfs': {'value': opts(share)}
         })
