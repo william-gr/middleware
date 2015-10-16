@@ -351,7 +351,6 @@ class Main(object):
                 self.client.connect('127.0.0.1')
                 self.client.login_service('statd')
                 self.client.enable_server()
-                self.client.enable_server()
                 self.client.register_service('statd.output', OutputService(self))
                 self.client.resume_service('statd.output')
                 return
