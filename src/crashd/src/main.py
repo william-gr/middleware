@@ -114,6 +114,7 @@ class Main(object):
 
     def main(self):
         logging.basicConfig(stream=sys.stdout)
+        logger.info('Started')
 
         self.observer = Observer()
         self.observer.schedule(Handler(self), path=REPORTS_PATH, recursive=False)
