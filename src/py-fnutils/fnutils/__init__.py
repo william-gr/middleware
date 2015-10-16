@@ -30,6 +30,9 @@ import logging.handlers
 import copy
 
 
+LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
+
+
 def first_or_default(f, iterable, default=None):
     i = filter(f, iterable)
     if i:
@@ -84,6 +87,19 @@ def materialized_paths_to_tree(lst, separator='.'):
         add(result, path)
 
     return result
+
+
+def configure_logging(path, level):
+    logging.basicConfig(
+        level=logging.getLevelName(level),
+        format=LOGGING_FORMAT,
+    )
+
+    if path:
+        handler = FaultTolerantLogHandler(path)
+        handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
+        logging.root.removeHandler(logging.root.handlers[0])
+        logging.root.addHandler(handler)
 
 
 class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):

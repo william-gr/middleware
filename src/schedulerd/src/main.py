@@ -40,7 +40,7 @@ from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.rpc import RpcService, RpcException, private
 from dispatcher.client import Client, ClientError
-from fnutils import exclude
+from fnutils import exclude, configure_logging
 from fnutils.query import wrap
 
 
@@ -289,7 +289,7 @@ class Context(object):
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         parser.add_argument('-f', action='store_true', default=False, help='Run in foreground')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/schedulerd.log', 'DEBUG')
         setproctitle.setproctitle('schedulerd')
         self.parse_config(args.c)
         self.init_datastore()

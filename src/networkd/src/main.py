@@ -45,6 +45,7 @@ from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from fnutils.query import wrap
+from fnutils import configure_logging
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -703,7 +704,7 @@ class Main:
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/networkd.log', 'DEBUG')
         setproctitle.setproctitle('networkd')
         self.parse_config(args.c)
         self.init_datastore()

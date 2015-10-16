@@ -51,6 +51,7 @@ from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
+from fnutils import configure_logging
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -381,7 +382,7 @@ class Main(object):
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/fnstatd.log', 'DEBUG')
         setproctitle.setproctitle('fnstatd')
 
         # Signal handlers

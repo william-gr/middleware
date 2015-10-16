@@ -41,6 +41,7 @@ import renderers
 from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
+from fnutils import configure_logging
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -235,10 +236,8 @@ class Main:
         parser.add_argument('-f', action='store_true', default=False, help='Run in foreground')
         parser.add_argument('mountpoint', metavar='MOUNTPOINT', default='/etc', help='/etc mount point')
         args = parser.parse_args()
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format='%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s',
-        )
+        configure_logging('/var/log/etcd.log', 'DEBUG')
+
         setproctitle.setproctitle('etcd')
         self.root = args.mountpoint
         self.parse_config(args.c)
