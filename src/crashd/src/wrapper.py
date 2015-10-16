@@ -34,6 +34,7 @@ import io
 import datetime
 import tempfile
 import subprocess
+import setproctitle
 
 
 def main():
@@ -41,6 +42,7 @@ def main():
         print("Usage: crash-wrapper <path to executable> [args...]", file=sys.stderr)
         exit(1)
 
+    setproctitle.setproctitle('crash-wrapper')
     name = os.path.basename(sys.argv[1])
     null = open('/dev/null', 'r')
     log = open('/var/tmp/{0}.{1}.log'.format(name, os.getpid()), 'a+')
