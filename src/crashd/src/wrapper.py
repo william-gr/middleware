@@ -69,3 +69,7 @@ def main():
     null.close()
     log.close()
     return proc.returncode
+
+
+if __name__ == '__main__':
+    main()
