@@ -254,6 +254,10 @@ class Plugin(object):
 
         self.state = self.UNLOADED
 
+    def reload(self):
+        self.unload()
+        self.load(self.dispatcher)
+
 
 class EventType(object):
     def __init__(self, name, source=None, schema=None):
@@ -1388,6 +1392,7 @@ def run(d, args):
     gevent.signal(signal.SIGQUIT, d.die)
     gevent.signal(signal.SIGTERM, d.die)
     gevent.signal(signal.SIGINT, d.die)
+    gevent.signal(signal.SIGHUP, d.reload_plugins)
 
     # WebSockets server
     kwargs = {}
