@@ -44,7 +44,7 @@ from bsd import sysctl
 LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
 REPORTS_PATH = '/var/tmp/crash'
 API_ENDPOINT_PATH = 'https://ext-data.ixsystems.com/wormhole/api/v1/errors/add/index.php'
-RETRY_TIMEOUT = 300
+RETRY_INTERVAL = 1800
 logger = logging.getLogger('crashd')
 
 
@@ -128,7 +128,7 @@ class Main(object):
                 with self.lock:
                     self.send_report(os.path.join(REPORTS_PATH, i))
 
-            time.sleep(RETRY_TIMEOUT)
+            time.sleep(RETRY_INTERVAL)
 
 
 if __name__ == '__main__':
