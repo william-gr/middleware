@@ -190,7 +190,7 @@ class DataSource(object):
         buckets = list(self.config.get_covered_buckets(start, end))
         df = pd.DataFrame()
 
-        for b in buckets:
+        for b in reversed(buckets):
             new = self.bucket_buffers[b.index].df
             if new is not None:
                 df = pd.concat((df, new))
