@@ -34,6 +34,7 @@ etcd_flags="-c /usr/local/etc/middleware.conf /etc"
 networkd_enable="YES"
 fnstatd_enable="YES"
 schedulerd_enable="YES"
+crashd_enable="YES"
 syslogd_enable="NO"
 syslog_ng_enable="YES"
 # turbo boost
