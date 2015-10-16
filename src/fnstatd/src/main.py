@@ -317,7 +317,7 @@ class Main(object):
         # just a hack (since that directory's data will not persist)
         # Please remove this when system-dataset plugin is added back in
         try:
-            directory = self.client.call_sync('system-dataset.request_directory', 'statd')
+            directory = self.client.call_sync('system_dataset.request_directory', 'statd')
         except RpcException:
             directory = '/var/tmp/statd'
             if not os.path.exists(directory):
