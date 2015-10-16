@@ -40,6 +40,7 @@ from watchdog.events import FileSystemEventHandler
 from bsd import sysctl
 
 
+LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
 REPORTS_PATH = '/var/tmp/crash'
 API_ENDPOINT_PATH = 'https://ext-data.ixsystems.com/wormhole/api/v1/errors/add/index.php'
 RETRY_TIMEOUT = 300
@@ -98,7 +99,7 @@ class Main(object):
         jdata['uuid'] = self.hostuuid
         jdata['format'] = 'json'
 
-        logger.debug('Sending report {0}...'.format(path))
+        logger.info('Sending report {0}...'.format(path))
         logger.debug('jdata: {0}'.format(json.dumps(jdata)))
 
         try:
@@ -113,7 +114,7 @@ class Main(object):
         os.unlink(path)
 
     def main(self):
-        logging.basicConfig(stream=sys.stdout)
+        logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
         logger.info('Started')
 
         self.observer = Observer()
