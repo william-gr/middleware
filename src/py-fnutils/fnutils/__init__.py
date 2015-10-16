@@ -25,7 +25,8 @@
 #
 #####################################################################
 
-
+import logging
+import logging.handlers
 import copy
 
 
@@ -83,3 +84,11 @@ def materialized_paths_to_tree(lst, separator='.'):
         add(result, path)
 
     return result
+
+
+class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):
+    def emit(self, record):
+        try:
+            logging.handlers.WatchedFileHandler.emit(self, record)
+        except IOError:
+            pass

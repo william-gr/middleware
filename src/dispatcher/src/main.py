@@ -71,6 +71,7 @@ from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
 from auth import PasswordAuthenticator, TokenStore, Token, TokenException
+from fnutils import FaultTolerantLogHandler
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -90,14 +91,6 @@ def trace_log(message, *args):
 
         print(message.format(*args), file=trace_log_file)
         trace_log_file.flush()
-
-
-class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):
-    def emit(self, record):
-        try:
-            logging.handlers.WatchedFileHandler.emit(self, record)
-        except IOError:
-            pass
 
 
 class Plugin(object):
