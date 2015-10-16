@@ -303,8 +303,10 @@ class ServicesTest(BaseTestCase):
         sname = str(inspect.stack()[0][3].split('_')[-1])
         
         if not self.isRunning(sname):
-            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start')) 
-        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))    
+            tid = self.submitTask('service.manage', sname, 'start')
+            self.assertTaskCompletion(tid) 
+        tid = self.submitTask('service.manage', sname, 'restart')    
+        self.assertTaskCompletion(tid)    
 
     def atest_configure_webdav(self):
         '''
@@ -312,11 +314,20 @@ class ServicesTest(BaseTestCase):
         '''
         sname = inspect.stack()[0][3].split('_')[-1]
         if not self.isRunning(sname):
-            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
-        self.assertTaskCompletion(self.submitTask('service.configure', sname, \
-            {"port": 80})) 
+            tid = self.submitTask('service.manage', sname, 'start')
+            self.assertTaskCompletion(tid)
+        tid = self.submitTask('service.configure', sname, {"port": 80})    
+        self.assertTaskCompletion(tid) 
 
-
+## ISCI
+    def test_service_iscsi_get_config(self):
+        '''
+        Configure service
+        '''
+        config = self.conn.call_sync('service.iscsi.get_config')
+        self.assertIsInstance(config, dict)
+        
+    
 ######## HELPERS
     def isRunning(self, sname):
         service = self.conn.call_sync('services.query', [('name', '=', str(sname))], {'single': True})
