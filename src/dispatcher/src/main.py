@@ -902,6 +902,25 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.dispatcher.dispatch_event(data['name'], data['args'])
 
+    def on_events_event_burst(self, id, data):
+        if self.user is None:
+            return
+
+        # Keep session alive
+        if self.token:
+            try:
+                self.dispatcher.token_store.keepalive_token(self.token)
+            except TokenException:
+                # Token expired, logout user
+                self.logout('Logged out due to inactivity period')
+                return
+
+        if 'events' not in data['args']:
+            return
+
+        for i in data['args']['events']:
+            self.dispatcher.dispatch_event(i['name'], i['args'])
+
     def on_rpc_auth_service(self, id, data):
         service_name = data['name']
 
