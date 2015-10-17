@@ -29,6 +29,7 @@
 
 import os
 import sys
+import re
 import math
 import errno
 import argparse
@@ -141,6 +142,7 @@ class DataSource(object):
         self.primary_buffer = self.bucket_buffers[0]
         self.primary_interval = self.config.buckets[0].interval
         self.last_value = 0
+        self.events_enabled = False
 
         self.logger.debug('Created')
 
@@ -171,7 +173,7 @@ class DataSource(object):
         if value is not None and self.last_value is not None:
             change = value - self.last_value
 
-        if value is not None:
+        if value is not None and self.events_enabled:
             self.context.client.emit_event('statd.{0}.pulse'.format(self.name), {
                 'value': value,
                 'change': change,
@@ -236,10 +238,30 @@ class OutputService(RpcService):
         self.context = context
 
     def enable(self, event):
-        pass
+        m = re.match('^statd\.(.*)\.pulse$', event)
+        if not m:
+            return
+
+        ds_name = m.group(1)
+        ds = self.context.data_sources.get(ds_name)
+        if not ds:
+            return
+
+        self.context.logger.debug('Enabling event {0}'.format(event))
+        ds.events_enabled = True
 
     def disable(self, event):
-        pass
+        m = re.match('^statd\.(.*)\.pulse$', event)
+        if not m:
+            return
+
+        ds_name = m.group(1)
+        ds = self.context.data_sources.get(ds_name)
+        if not ds:
+            return
+
+        self.context.logger.debug('Disabling event {0}'.format(event))
+        ds.events_enabled = False
 
     def get_data_sources(self):
         return self.context.data_sources.keys()
@@ -342,6 +364,7 @@ class Main(object):
             config = DataSourceConfig(self.datastore, name)
             ds = DataSource(self, name, config)
             self.data_sources[name] = ds
+            self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(name))
 
         return self.data_sources[name]
 
@@ -353,6 +376,9 @@ class Main(object):
                 self.client.enable_server()
                 self.client.register_service('statd.output', OutputService(self))
                 self.client.resume_service('statd.output')
+                for i in self.data_sources.keys():
+                    self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
+
                 return
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
