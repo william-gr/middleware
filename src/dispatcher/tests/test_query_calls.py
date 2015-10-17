@@ -32,7 +32,14 @@ import sys
 from dispatcher.rpc import RpcException
 from shared import BaseTestCase
 
+__doc__ = """  This group is tests are to verify that
+the query return values are sane, 
+but are good for debug purposes, 
+just pass -v option to print the return values, example:
 
+    python test_query.py -v QueryTest.test_query_volumes
+
+"""
 
 class QueryTest(BaseTestCase):
     def tearDown(self):
@@ -67,7 +74,52 @@ class QueryTest(BaseTestCase):
         disks = self.conn.call_sync('volumes.get_disks_allocation')
         pretty_print(disks)  
         disks = self.conn.call_sync('volumes.find_media')
-        pretty_print(disks)   
+        pretty_print(disks) 
+
+    def test_scheduler_management_query(self):
+        res = self.conn.call_sync('scheduler.management.query')
+        pretty_print(res)
+        self.assertIsInstance(res, list) 
+
+    def test_system_advanced_get_config(self):
+        res = self.conn.call_sync('system.advanced.get_config')
+        pretty_print(res)
+        self.assertIsInstance(res, dict)
+
+    def test_system_ui_get_config(self):
+        res = self.conn.call_sync('system.ui.get_config')
+        pretty_print(res)
+        self.assertIsInstance(res, dict)    
+
+    def test_networkd_configuration_query_interfaces(self):
+        res = self.conn.call_sync('networkd.configuration.query_interfaces')
+        pretty_print(res)
+        self.assertIsInstance(res, dict)    
+
+    def test_service_ssh_get_config(self):
+        res = self.conn.call_sync('service.ssh.get_config')
+        pretty_print(res)
+        self.assertIsInstance(res, dict) 
+
+    def test_service_ttfp_get_config(self):
+        res = self.conn.call_sync('service.tftp.get_config')
+        pretty_print(res)
+        self.assertIsInstance(res, dict) 
+
+    def test_service_smartd_get_config(self):
+        '''
+        note: the 'enable' is always True
+        in return value, it does not 
+        actually show if the service is running
+        or not. It suppose to always run,
+        unless stopped by user for cli for example:
+         "service smartd stop" 
+        '''
+        res = self.conn.call_sync('service.smartd.get_config')
+        pretty_print(res)
+        self.assertIsInstance(res, dict) 
+        self.assertTrue(res['enable'])
+
 
 # HELPER
 def pretty_print(res):

@@ -35,18 +35,18 @@ class TestSystem(BaseTestCase):
         # set timeout value to original
         super(TestSystem, self).tearDown()
 
-    def test_get_config_general(self):
+    def test_system_general_get_config(self):
         info = self.conn.call_sync('system.general.get_config')
         #print info 
         self.assertIsInstance(info, dict)
         self.assertGreater(len(info), 0)
 
-    def test_query_system_general_timezones(self):
+    def test_system_general_timezones_query(self):
         info = self.conn.call_sync('system.general.timezones')
         self.assertIsInstance(info, list)
         self.assertGreater(len(info), 0)
     
-    def test_query_system_general_keymaps(self):
+    def test_system_general_keymaps_query(self):
         info = self.conn.call_sync('system.general.keymaps')
         self.assertIsInstance(info, list)
         self.assertGreater(len(info), 0)
@@ -58,42 +58,41 @@ class TestSystem(BaseTestCase):
         self.assertGreater(len(info), 0)
         #print info
 
-    def test_query_system_advanced_get_config(self):
+    def test_advanced_get_config_query(self):
         info = self.conn.call_sync('system.advanced.get_config')
         #print info 
         self.assertIsInstance(info, dict)
         self.assertGreater(len(info), 0)
     
-    def test_query_system_advanced_serial_ports(self):
+    def test_system_advanced_serial_ports_query(self):
         info = self.conn.call_sync('system.advanced.serial_ports')
-        #print info 
         self.assertIsInstance(info, list)
     
-    def test_query_system_info_hardware(self):
+    def test_system_info_hardware_query(self):
         info = self.conn.call_sync('system.info.hardware')
         #print info    # debug
         self.assertIsInstance(info, dict)
         self.assertGreater(len(info), 0)
 
-    def test_query_system_info_load_avg(self):
+    def test_system_info_load_avg_query(self):
         info = self.conn.call_sync('system.info.load_avg')
         #print info    # debug
         self.assertIsInstance(info, list)
         self.assertEqual(len(info), 3)
 
-    def test_query_system_info_time(self):
+    def test_system_info_time_query(self):
         info = self.conn.call_sync('system.info.time')
         #print info    # debug
         self.assertIsInstance(info, dict)
         self.assertGreater(len(info), 0)        
 
-    def test_query_system_info_version(self):
+    def test_system_info_version_query(self):
         info = self.conn.call_sync('system.info.version')
         #print info    # debug
         self.assertIsInstance(info, unicode)
         self.assertGreater(len(info), 0)    
         
-    def test_query_system_info_uname_full(self):
+    def test_system_info_uname_full_query(self):
         info = self.conn.call_sync('system.info.uname_full')
         self.assertIsInstance(info, list)
         self.assertGreater(len(info), 0)

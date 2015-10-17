@@ -26,6 +26,8 @@
 ######################################################################
 
 import os
+import sys
+import json
 import unittest
 from threading import Event, Lock
 from dispatcher.rpc import RpcException
@@ -98,6 +100,9 @@ class BaseTestCase(unittest.TestCase):
     def assertSeenEvent(self, name, func=None):
         pass
 
+    def skip(self, reason):
+        raise unittest.SkipTest(str(reason))      
+
     def getTaskResult(self, tid):
         t = self.tasks[tid]
         return t.result
@@ -134,3 +139,8 @@ class BaseTestCase(unittest.TestCase):
                 t.message = args['message']
         
         self.tasks_lock.release()
+
+    def pretty_print(self, res):
+        if '-v' in sys.argv:
+            print json.dumps(res, indent=4, sort_keys=True)
+

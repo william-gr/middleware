@@ -34,7 +34,6 @@ import os
 class VolumeTest(BaseTestCase):
     def setUp(self):
         super(VolumeTest, self).setUp()
-        
         self.task_timeout = 100
 
     def tearDown(self):
@@ -46,8 +45,7 @@ class VolumeTest(BaseTestCase):
     def test_query_volumes(self):
         volumes = self.conn.call_sync('volumes.query', [])
         self.assertIsInstance(volumes, list)
-        for v in volumes:
-            print v['name']
+        self.pretty_print(volumes)
 
     def test_create_volume_auto_stripe(self):
         '''
@@ -59,17 +57,16 @@ class VolumeTest(BaseTestCase):
         if len(v):
             tid = self.submitTask('volume.destroy', volname)
             self.assertTaskCompletion(tid)
-
-        exported =  self.conn.call_sync('volumes.find', [('name', '=', volname)])    
-        print exported
-
+        # try to reuse exported volume if the newly created fails?
+        exported =  self.conn.call_sync('volumes.find')    
+        
         available = self.conn.call_sync('volumes.get_available_disks')    
         if available:
             tid = self.submitTask('volume.create_auto', volname, 'zfs', available[:1])
             
             self.assertTaskCompletion(tid)
         else:
-            print "No disks are available for creating volume, test will not run"  
+            raise unittest.SkipTest("No disks are available for creating volume, test did not run")  
 
         
     def test_create_volume_auto_available_disks(self):
@@ -81,11 +78,12 @@ class VolumeTest(BaseTestCase):
         
         available = self.conn.call_sync('volumes.get_available_disks')
         if not available:
-            print "No disks are available for creating volume, test will not run"
+            raise unittest.SkipTest("No disks are available for creating volume, test did not run")
         else:
             tid = self.submitTask('volume.create_auto', volname, 'zfs', available)
             self.assertTaskCompletion(tid)
 
+    
     def test_create_stripe(self):
         volname = "TestVolume"
         v =  self.conn.call_sync('volumes.query', [('name', '=', volname)])
@@ -103,8 +101,11 @@ class VolumeTest(BaseTestCase):
             }
             tid = self.submitTask('volume.create', payload)
             self.assertTaskCompletion(tid)
+            #  get_dataset_path( string volname, string dsname )
+            # if volume is created, so is dataset?
+            #v =  self.conn.call_sync('volumes.get_dataset_path', [('name', '=', volname)])
         else:
-            print "No disks are available for creating volume, test will not run"     
+            raise unittest.SkipTest("No disks are available for creating volume, test did not run")       
                 
 
     def test_create_mirror(self):
@@ -115,7 +116,7 @@ class VolumeTest(BaseTestCase):
             self.assertTaskCompletion(tid)
         
         available = self.conn.call_sync('volumes.get_available_disks')
-        print available
+        
         if len(available) >= 2:   
             vdevs =  [
             {'type': 'disk', 'path': str(available[0])}, 
@@ -128,7 +129,7 @@ class VolumeTest(BaseTestCase):
             tid = self.submitTask('volume.create', payload)
             self.assertTaskCompletion(tid)
         else:
-            print "No disks are available for creating volume, test will not run"     
+            raise unittest.SkipTest("No disks are available for creating volume, test did not run")     
 
 
     def test_create_RAIDZ(self):
@@ -140,7 +141,7 @@ class VolumeTest(BaseTestCase):
         available = self.conn.call_sync('volumes.get_available_disks')
 
         if len(available) < 3:
-            print "No disks are available for creating volume, test will not run"     
+            raise unittest.SkipTest("No disks are available for creating volume, test did not run")   
             
         else:    
             vdevs =  [{'type': 'disk', 'path': str(available[0])}, 
@@ -152,26 +153,37 @@ class VolumeTest(BaseTestCase):
                 "topology": {'data': vdevs},                    
             }
             tid = self.submitTask('volume.create', payload)
-            self.assertTaskCompletion(tid)        
-        
+            self.assertTaskCompletion(tid)
+            disks =  self.conn.call_sync('volumes.get_volume_disks', volname)
+            self.assertEqual(disks, available[:3])
 
     def get_all_disks(self):
+        # TODO: verify return values
+        '''
+        '''
         disks = self.conn.call_sync('disks.query')
         for disk in disks:
             for d in disk.keys():
                 print str(d) + ':  ' + str(disk[d])
 
+    def atest_get_volume_disks(self):
+        pass
+
+
     def get_available_disks(self):
         disks = self.conn.call_sync('volumes.get_available_disks')
         return disks   
 
-    def find_volume(self):
-        available = self.conn.call_sync('volumes.find')
-        return available             
+    def test_volumes_find(self):
+        found = self.conn.call_sync('volumes.find')
+        
+        self.assertIsInstance(found, list)
+        if len(found):
+            self.assertIsInstance(found[0], dict)            
         
     def atest_get_disk_path(self, disk):
         disks = self.conn.call_sync('volumes.get_disks_allocation')
-        print disks  
+        self.pretty_print(disks)  
     
 
     def atest_detach_reimport_all_volumes(self):
@@ -188,8 +200,9 @@ class VolumeTest(BaseTestCase):
             imported =  self.conn.call_sync('volumes.query', [('name', '=', v['name'])])    
                     
 
-    def atest_create_manual_snapshot(self):
-        pass    
+    def test_create_manual_snapshot(self):
+        snapshots = self.conn.call_sync('volumes.snapshots.query')
+           
 
     def atest_import_disk(self):
         pass
@@ -199,6 +212,8 @@ class DatasetTest(BaseTestCase):
     def setUp(self):
         super(DatasetTest, self).setUp()
         self.task_timeout = 200
+        self.volname = 'TestDatasetVolume'
+        self.createVolume()
 
     def tearDown(self):
         # try to delete all volumes created with test
@@ -212,6 +227,24 @@ class DatasetTest(BaseTestCase):
     def test_create_dataset(self):
         pass
 
+    def test_get_dataset_tree(self):
+        tree = self.conn.call_sync('volumes.get_dataset_tree', 'TestAuto')
+        self.pretty_print(tree)
+
+    def test_query_zfs_dataset(self):
+        datasets = self.conn.call_sync('zfs.dataset.query')
+        self.pretty_print(datasets)
+
+    def createVolume(self):
+
+        available = self.conn.call_sync('volumes.get_available_disks')
+        if not available:
+            self.skip("No disks are available for creating volume, test did not run")  
+        else:
+            exists = self.conn.call_sync('volumes.query', [('name', '=', self.volname)])
+            if not exists:
+                tid = self.submitTask('volume.create_auto', self.volname, 'zfs', available)
+                self.assertTaskCompletion(tid)
 
 
 if __name__ == '__main__':
