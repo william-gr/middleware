@@ -233,7 +233,7 @@ class PluginService(RpcService):
 
     @pass_sender
     def register_event_type(self, service, event, sender):
-        wrapper = self.RemoteServiceWrapper(sender, service)
+        wrapper = self.services[service]
         self.event_types[event] = sender
         self.__dispatcher.register_event_type(event, wrapper)
 
