@@ -1,6 +1,4 @@
 %%PYTHON_SITELIBDIR%%/dispatcher_client-10.0-py2.7.egg-info
-%%PYTHON_SITELIBDIR%%/dispatcherclient.py
-%%PYTHON_SITELIBDIR%%/dispatcherclient.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client.py
