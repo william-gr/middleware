@@ -25,6 +25,8 @@
 #
 #####################################################################
 
+import gc
+import traceback
 import errno
 import subprocess
 from gevent.event import Event
@@ -79,6 +81,22 @@ class ManagementService(RpcService):
             raise RpcException(errno.ENOENT, 'Session {0} not found'.format(session_id))
 
         session.logout('Kicked out by {0}'.format(sender.user.name))
+
+    @private
+    def dump_stacks(self):
+        from greenlet import greenlet
+
+        # If greenlet is present, let's dump each greenlet stack
+        dump = []
+        for ob in gc.get_objects():
+            if not isinstance(ob, greenlet):
+                continue
+            if not ob:
+                continue   # not running anymore or not started
+
+            dump.append(''.join(traceback.format_stack(ob.gr_frame)))
+
+        return dump
 
     def die_you_gravy_sucking_pig_dog(self):
         self.dispatcher.die()
