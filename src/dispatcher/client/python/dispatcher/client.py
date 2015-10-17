@@ -30,6 +30,7 @@ import os
 import enum
 import uuid
 import errno
+import time
 from jsonenc import dumps, loads
 from dispatcher import rpc
 from fnutils.query import matches
@@ -145,6 +146,7 @@ class Client(object):
 
     def __init__(self):
         self.pending_calls = {}
+        self.pending_events = []
         self.event_handlers = {}
         self.rpc = None
         self.ws = None
@@ -155,7 +157,12 @@ class Client(object):
         self.receive_thread = None
         self.token = None
         self.event_distribution_lock = RLock()
+        self.event_emission_lock = RLock()
         self.default_timeout = 10
+        self.last_event_burst = None
+        self.use_bursts = False
+        self.event_cv = Event()
+        self.event_thread = None
 
     def __pack(self, namespace, name, args, id=None):
         return dumps({
@@ -191,6 +198,16 @@ class Client(object):
             {'name': name, 'args': params}
         ))
 
+    def __send_event_burst(self):
+        with self.event_emission_lock:
+            self.__send(self.__pack(
+                'events',
+                'event_burst',
+                {'events': map(lambda t: {'name': t[0], 'args': t[1]}, self.pending_events)}
+            ))
+
+            del self.pending_events[:]
+
     def __send_error(self, id, errno, msg, extra=None):
         payload = {
             'code': errno,
@@ -223,6 +240,15 @@ class Client(object):
             self.event_callback(name, args)
 
         self.event_distribution_lock.release()
+
+    def __event_emitter(self):
+        while True:
+            self.event_cv.wait()
+
+            while len(self.pending_events) > 0:
+                time.sleep(0.1)
+                with self.event_emission_lock:
+                    self.__send_event_burst()
 
     def decode(self, msg):
         if 'namespace' not in msg:
@@ -304,6 +330,11 @@ class Client(object):
         url = 'ws://{0}:{1}/socket'.format(hostname, port)
         self.ws = self.WebSocketHandler(url, self)
         self.ws.connect()
+
+        if self.use_bursts:
+            self.event_thread = spawn_thread(target=self.__event_emitter, args=())
+            self.event_thread.start()
+
         self.opened.wait()
 
     def login_user(self, username, password, timeout=None):
@@ -430,7 +461,12 @@ class Client(object):
         return self.call_sync('task.submit', name, args)
 
     def emit_event(self, name, params):
-        self.__send_event(name, params)
+        if not self.use_bursts:
+            self.__send_event(name, params)
+        else:
+            self.pending_events.append((name, params))
+            self.event_cv.set()
+            self.event_cv.clear()
 
     def wait_forever(self):
         if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":

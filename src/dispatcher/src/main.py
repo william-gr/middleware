@@ -909,10 +909,10 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 self.logout('Logged out due to inactivity period')
                 return
 
-        if 'events' not in data['args']:
+        if 'events' not in data:
             return
 
-        for i in data['args']['events']:
+        for i in data['events']:
             self.dispatcher.dispatch_event(i['name'], i['args'])
 
     def on_rpc_auth_service(self, id, data):
