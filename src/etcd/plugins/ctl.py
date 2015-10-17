@@ -108,6 +108,10 @@ def generate_auth_groups(context):
     for i in context.datastore.query('iscsi.auth'):
         group = {}
 
+        # Check if group is in use
+        if not context.datastore.exists('iscsi.targets', ('auth_group', '=', i['id'])):
+            continue
+
         if i.get('users'):
             group['chap'] = map(generate_chap_user, i['users'])
             group['chap-mutual'] = map(generate_chap_user, i['users'])
