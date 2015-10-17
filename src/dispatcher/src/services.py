@@ -44,7 +44,7 @@ class ManagementService(RpcService):
     def status(self):
         return {
             'started-at': self.dispatcher.started_at,
-            'connected-clients': len(self.dispatcher.ws_server.connections)
+            'connected-clients': sum([len(s.connections) for s in self.dispatcher.ws_servers])
         }
 
     def ping(self):
@@ -60,7 +60,11 @@ class ManagementService(RpcService):
         return self.dispatcher.event_sources.keys()
 
     def get_connected_clients(self):
-        return self.dispatcher.ws_server.clients.keys()
+        return [
+            inner
+            for outter in [s.clients.keys() for s in self.dispatcher.ws_servers]
+            for inner in outter
+        ]
 
     def wait_ready(self):
         return self.dispatcher.ready.wait()
