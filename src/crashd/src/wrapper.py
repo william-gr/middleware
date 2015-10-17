@@ -31,10 +31,19 @@ import os
 import sys
 import json
 import io
+import signal
 import datetime
 import tempfile
 import subprocess
 import setproctitle
+
+
+proc = None
+
+
+def sigterm(signo, frame):
+    if proc:
+        proc.terminate()
 
 
 def main():
@@ -43,6 +52,7 @@ def main():
         exit(1)
 
     setproctitle.setproctitle('crash-wrapper')
+    signal.signal(signal.SIGTERM, sigterm)
     name = os.path.basename(sys.argv[1])
     null = open('/dev/null', 'r')
     log = open('/var/tmp/{0}.{1}.log'.format(name, os.getpid()), 'a+')
