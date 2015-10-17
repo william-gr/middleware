@@ -139,10 +139,15 @@ class PluginService(RpcService):
             if args['address'] == conn.ws.handler.client_address:
                 self.unregister_schema(name, conn)
 
+        for name, conn in self.event_types.items():
+            if args['address'] == conn.ws.handler.client_address:
+                self.unregister_event_type(name)
+
     def initialize(self, context):
         self.services = {}
         self.schemas = {}
         self.events = {}
+        self.event_types = {}
         self.__dispatcher = context.dispatcher
         self.__dispatcher.register_event_handler(
             'server.client_disconnected',
@@ -206,15 +211,18 @@ class PluginService(RpcService):
             raise RpcException(errno.EPERM, 'Permission denied')
 
         self.__dispatcher.unregister_schema_definition(name)
+        del self.schemas[name]
 
     @pass_sender
     def register_event_type(self, service, event, sender):
         wrapper = self.RemoteServiceWrapper(sender, service)
+        self.event_types[event] = sender
         self.__dispatcher.register_event_type(event, wrapper)
 
     @pass_sender
     def unregister_event_type(self, event):
         self.__dispatcher.unregister_event_type(event)
+        del self.event_types[event]
 
     def wait_for_service(self, name, timeout=None):
         if name in self.services.keys():
