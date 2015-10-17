@@ -239,6 +239,13 @@ class Client(object):
             t.start()
             return
 
+        if msg['namespace'] == 'events' and msg['name'] == 'event_burst':
+            args = msg['args']
+            for i in args['events']:
+                t = spawn_thread(target=self.__process_event, args=(i['name'], i['args']))
+                t.start()
+            return
+
         if msg['namespace'] == 'events' and msg['name'] == 'logout':
             self.error_callback(ClientError.LOGOUT)
             return
