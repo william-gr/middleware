@@ -27,10 +27,9 @@
 
 
 import logging
-import threading
 import networkx as nx
-from threading import Lock
-
+import gevent
+from gevent.lock import RLock
 
 class Resource(object):
     def __init__(self, name):
@@ -45,7 +44,7 @@ class ResourceError(RuntimeError):
 class ResourceGraph(object):
     def __init__(self):
         self.logger = logging.getLogger('ResourceGraph')
-        self.mutex = Lock()
+        self.mutex = RLock()
         self.root = Resource('root')
         self.resources = nx.DiGraph()
         self.resources.add_node(self.root)
@@ -131,10 +130,7 @@ class ResourceGraph(object):
 
     def acquire(self, *names):
         self.lock()
-        self.logger.debug(
-            'Acquiring following resources by thread %s: %s',
-            threading.current_thread().name,
-            ','.join(names))
+        self.logger.debug('Acquiring following resources: %s', ','.join(names))
 
         for name in names:
             res = self.get_resource(name)
@@ -152,10 +148,8 @@ class ResourceGraph(object):
 
     def can_acquire(self, *names):
         self.lock()
-        self.logger.debug(
-            'Trying to acquire following resources by thread %s: %s',
-            threading.current_thread().name,
-            ','.join(names))
+        self.logger.debug('Trying to acquire following resources: %s', ','.join(names))
+
         for name in names:
             res = self.get_resource(name)
             if not res:
@@ -175,10 +169,7 @@ class ResourceGraph(object):
 
     def release(self, *names):
         self.lock()
-        self.logger.debug(
-            'Releasing following resources by thread %s: %s',
-            threading.current_thread().name,
-            ','.join(names))
+        self.logger.debug('Releasing following resources: %s', ','.join(names))
 
         for name in names:
             res = self.get_resource(name)

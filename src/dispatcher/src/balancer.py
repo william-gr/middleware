@@ -30,7 +30,6 @@ import logging
 import traceback
 import errno
 import copy
-import threading
 import uuid
 import inspect
 import subprocess
@@ -190,7 +189,8 @@ class Task(object):
         self.output = None
         self.rusage = None
         self.executor = TaskExecutor(self.dispatcher.balancer, self)
-        self.ended = threading.Event()
+        self.ended = Event()
+        self.debugger = None
 
     def __getstate__(self):
         return {
