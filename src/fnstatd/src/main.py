@@ -58,7 +58,7 @@ from fnutils import configure_logging
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 DEFAULT_DBFILE = 'stats.hdf'
-gevent.monkey.patch_all()
+gevent.monkey.patch_all(thread=False)
 
 
 def to_timedelta(time_val):
@@ -376,8 +376,9 @@ class Main(object):
                 self.client.login_service('statd')
                 self.client.enable_server()
                 self.client.register_service('statd.output', OutputService(self))
-                self.client.register_service('statd.debug', DebugService())
+                self.client.register_service('statd.debug', DebugService(gevent=True))
                 self.client.resume_service('statd.output')
+                self.client.resume_service('statd.debug')
                 for i in self.data_sources.keys():
                     self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
 
