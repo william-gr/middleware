@@ -73,7 +73,8 @@ class TaskExecutor(object):
             'id': self.task.id,
             'class': self.task.clazz.__name__,
             'filename': inspect.getsourcefile(self.task.clazz),
-            'args': self.task.args
+            'args': self.task.args,
+            'debugger': self.task.debugger
         }
 
     def get_status(self):
@@ -207,7 +208,8 @@ class Task(object):
             "state": self.state,
             "output": self.output,
             "rusage": self.rusage,
-            "error": self.error
+            "error": self.error,
+            "debugger": self.debugger
         }
 
     def __emit_progress(self):
@@ -326,6 +328,7 @@ class Balancer(object):
         self.dispatcher.require_collection('tasks', 'serial', type='log')
         self.create_initial_queues()
         self.distribution_lock = RLock()
+        self.debugger = None
 
         # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
         # from the previous dispatcher instance and set their
@@ -388,6 +391,7 @@ class Balancer(object):
         task.clazz = self.dispatcher.tasks[name]
         task.args = copy.deepcopy(args)
         task.state = TaskState.CREATED
+        task.debugger = self.debugger
         task.id = self.dispatcher.datastore.insert("tasks", task)
         self.task_queue.put(task)
         self.dispatcher.dispatch_event('task.created', {'id': task.id, 'name': name, 'state': task.state})

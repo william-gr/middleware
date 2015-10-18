@@ -66,7 +66,7 @@ from datastore.config import ConfigStore
 from dispatcher.jsonenc import loads, dumps
 from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
 from resources import ResourceGraph
-from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
+from services import ManagementService, DebugService, EventService, TaskService, PluginService, ShellService, LockService
 from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
@@ -337,6 +337,7 @@ class Dispatcher(object):
         register_general_purpose_schemas(self)
 
         self.rpc.register_service('management', ManagementService)
+        self.rpc.register_service('debug', DebugService)
         self.rpc.register_service('event', EventService)
         self.rpc.register_service('task', TaskService)
         self.rpc.register_service('plugin', PluginService)
@@ -1382,7 +1383,7 @@ class FileConnection(WebSocketApplication, EventEmitter):
 
 def run(d, args):
     setproctitle.setproctitle('dispatcher')
-    monkey.patch_all()
+    monkey.patch_all(thread=False)
 
     # Signal handlers
     gevent.signal(signal.SIGQUIT, d.die)

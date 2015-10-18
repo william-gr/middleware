@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+import sys
 import gc
 import traceback
 import errno
@@ -82,6 +83,14 @@ class ManagementService(RpcService):
 
         session.logout('Kicked out by {0}'.format(sender.user.name))
 
+    def die_you_gravy_sucking_pig_dog(self):
+        self.dispatcher.die()
+
+
+class DebugService(RpcService):
+    def initialize(self, context):
+        self.dispatcher = context.dispatcher
+
     @private
     def dump_stacks(self):
         from greenlet import greenlet
@@ -98,15 +107,26 @@ class ManagementService(RpcService):
 
         return dump
 
-    def die_you_gravy_sucking_pig_dog(self):
-        self.dispatcher.die()
+    @private
+    def attach(self, host, port):
+        sys.path.append('/usr/local/lib/dispatcher/pydev')
+
+        import pydevd
+        pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
+
+    @private
+    def set_tasks_debug(self, host, port):
+        self.dispatcher.balancer.debugger = (host, port)
+
+    @private
+    def cancel_tasks_debug(self):
+        self.dispatcher.balancer.debugger = None
 
 
 class EventService(RpcService):
     def initialize(self, context):
         self.__datastore = context.dispatcher.datastore
         self.__dispatcher = context.dispatcher
-        pass
 
     def query(self, filter=None, params=None):
         filter = filter if filter else []
