@@ -45,8 +45,12 @@ def sigterm(signo, frame):
     if proc:
         proc.terminate()
 
+    sys.exit(0)
+
 
 def main():
+    global proc
+
     if len(sys.argv) < 2:
         print("Usage: crash-wrapper <path to executable> [args...]", file=sys.stderr)
         exit(1)
