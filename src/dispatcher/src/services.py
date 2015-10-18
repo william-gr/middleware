@@ -115,6 +115,11 @@ class DebugService(RpcService):
         pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
 
     @private
+    def detach(self):
+        import pydevd
+        pydevd.stoptrace()
+
+    @private
     def set_tasks_debug(self, host, port):
         self.dispatcher.balancer.debugger = (host, port)
 

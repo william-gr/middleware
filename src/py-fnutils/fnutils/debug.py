@@ -28,7 +28,7 @@
 import sys
 import gc
 import traceback
-from dispatcher.rpc import RpcService
+from dispatcher.rpc import RpcService, private
 
 
 sys.path.append('/usr/local/lib/dispatcher/pydev')
@@ -38,10 +38,17 @@ class DebugService(RpcService):
     def __init__(self, gevent=False):
         self.gevent = gevent
 
+    @private
     def attach(self, host, port):
         import pydevd
         pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
 
+    @private
+    def detach(self):
+        import pydevd
+        pydevd.stoptrace()
+
+    @private
     def dump_stacks(self):
         if self.gevent:
             from greenlet import greenlet
