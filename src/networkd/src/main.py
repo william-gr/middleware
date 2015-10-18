@@ -45,6 +45,7 @@ from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from fnutils.query import wrap
+from fnutils.debug import DebugService
 from fnutils import configure_logging
 
 
@@ -618,8 +619,10 @@ class Main:
                 self.client.enable_server()
                 self.register_schemas()
                 self.client.register_service('networkd.configuration', ConfigurationService(self))
+                self.client.register_service('networkd.debug', DebugService())
                 if resume:
                     self.client.resume_service('networkd.configuration')
+                    self.client.resume_service('networkd.debug')
 
                 return
             except socket.error, err:

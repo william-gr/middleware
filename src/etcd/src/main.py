@@ -42,6 +42,7 @@ from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from fnutils import configure_logging
+from fnutils.debug import DebugService
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -167,8 +168,10 @@ class Main:
                 self.client.enable_server()
                 self.client.register_service('etcd.generation', FileGenerationService(self))
                 self.client.register_service('etcd.management', ManagementService(self))
+                self.client.register_service('etcd.debug', DebugService())
                 self.client.resume_service('etcd.generation')
                 self.client.resume_service('etcd.management')
+                self.client.resume_service('etcd.debug')
                 return
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))

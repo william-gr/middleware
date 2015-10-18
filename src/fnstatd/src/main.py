@@ -52,6 +52,7 @@ from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
+from fnutils.debug import DebugService
 from fnutils import configure_logging
 
 
@@ -375,6 +376,7 @@ class Main(object):
                 self.client.login_service('statd')
                 self.client.enable_server()
                 self.client.register_service('statd.output', OutputService(self))
+                self.client.register_service('statd.debug', DebugService())
                 self.client.resume_service('statd.output')
                 for i in self.data_sources.keys():
                     self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
@@ -391,6 +393,7 @@ class Main(object):
                 self.connect()
 
         self.client = Client()
+        self.client.use_bursts = True
         self.client.on_error(on_error)
         self.connect()
 

@@ -42,6 +42,7 @@ from dispatcher.rpc import RpcService, RpcException, private
 from dispatcher.client import Client, ClientError
 from fnutils import exclude, configure_logging
 from fnutils.query import wrap
+from fnutils.debug import DebugService
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -242,7 +243,9 @@ class Context(object):
                 self.client.login_service('schedulerd')
                 self.client.enable_server()
                 self.client.register_service('scheduler.management', ManagementService(self))
+                self.client.register_service('scheduler.debug', DebugService())
                 self.client.resume_service('scheduler.management')
+                self.client.resume_service('scheduler.debug')
                 return
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
