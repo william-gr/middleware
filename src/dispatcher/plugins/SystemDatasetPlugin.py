@@ -118,7 +118,7 @@ def create_system_dataset(dispatcher, dsid, pool):
         ds.properties['canmount'].value = 'noauto'
         ds.properties['mountpoint'].value = SYSTEM_DIR
     except libzfs.ZFSException, err:
-        logger.warning('Cannot set properties on .system dataset: {0}', str(err))
+        logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
 
 
 def remove_system_dataset(dispatcher, dsid, pool):
