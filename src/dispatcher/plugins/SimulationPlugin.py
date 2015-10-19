@@ -53,16 +53,19 @@ class CreateFakeDisk(Task):
 
     def run(self, disk):
         normalize(disk, {
-            'manufacturer': 'FreeNAS',
+            'vendor': 'FreeNAS',
             'path': os.path.join(SIMULATOR_ROOT, disk['id']),
             'model': 'Virtual Disk',
+            'serial': self.dispatcher.call_sync('shares.iscsi.generate_serial'),
             'block_size': 512,
             'ssd': False
         })
 
+        disk['naa'] = self.dispatcher.call_sync('shares.iscsi.generate_naa')
+
         open(disk['path'], 'a').close()
         self.datastore.insert('simulator.disks', disk)
-        self.dispatcher.call_sync('etcd.generate_group', 'ctl')
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
 
 
@@ -106,7 +109,10 @@ def _init(dispatcher, plugin):
             'model': {'type': 'string'},
             'serial': {'type': 'string'},
             'block_size': {'type': 'integer'},
-            'ssd': {'type': 'boolean'}
+            'rpm': {
+                'type': 'string',
+                'enum': ['UNKNOWN', 'SSD', '5400', '7200', '10000', '15000']
+            }
         }
     })
 
