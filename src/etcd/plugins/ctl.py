@@ -130,6 +130,9 @@ def generate_auth_groups(context):
 def generate_portal_groups(context):
     result = {}
 
+    if not context.configstore.get('service.iscsi.enable'):
+        return result
+
     for i in context.datastore.query('iscsi.portals'):
         portal = {
             'listen': map(lambda l: '{0}:{1}'.format(l['address'], l['port']), i['listen']),
