@@ -340,6 +340,7 @@ def get_status(dispatcher, service):
             dispatcher.call_sync(service['status_rpc'])
         except RpcException:
             state = 'STOPPED'
+
     elif 'pidfile' in service:
         state = 'RUNNING'
         pid = None
@@ -383,7 +384,8 @@ def get_status(dispatcher, service):
         state = 'RUNNING'
 
         for i in service['dependencies']:
-            d_state, d_pid = get_status(dispatcher, i)
+            d_service = dispatcher.datastore.get_one('service_definitions', ('name', '=', i))
+            d_state, d_pid = get_status(dispatcher, d_service)
             if d_state != 'RUNNING':
                 state = d_state
 
