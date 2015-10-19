@@ -80,7 +80,7 @@ class ConfigureFakeDisk(Task):
         return ['system']
 
     def run(self, id, updated_params):
-        disk = self.datastore.query('simulator.disks', id)
+        disk = self.datastore.get_by_id('simulator.disks', id)
         disk.update(updated_params)
         self.datastore.insert('simulator.disks', id, disk)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
