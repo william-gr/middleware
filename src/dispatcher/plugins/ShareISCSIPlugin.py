@@ -58,6 +58,11 @@ class ISCSISharesProvider(Provider):
 
         raise RpcException(errno.EBUSY, 'No free serial numbers found')
 
+    @private
+    @returns(str)
+    def generate_naa(self):
+        return '0x6589cfc000000{0}'.format(hashlib.sha256(str(uuid.uuid4())).hexdigest()[0:19])
+
 
 class ISCSITargetsProvider(Provider):
     def query(self, filter=None, params=None):
@@ -88,10 +93,8 @@ class CreateISCSIShareTask(Task):
 
     def run(self, share):
         props = share['properties']
-        if not props.get('properties.serial'):
-            props['serial'] = self.dispatcher.call_sync('shares.iscsi.generate_serial')
-
         normalize(props, {
+            'serial': self.dispatcher.call_sync('shares.iscsi.generate_serial'),
             'block_size': 512,
             'physical_block_size': True,
             'tpc': False,
@@ -101,7 +104,7 @@ class CreateISCSIShareTask(Task):
         })
 
         share['target'] = convert_share_target(share['target'])
-        props['naa'] = generate_naa()
+        props['naa'] = self.dispatcher.call_sync('shares.iscsi.generate_naa')
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
@@ -287,10 +290,6 @@ class DeleteISCSIAuthGroupTask(Task):
             'operation': 'delete',
             'ids': [id]
         })
-
-
-def generate_naa():
-    return '0x6589cfc000000{0}'.format(hashlib.sha256(str(uuid.uuid4())).hexdigest()[0:19])
 
 
 def convert_share_target(target):
