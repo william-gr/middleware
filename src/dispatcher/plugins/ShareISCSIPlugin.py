@@ -161,7 +161,7 @@ class DeleteiSCSIShareTask(Task):
 class CreateISCSITargetTask(Task):
     def verify(self, target):
         for i in target.get('extents', []):
-            if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
+            if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('id', '=', i['name'])):
                 raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
 
         return ['service:ctl']
@@ -190,7 +190,7 @@ class UpdateISCSITargetTask(Task):
 
         if 'extents' in updated_params:
             for i in updated_params['extents']:
-                if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
+                if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('id', '=', i['name'])):
                     raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
 
         return ['service:ctl']
@@ -313,6 +313,7 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
         'properties': {
             'serial': {'type': 'string'},
+            'ctl_lun': {'type': 'integer'},
             'naa': {'type': 'string'},
             'size': {'type': 'integer'},
             'block_size': {
@@ -357,7 +358,8 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'additionalProperties': False,
         'properties': {
-            'id': {'type': 'integer'},
+            'id': {'type': 'string'},
+            'tag': {'type': 'integer'},
             'description': {'type': 'string'},
             'discovery_auth_metod': {
                 'type': 'string',
