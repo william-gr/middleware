@@ -32,6 +32,9 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}pymongo>0:${PORTSDIR}/databases/pymongo \
 		freenas-dispatcher>0:${PORTSDIR}/freenas/freenas-dispatcher
 .endif
 
+RUN_DEPENDS+=	\
+	${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh
+
 EXTRACT_ONLY=
 
 MAKE_JOBS_UNSAFE= yes
