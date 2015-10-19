@@ -30,11 +30,11 @@ from dispatcher.rpc import RpcException
 from shared import BaseTestCase
 
 
-class Updater(BaseTestCase):
+class TestUpdate(BaseTestCase):
     def tearDown(self):
         # set timeout value to original
         self.task_timeout = 30
-        super(Updater, self).tearDown()
+        super(TestUpdate, self).tearDown()
 
     def test_query_update_info(self):
         check = self.conn.call_sync('update.is_update_available')
@@ -57,18 +57,26 @@ class Updater(BaseTestCase):
 
     def test_obtain_changelog(self):
         check = self.conn.call_sync('update.is_update_available')
+        print check
         changelog = self.conn.call_sync('update.obtain_changelog')
+        self.pretty_print(changelog)
         if check:
-            self.assertIsNotNone(changelog) 
+            self.assertNotEqual(changelog, [u""])
+        else:
+            self.assertEqual(changelog, [u""])    
 
     def test_query_trains(self):
         trains = self.conn.call_sync('update.trains')
-        print "Trains available: " + str(trains)  
+        self.pretty_print(trains)  
         self.assertIsNotNone(trains)
 
     def test_check_for_update(self):
         tid = self.submitTask('update.check', {
             'check_now': False,
+            })
+        self.assertTaskCompletion(tid)
+        tid = self.submitTask('update.check', {
+            'check_now': True,
             })
         self.assertTaskCompletion(tid)
     
