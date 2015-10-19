@@ -80,7 +80,7 @@ class ConfigureFakeDisk(Task):
         disk = self.datastore.query('simulator.disks', id)
         disk.update(updated_params)
         self.datastore.insert('simulator.disks', id, disk)
-        self.dispatcher.call_sync('etcd.generate_group', 'ctl')
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
 
 
@@ -93,7 +93,7 @@ class DeleteFakeDisk(Task):
 
     def run(self, id):
         self.datastore.delete('simulator.disks', id)
-        self.dispatcher.call_sync('etcd.generate_group', 'ctl')
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
 
 
