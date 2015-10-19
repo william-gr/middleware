@@ -43,6 +43,8 @@ def redact(config):
         i['secret'] = 'REDACTED'
         i['peer-secret'] = 'REDACTED'
 
+    return config
+
 
 def generate_luns(context):
     result = {}
