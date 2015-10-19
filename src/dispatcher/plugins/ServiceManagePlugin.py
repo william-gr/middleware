@@ -378,6 +378,15 @@ def get_status(dispatcher, service):
         except SubprocessException:
             state = 'STOPPED'
 
+    elif 'dependencies' in service:
+        pid = None
+        state = 'RUNNING'
+
+        for i in service['dependencies']:
+            d_state, d_pid = get_status(dispatcher, i)
+            if d_state != 'RUNNING':
+                state = d_state
+
     else:
         pid = None
         state = 'UNKNOWN'
