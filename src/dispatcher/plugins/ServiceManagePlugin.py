@@ -107,6 +107,9 @@ class ServiceInfoProvider(Provider):
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
+        if 'rcng' not in svc:
+            return
+
         rc_scripts = svc['rcng']['rc-scripts']
 
         try:
@@ -126,6 +129,9 @@ class ServiceInfoProvider(Provider):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
+
+        if 'rcng' not in svc:
+            return
 
         rc_scripts = svc['rcng']['rc-scripts']
 
@@ -200,6 +206,24 @@ class ServiceInfoProvider(Provider):
         except SubprocessException:
             pass
 
+    @private
+    @accepts(str)
+    def apply_state(self, service):
+        svc = self.datastore.get_one('service_definitions', ('name', '=', service))
+        if not svc:
+            raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
+
+        state, pid = get_status(self.dispatcher, svc)
+        node = ConfigNode('service.{0}'.format(service), self.configstore)
+
+        if node['enable'].value and state != 'RUNNING':
+            logger.info('Starting service {0}'.format(service))
+            self.dispatcher.call_sync('services.ensure_started', service)
+
+        if not node['enable'].value and state != 'STOPPED':
+            logger.info('Stopping service {0}'.format(service))
+            self.dispatcher.call_sync('services.ensure_stopped', service)
+
 
 @description("Provides functionality to start, stop, restart or reload service")
 @accepts(
@@ -267,7 +291,6 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-        state, pid = get_status(self.dispatcher, service_def)
 
         if service_def.get('task'):
             self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
@@ -278,13 +301,21 @@ class UpdateServiceConfigTask(Task):
             if service_def.get('etcd-group'):
                 self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
 
-            if node['enable'].value and state != 'RUNNING':
-                logger.info('Starting service {0}'.format(service))
-                self.dispatcher.call_sync('services.ensure_started', service)
+            self.dispatcher.call_sync('services.apply_state', service)
 
-            if not node['enable'].value and state != 'STOPPED':
-                logger.info('Stopping service {0}'.format(service))
-                self.dispatcher.call_sync('services.ensure_stopped', service)
+            if 'enable' in updated_fields:
+                # Propagate to dependent services
+                for i in service_def.get('dependencies', []):
+                    self.join_subtasks(self.run_subtask('service.configure', i, {
+                        'enable': updated_fields['enable']
+                    }))
+
+                if service_def.get('auto_enable'):
+                    # Consult state of services dependent on us
+                    for i in self.datastore.query('service_definitions', ('dependencies', 'in', service)):
+                        enb = self.configstore.get('service.{0}.enable', i['name'])
+                        if enb != updated_fields['enable']:
+                            del updated_fields['enable']
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         self.dispatcher.dispatch_event('service.changed', {

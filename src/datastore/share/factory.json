@@ -1521,15 +1521,15 @@
                 },
                 "builtin": true,
                 "pidfile": "/var/run/ctld.pid",
+                "auto_enable": true,
                 "name": "ctl"
             },
             "DC7B38AA-E04A-48EA-96D0-89AAC2B5112D": {
                 "builtin": false,
-                "start_rpc": "service.iscsi.start",
-                "stop_rpc": "service.iscsi.stop",
-                "restart_rpc": "service.iscsi.restart",
-                "status_rpc": "service.iscsi.status",
-                "name": "iscsi"
+                "name": "iscsi",
+                "dependencies": [
+                    "ctl"
+                ]
             }
         },
         "metadata": {

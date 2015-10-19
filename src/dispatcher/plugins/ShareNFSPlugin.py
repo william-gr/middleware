@@ -71,7 +71,6 @@ class CreateNFSShareTask(Task):
     def run(self, share):
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
-        self.dispatcher.call_sync('services.ensure_started', 'nfs')
         self.dispatcher.call_sync('services.reload', 'nfs')
 
         dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
@@ -228,10 +227,6 @@ def _init(dispatcher, plugin):
     plugin.register_provider("shares.nfs", NFSSharesProvider)
     plugin.register_event_type('shares.nfs.changed')
 
-    # Start NFS server if there are any configured shares
-    if dispatcher.datastore.exists('shares', ('type', '=', 'nfs')):
-        dispatcher.call_sync('services.ensure_started', 'nfs')
-
     for share in dispatcher.datastore.query('shares', ('type', '=', 'nfs')):
         dataset = dataset_for_mountpoint(dispatcher, share['target'])
         if not dataset:
@@ -240,7 +235,7 @@ def _init(dispatcher, plugin):
                 share['target']
             ))
             continue
-            
+
         dispatcher.call_task_sync('zfs.configure', dataset['pool'], dataset['name'], {
             'sharenfs': {'value': opts(share)}
         })

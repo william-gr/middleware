@@ -75,7 +75,6 @@ class CreateCIFSShareTask(Task):
         except smbconf.SambaConfigException:
             raise TaskException(errno.EFAULT, 'Cannot access samba registry')
 
-        self.dispatcher.call_sync('services.ensure_started', 'cifs')
         self.dispatcher.dispatch_event('shares.cifs.changed', {
             'operation': 'create',
             'ids': [share['id']]

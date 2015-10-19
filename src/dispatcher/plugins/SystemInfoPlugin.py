@@ -324,10 +324,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'powerd' in props:
                 cs.set('service.powerd.enable', props['powerd'])
-                if props['powerd']:
-                    self.dispatcher.call_sync('services.ensure_started', 'powerd')
-                else:
-                    self.dispatcher.call_sync('services.ensure_stopped', 'powerd')
+                self.dispatcher.call_sync('services.apply_state', 'powerd')
                 rc = True
 
             if 'swapondrive' in props:

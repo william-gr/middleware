@@ -29,7 +29,7 @@ import errno
 import logging
 
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns, private
 from task import Task, Provider, TaskException, ValidationException
 from fnutils import exclude
 
@@ -62,12 +62,7 @@ class ISCSIConfigureTask(Task):
             node.update(exclude(iscsi, 'portals'))
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
-
-            if not node['enable']:
-                self.dispatcher.call_sync('services.ensure_stopped', 'ctl')
-            else:
-                self.dispatcher.call_sync('services.ensure_started', 'ctl')
-                self.dispatcher.call_sync('services.reload', 'ctl')
+            self.dispatcher.call_sync('services.apply_state', 'iscsi')
 
             self.dispatcher.dispatch_event('service.iscsi.changed', {
                 'operation': 'updated',
