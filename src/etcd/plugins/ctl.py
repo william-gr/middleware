@@ -85,7 +85,8 @@ def generate_targets(context):
 
     for i in context.datastore.query('iscsi.targets'):
         target = {
-            'lun': i['extents']
+            'lun': i['extents'],
+            'auth-group': i['auth_group']
         }
 
         if i.get('description'):
