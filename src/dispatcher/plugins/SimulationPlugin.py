@@ -58,7 +58,7 @@ class CreateFakeDisk(Task):
             'model': 'Virtual Disk',
             'serial': self.dispatcher.call_sync('shares.iscsi.generate_serial'),
             'block_size': 512,
-            'ssd': False
+            'rpm': '7200'
         })
 
         disk['naa'] = self.dispatcher.call_sync('shares.iscsi.generate_naa')
