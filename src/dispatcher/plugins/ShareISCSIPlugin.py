@@ -29,6 +29,7 @@ import os
 import errno
 import uuid
 import hashlib
+import ctl
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
@@ -41,7 +42,21 @@ class ISCSISharesProvider(Provider):
     @private
     @accepts(str)
     def get_connected_clients(self, share_name=None):
-        pass
+        handle = ctl.CTL()
+        result = []
+        for conn in handle.iscsi_connections:
+            # Add entry for every lun mapped in this target
+            target = self.datastore.get_by_id('iscsi.targets', conn.target)
+            for lun in target['extents']:
+                result.append({
+                    'host': conn.initiator_address,
+                    'share': lun['name'],
+                    'user': conn.initiator,
+                    'connected_at': None,
+                    'extra': {}
+                })
+
+        return result
 
     @returns(str)
     def generate_serial(self):
@@ -231,7 +246,7 @@ class DeleteISCSITargetTask(Task):
 @accepts(
     h.all_of(
         h.ref('iscsi-auth-group'),
-        h.required('name', 'type')
+        h.required('id', 'type')
     )
 )
 class CreateISCSIAuthGroupTask(Task):
