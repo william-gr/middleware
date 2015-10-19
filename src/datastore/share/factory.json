@@ -1530,6 +1530,13 @@
                 "dependencies": [
                     "ctl"
                 ]
+            },
+            "5C9B15F0-0362-4B64-A1B0-0464787D37C2": {
+                "builtin": false,
+                "name": "simulator",
+                "dependencies": [
+                    "ctl"
+                ]
             }
         },
         "metadata": {
