@@ -208,7 +208,7 @@ class ServiceInfoProvider(Provider):
 
     @private
     @accepts(str)
-    def apply_state(self, service):
+    def apply_state(self, service, restart=False, reload=False):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
@@ -220,9 +220,17 @@ class ServiceInfoProvider(Provider):
             logger.info('Starting service {0}'.format(service))
             self.dispatcher.call_sync('services.ensure_started', service)
 
-        if not node['enable'].value and state != 'STOPPED':
+        elif not node['enable'].value and state != 'STOPPED':
             logger.info('Stopping service {0}'.format(service))
             self.dispatcher.call_sync('services.ensure_stopped', service)
+
+        else:
+            if restart:
+                logger.info('Restarting service {0}'.format(service))
+                self.dispatcher.call_sync('services.restart', service)
+            elif reload:
+                logger.info('Reloading service {0}'.format(service))
+                self.dispatcher.call_sync('services.reload', service)
 
 
 @description("Provides functionality to start, stop, restart or reload service")
