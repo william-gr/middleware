@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+import os
 import json
 
 
@@ -48,6 +49,22 @@ def redact(config):
 
 def generate_luns(context):
     result = {}
+
+    for disk in context.datastore.query('simulator.disks'):
+        extent = {
+            'path': os.path.join('/var/tmp/simulator', disk['id']),
+            'blocksize': disk['block_size'],
+            'serial': disk['serial'],
+            'options': {
+                'device-id': '{0} {1}'.format(disk['model'], disk['serial']),
+                'vendor': disk['vendor'],
+                'product': disk['model'],
+                'naa': disk['naa'],
+                'rpm': convert_rpm(disk['rpm'])
+            }
+        }
+
+        result[disk['id']] = extent
 
     for share in context.datastore.query('shares', ('type', '=', 'iscsi')):
         props = share['properties']
@@ -84,6 +101,19 @@ def generate_luns(context):
 
 def generate_targets(context):
     result = {}
+
+    if context.datastore.exists('simulator.disks'):
+        def generate_lun(i):
+            idx, disk = i
+            return {
+                'number': idx,
+                'name': disk['id']
+            }
+
+        result['naa.5000c50006815e48'] = {
+            'port': 'camsim',
+            'lun': map(generate_lun, enumerate(context.datastore.query('simulator.disks')))
+        }
 
     for i in context.datastore.query('iscsi.targets'):
         target = {
