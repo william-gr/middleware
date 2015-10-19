@@ -94,7 +94,7 @@ class FTPConfigureTask(Task):
             node = ConfigNode('service.ftp', self.configstore)
             node.update(ftp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ftp')
-            self.dispatcher.call_sync('services.reload', 'ftp')
+            self.dispatcher.call_sync('services.apply_state', 'ftp', False, True)
             self.dispatcher.dispatch_event('service.ftp.changed', {
                 'operation': 'updated',
                 'ids': None,

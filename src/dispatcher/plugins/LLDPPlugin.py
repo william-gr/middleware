@@ -67,7 +67,7 @@ class LLDPConfigureTask(Task):
         try:
             node = ConfigNode('service.lldp', self.configstore)
             node.update(lldp)
-            self.dispatcher.call_sync('services.restart', 'lldp')
+            self.dispatcher.call_sync('services.apply_state', 'lldp', True)
             self.dispatcher.dispatch_event('service.lldp.changed', {
                 'operation': 'updated',
                 'ids': None,
