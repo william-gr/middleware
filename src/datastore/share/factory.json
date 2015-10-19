@@ -733,6 +733,7 @@
             "service.ctl.enable": false,
             "service.ctl.pool_space_threshold": null,
             "service.iscsi.enable": false,
+            "service.simulator.enable": false,
             "service.iscsi.base_name": "iqn.2005-10.org.freenas.ctl",
             "service.devd.enable": true,
             "service.syslog.enable": true,
