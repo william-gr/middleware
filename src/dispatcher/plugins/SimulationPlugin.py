@@ -63,7 +63,10 @@ class CreateFakeDisk(Task):
 
         disk['naa'] = self.dispatcher.call_sync('shares.iscsi.generate_naa')
 
-        open(disk['path'], 'a').close()
+        if not os.path.exists(disk['path']):
+            with open(disk['path'], 'w') as f:
+                f.truncate(disk['mediasize'])
+
         self.datastore.insert('simulator.disks', disk)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
