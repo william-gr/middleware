@@ -324,6 +324,7 @@ class UpdateServiceConfigTask(Task):
                         enb = self.configstore.get('service.{0}.enable', i['name'])
                         if enb != updated_fields['enable']:
                             del updated_fields['enable']
+                            break
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
         self.dispatcher.dispatch_event('service.changed', {
