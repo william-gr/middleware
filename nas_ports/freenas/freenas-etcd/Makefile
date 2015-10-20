@@ -14,6 +14,7 @@ MAINTAINER=     dev@ixsystems.com
 COMMENT=        FreeNAS /etc filesystem daemon
 
 RUN_DEPENDS=	\
+		${PYTHON_PKGNAMEPREFIX}htpasswd>0:${PORTSDIR}/security/py-htpasswd \
 		${PYTHON_PKGNAMEPREFIX}mako>0:${PORTSDIR}/textproc/py-mako
 
 USES=		python
