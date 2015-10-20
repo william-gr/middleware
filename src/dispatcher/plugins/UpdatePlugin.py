@@ -54,10 +54,6 @@ update_cache = CacheStore()
 update_resource_string = 'update:operations'
 
 
-def _depends():
-    return ['SystemDatasetPlugin']
-
-
 def parse_changelog(changelog, start='', end=''):
     "Utility function to parse an available changelog"
     regexp = r'### START (\S+)(.+?)### END \1'
@@ -725,14 +721,17 @@ class UpdateVerifyTask(ProgressTask):
 
 
 @description("Checks for updates from the update server and downloads them if available")
-@accepts()
+@accepts(h.any_of(
+    bool,
+    None,
+))
 @returns(bool)
 class CheckFectchUpdateTask(ProgressTask):
     def describe(self):
         return "Checks for updates from the update server and downloads them if available. " +\
                "Returns Ture if updates were found and applied else False"
 
-    def verify(self):
+    def verify(self, mail=False):
         block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
             raise VerifyException(errno.EBUSY, (
@@ -742,18 +741,32 @@ class CheckFectchUpdateTask(ProgressTask):
 
         return []
 
-    def run(self):
-        self.message = 'Checking for new updates from update server...'
-        self.set_progress(0)
+    def run(self, mail=False):
+        self.set_progress(0, 'Checking for new updates from update server...')
         self.join_subtasks(self.run_subtask('update.check'))
         if self.dispatcher.call_sync('update.is_update_available'):
-            self.message = 'New updates found. Downloading them now...'
-            self.set_progress(20)
+            self.set_progress(20, 'New updates found. Downloading them now...')
             self.join_subtasks(self.run_subtask('update.download'))
-            self.message = 'Updates successfully Downloaded.'
-            self.set_progress(100)
+
+            if mail:
+                changelog = self.dispatcher.call_sync('update.obtain_changelog')
+                train = self.dispatcher.call_sync('update.get_config').get('train')
+
+                self.dispatcher.call_sync('mail.send', {
+                    'subject': 'Update Available',
+                    'message': 'A new update is available for the {0} train.\n\nChangelog:\n{1}'.format(
+                        train, changelog
+                    ),
+                })
+
+            self.set_progres(100, 'Updates successfully Downloaded')
+
             return True
         return False
+
+
+def _depends():
+    return ['MailPlugin', 'SystemDatasetPlugin']
 
 
 def _init(dispatcher, plugin):
