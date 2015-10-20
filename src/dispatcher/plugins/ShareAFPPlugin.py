@@ -25,14 +25,13 @@
 #
 #####################################################################
 
-
 import errno
 import psutil
 from task import Task, TaskStatus, Provider, TaskException
 from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from utils import first_or_default
+from fnutils import first_or_default, normalize
 
 
 @description("Provides info about configured AFP shares")
@@ -67,9 +66,22 @@ class CreateAFPShareTask(Task):
         return ['service:afp']
 
     def run(self, share):
+        normalize(share['properties'], {
+            'read_only': False,
+            'time_machine': False,
+            'zero_dev_numbers': False,
+            'no_stat': False,
+            'afp3_privileges': False,
+            'ro_list': None,
+            'rw_list': None,
+            'users_allow': None,
+            'users_deny': None,
+            'hosts_allow': None,
+            'hosts_deny': None
+        })
+
         self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'afp')
-        self.dispatcher.call_sync('services.ensure_started', 'afp')
         self.dispatcher.call_sync('services.reload', 'afp')
         self.dispatcher.dispatch_event('shares.afp.changed', {
             'operation': 'create',
