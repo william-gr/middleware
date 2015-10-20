@@ -207,6 +207,7 @@ class Context(object):
                 'args': {'type': 'array'},
                 'description': {'type': 'string'},
                 'enabled': {'type': 'boolean'},
+                'hidden': {'type': 'boolean'},
                 'status': {'$ref': 'calendar-task-status'},
                 'schedule': {
                     'type': 'object',
