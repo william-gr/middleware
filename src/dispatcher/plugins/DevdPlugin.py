@@ -129,10 +129,11 @@ class DevdEventSource(EventSource):
         self.register_event_type("fs.zfs.resilver.finished")
         self.register_event_type("fs.zfs.pool.created")
         self.register_event_type("fs.zfs.pool.destroyed")
+        self.register_event_type("fs.zfs.pool.updated")
+        self.register_event_type("fs.zfs.pool.changed")
         self.register_event_type("fs.zfs.dataset.created")
         self.register_event_type("fs.zfs.dataset.deleted")
         self.register_event_type("fs.zfs.dataset.renamed")
-        self.register_event_type("fs.zfs.pool.updated")
 
     def __tokenize(self, line):
         return {i.split("=")[0]: i.split("=")[1] for i in line.split()}
@@ -180,25 +181,32 @@ class DevdEventSource(EventSource):
             "misc.fs.zfs.dataset_create": ("fs.zfs.dataset.created", "Dataset on pool {0} created"),
             "misc.fs.zfs.dataset_delete": ("fs.zfs.dataset.deleted", "Dataset on pool {0} deleted"),
             "misc.fs.zfs.dataset_rename": ("fs.zfs.dataset.renamed", "Dataset on pool {0} renamed"),
-            "misc.fs.zfs.config_sync": ("fs.zfs.pool.updated", "Pool {0} configuration updated")
+            "misc.fs.zfs.config_sync": ("fs.zfs.pool.updated", "Pool {0} configuration updated"),
+            "misc.fs.zfs.vdev_statechange": ("fs.zfs.pool.changed", "Pool {0} status changed"),
         }
 
         if args["type"] not in event_mapping:
             return
 
+        ev_type = args.pop("type")
+        pool_name = args.pop("pool_name", None)
+
         params = {
-            "pool": args.get("pool_name"),
-            "guid": args.get("pool_guid"),
-            "description": event_mapping[args["type"]][1].format(args["pool_name"])
+            "pool": pool_name,
+            "guid": args.pop("pool_guid", None),
+            "description": event_mapping[ev_type][1].format(pool_name)
         }
 
         if "ds" in args:
-            params["ds"] = args["ds"]
+            params["ds"] = args.pop("ds")
 
         if "new_ds" in args:
-            params["new-ds"] = args["new_ds"]
+            params["new-ds"] = args.pop("new_ds")
 
-        self.emit_event(event_mapping[args["type"]][0], **params)
+        if args:
+            params["extra"] = args
+
+        self.emit_event(event_mapping[ev_type][0], **params)
 
     def run(self):
         while True:
