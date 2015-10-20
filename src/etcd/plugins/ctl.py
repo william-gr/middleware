@@ -52,7 +52,7 @@ def generate_luns(context):
 
     for disk in context.datastore.query('simulator.disks'):
         extent = {
-            'path': os.path.join('/var/tmp/simulator', disk['id']),
+            'path': disk['path'],
             'blocksize': disk['block_size'],
             'serial': disk['serial'],
             'options': {
