@@ -24,9 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-from datetime import datetime
 import logging
-
 
 logger = logging.getLogger('AlertVolume')
 
@@ -37,8 +35,16 @@ def _depends():
 
 def _init(dispatcher, plugin):
 
-    def volumes_status():
-        for volume in dispatcher.rpc.call_sync('volumes.query'):
+    def volumes_status(args):
+        if args:
+            # Make sure event is for root pool vdev
+            if args['guid'] != args['extra']['vdev_guid']:
+                return
+            qargs = [('name', '=', args.get('pool'))]
+        else:
+            qargs = []
+
+        for volume in dispatcher.rpc.call_sync('volumes.query', qargs):
             if volume['status'] == 'ONLINE':
                 continue
             dispatcher.rpc.call_sync('alerts.emit', {
@@ -52,6 +58,6 @@ def _init(dispatcher, plugin):
 
     dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status', 'Volume Status')
 
-    # TODO: register event handler
+    plugin.register_event_handler('fs.zfs.pool.changed', volumes_status)
 
-    volumes_status()
+    volumes_status(None)
