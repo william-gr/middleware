@@ -25,12 +25,11 @@
 #
 #####################################################################
 
-
 import errno
-import psutil
+import pwd
+import datetime
 import smbconf
 from task import Task, TaskStatus, Provider, TaskException
-from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from fnutils import first_or_default, normalize
@@ -39,8 +38,23 @@ from fnutils import first_or_default, normalize
 @description("Provides info about configured CIFS shares")
 class CIFSSharesProvider(Provider):
     @private
-    def get_connected_clients(self, share_name):
-        pass
+    def get_connected_clients(self, share_name=None):
+        result = []
+        for i in smbconf.get_active_users():
+            try:
+                user = pwd.getpwuid(i.uid).pw_name
+            except KeyError:
+                user = None
+
+            result.append({
+                'host': i.machine,
+                'share': i.service_name,
+                'user': user,
+                'connected_at': datetime.datetime.fromtimestamp(i.start),
+                'extra': {}
+            })
+
+        return result
 
 
 @description("Adds new CIFS share")
