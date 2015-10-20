@@ -33,9 +33,6 @@ from dispatcher.rpc import SchemaHelper as h
 from fnutils import normalize
 
 
-SIMULATOR_ROOT = '/var/tmp/simulator'
-
-
 class FakeDisksProvider(Provider):
     def query(self, filter=None, params=None):
         return self.datastore.query('simulator.disks', *(filter or []), **(params or {}))
@@ -52,9 +49,10 @@ class CreateFakeDisk(Task):
         return ['system']
 
     def run(self, disk):
+        defpath = os.path.join(self.dispatcher.call_sync('system_dataset.request_directory', 'simulator'), disk['id'])
         normalize(disk, {
             'vendor': 'FreeNAS',
-            'path': os.path.join(SIMULATOR_ROOT, disk['id']),
+            'path': defpath,
             'model': 'Virtual Disk',
             'serial': self.dispatcher.call_sync('shares.iscsi.generate_serial'),
             'block_size': 512,
@@ -100,6 +98,10 @@ class DeleteFakeDisk(Task):
         self.dispatcher.call_sync('services.reload', 'ctl')
 
 
+def _depends():
+    return ['SystemDatasetPlugin']
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('simulated-disk', {
         'type': 'object',
@@ -112,6 +114,7 @@ def _init(dispatcher, plugin):
             'model': {'type': 'string'},
             'serial': {'type': 'string'},
             'block_size': {'type': 'integer'},
+            'online': {'type': 'boolean'},
             'rpm': {
                 'type': 'string',
                 'enum': ['UNKNOWN', 'SSD', '5400', '7200', '10000', '15000']
@@ -119,8 +122,7 @@ def _init(dispatcher, plugin):
         }
     })
 
-    if not os.path.isdir(SIMULATOR_ROOT):
-        os.mkdir(SIMULATOR_ROOT)
+    dispatcher.call_sync('system_dataset.request_directory', 'simulator')
 
     plugin.register_provider('simulator.disks', FakeDisksProvider)
     plugin.register_task_handler('simulator.disks.create', CreateFakeDisk)
