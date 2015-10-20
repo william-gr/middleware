@@ -56,8 +56,24 @@ def _init(dispatcher, plugin):
                 'severity': 'CRITICAL',
             })
 
+    def volume_upgraded():
+        for volume in dispatcher.rpc.call_sync('volumes.query'):
+            if volume['status'] == 'UNAVAIL':
+                continue
+
+            if volume.get('upgraded') is not False:
+                continue
+
+            dispatcher.rpc.call_sync('alerts.emit', {
+                'name': 'volumes.version',
+                'description': 'New feature flags are available for volume {0}'.format(volume['name']),
+                'severity': 'WARNING',
+            })
+
     dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status', 'Volume Status')
+    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.version', 'Volume Version')
 
     plugin.register_event_handler('fs.zfs.pool.changed', volumes_status)
 
     volumes_status(None)
+    volume_upgraded()
