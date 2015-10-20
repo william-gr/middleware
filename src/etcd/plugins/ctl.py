@@ -60,7 +60,8 @@ def generate_luns(context):
                 'vendor': disk['vendor'],
                 'product': disk['model'],
                 'naa': disk['naa'],
-                'rpm': convert_rpm(disk['rpm'])
+                'rpm': convert_rpm(disk['rpm']),
+                'removable': 'on'
             }
         }
 
@@ -112,7 +113,7 @@ def generate_targets(context):
 
         result['naa.5000c50006815e48'] = {
             'port': 'camsim',
-            'lun': map(generate_lun, enumerate(context.datastore.query('simulator.disks')))
+            'lun': map(generate_lun, enumerate(context.datastore.query('simulator.disks', ('online', '=', True))))
         }
 
     for i in context.datastore.query('iscsi.targets'):
