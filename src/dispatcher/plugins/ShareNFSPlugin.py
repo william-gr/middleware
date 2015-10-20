@@ -25,13 +25,10 @@
 #
 #####################################################################
 
-import os
-import errno
 import logging
 from task import Task, TaskStatus, Provider, TaskException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from resources import Resource
 
 
 logger = logging.getLogger(__name__)
