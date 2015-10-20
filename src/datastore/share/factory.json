@@ -1300,6 +1300,14 @@
                         "mountd"
                     ]
                 },
+                "pidfile": [
+                    "/var/run/rpcbind.pid",
+                    "/var/run/nfsd.pid",
+                    "/var/run/mountd.pid",
+                    "/var/run/rpc.statd.pid",
+                    "/var/run/rpc.lockd.pid",
+                    "/var/run/gssd.pid"
+                ],
                 "builtin": false,
                 "etcd-group": "nfs",
                 "name": "nfs"
