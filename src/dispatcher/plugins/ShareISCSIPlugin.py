@@ -260,6 +260,7 @@ class CreateISCSIAuthGroupTask(Task):
 
     def run(self, auth_group):
         normalize(auth_group, {
+            'id': self.datastore.collection_get_next_pkey('iscsi.auth', 'ag'),
             'users': None,
             'initiators': None,
             'networks': None
@@ -319,6 +320,7 @@ class CreateISCSIPortalTask(Task):
 
     def run(self, portal):
         normalize(portal, {
+            'id': self.datastore.collection_get_next_pkey('iscsi.auth', 'pg'),
             'discovery_auth_group': None,
             'discovery_auth_method': 'NONE',
             'portals': []
