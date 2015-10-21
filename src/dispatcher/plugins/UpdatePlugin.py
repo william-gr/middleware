@@ -32,6 +32,7 @@ import logging
 import os
 import signal
 import sys
+import random
 import re
 import tempfile
 from resources import Resource
@@ -767,10 +768,32 @@ class CheckFectchUpdateTask(ProgressTask):
 
 
 def _depends():
-    return ['MailPlugin', 'SystemDatasetPlugin']
+    return ['CalendarTasksPlugin', 'MailPlugin', 'SystemDatasetPlugin']
 
 
 def _init(dispatcher, plugin):
+
+    def nightly_update_check():
+        caltask = dispatcher.call_sync(
+            'calendar_tasks.query', [('name', '=', 'update.checkfetch')], {'single': True}
+        ) or {'schedule': {}}
+
+        caltask.update({
+            'name': 'update.checkfetch',
+            'args': [True],
+            'hidden': True,
+            'description': 'Nightly update check',
+        })
+        caltask['schedule'].update({
+            'hour': str(random.randint(1, 6)),
+            'minute': str(random.randint(0, 59)),
+        })
+
+        if caltask.get('id'):
+            dispatcher.call_task_sync('calendar_tasks.update', caltask['id'], caltask)
+        else:
+            dispatcher.call_task_sync('calendar_tasks.create', caltask)
+
     # Register Schemas
     plugin.register_schema_definition('update', {
         'type': 'object',
@@ -855,3 +878,6 @@ def _init(dispatcher, plugin):
 
     # Get the Update Cache (if any) at system boot (and hence in init here)
     generate_update_cache(dispatcher)
+
+    # Schedule a task to check/dowload for updates
+    nightly_update_check()
