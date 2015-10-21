@@ -210,11 +210,14 @@ class RpcException(Exception):
     def __init__(self, code, message, extra=None, stacktrace=None):
         self.code = code
         self.message = message
-        self.extra = extra if extra else ''
+        self.extra = extra
         self.stacktrace = stacktrace or traceback.format_exc()
 
     def __str__(self):
-        return "{0}: {1} {2}".format(errno.errorcode[self.code], self.message, self.extra)
+        return "{0}: {1} {2}".format(
+            errno.errorcode[self.code],
+            self.message,
+            self.extra if self.extra else '')
 
 
 class ServerLockProxy(object):
