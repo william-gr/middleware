@@ -312,7 +312,7 @@ class DeleteISCSIAuthGroupTask(Task):
         })
 
 
-@accepts(str, h.ref('iscsi-portal'))
+@accepts(h.ref('iscsi-portal'))
 class CreateISCSIPortalTask(Task):
     def verify(self, portal):
         return ['service:ctl']
