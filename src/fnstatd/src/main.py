@@ -42,6 +42,7 @@ import tables
 import signal
 import socket
 import time
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import gevent
@@ -184,10 +185,10 @@ class DataSource(object):
         self.last_value = value
 
     def persist(self, timestamp, buffer, bucket):
+        count = bucket.inverval.total_seconds() / self.config.buckets[0].interval.total_seconds()
         data = self.bucket_buffers[0].data
-        df = pd.TimeSeries(index=data['timestamp'], data=data['value'])
-        df = df[bucket.covered_start:bucket.covered_end]
-        buffer.push(timestamp, df.mean())
+        mean = np.mean(data[-count:])
+        buffer.push(timestamp, mean)
 
     def query(self, start, end, frequency):
         self.logger.debug('Query: start={0}, end={1}, frequency={2}'.format(start, end, frequency))
