@@ -91,7 +91,7 @@ class ISCSIAuthProvider(Provider):
 
 class ISCSIPortalProvider(Provider):
     def query(self, filter=None, params=None):
-        return self.datastore.query('iscsi.portal', *(filter or []), **(params or {}))
+        return self.datastore.query('iscsi.portals', *(filter or []), **(params or {}))
 
 
 @description("Adds new iSCSI share")
