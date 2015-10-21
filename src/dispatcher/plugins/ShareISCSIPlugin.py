@@ -89,6 +89,11 @@ class ISCSIAuthProvider(Provider):
         return self.datastore.query('iscsi.auth', *(filter or []), **(params or {}))
 
 
+class ISCSIPortalProvider(Provider):
+    def query(self, filter=None, params=None):
+        return self.datastore.query('iscsi.portal', *(filter or []), **(params or {}))
+
+
 @description("Adds new iSCSI share")
 @accepts(h.ref('iscsi-share'))
 class CreateISCSIShareTask(Task):
@@ -307,6 +312,65 @@ class DeleteISCSIAuthGroupTask(Task):
         })
 
 
+@accepts(str, h.ref('iscsi-portal'))
+class CreateISCSIPortalTask(Task):
+    def verify(self, portal):
+        return ['service:ctl']
+
+    def run(self, portal):
+        normalize(portal, {
+            'discovery_auth_group': None,
+            'discovery_auth_method': 'NONE',
+            'portals': []
+        })
+
+        id = self.datastore.insert('iscsi.portals', portal)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
+        self.dispatcher.call_sync('services.reload', 'ctl')
+        self.dispatcher.dispatch_event('iscsi.portal.changed', {
+            'operation': 'create',
+            'ids': [id]
+        })
+
+
+@accepts(str, h.ref('iscsi-portal'))
+class UpdateISCSIPortalTask(Task):
+    def verify(self, id, updated_params):
+        if not self.datastore.exists('iscsi.portals', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Portal {0} does not exist'.format(id))
+
+        return ['service:ctl']
+
+    def run(self, id, updated_params):
+        ag = self.datastore.get_by_id('iscsi.portals', id)
+        ag.update(updated_params)
+        self.datastore.update('iscsi.auth', id, ag)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
+        self.dispatcher.call_sync('services.reload', 'ctl')
+        self.dispatcher.dispatch_event('iscsi.portal.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
+
+
+@accepts(str)
+class DeleteISCSIPortalTask(Task):
+    def verify(self, id):
+        if not self.datastore.exists('iscsi.portals', ('id', '=', id)):
+            raise VerifyException(errno.ENOENT, 'Portal {0} does not exist'.format(id))
+
+        return ['service:ctl']
+
+    def run(self, id):
+        self.datastore.delete('iscsi.portals', id)
+        self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
+        self.dispatcher.call_sync('services.reload', 'ctl')
+        self.dispatcher.dispatch_event('iscsi.portal.changed', {
+            'operation': 'delete',
+            'ids': [id]
+        })
+
+
 def convert_share_target(target):
     if target[0] == '/':
         return target
@@ -430,6 +494,27 @@ def _init(dispatcher, plugin):
         }
     })
 
+    plugin.register_schema_definition('iscsi-portal', {
+        'type': 'object',
+        'additionalProperties': False,
+        'properties': {
+            'description': {'type': 'string'},
+            'discovery_auth_group': {'type': ['integer', 'null']},
+            'discovery_auth_method': {
+                'type': 'string',
+                'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
+            },
+            'portals': {
+                'type': 'object',
+                'additionalProperties': False,
+                'properties': {
+                    'address': {'$ref': 'ip-address'},
+                    'port': {'type': 'integer'}
+                }
+            }
+        }
+    })
+
     plugin.register_task_handler("share.iscsi.create", CreateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.update", UpdateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.delete", DeleteiSCSIShareTask)
@@ -439,8 +524,12 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("share.iscsi.auth.create", CreateISCSIAuthGroupTask)
     plugin.register_task_handler("share.iscsi.auth.update", UpdateISCSIAuthGroupTask)
     plugin.register_task_handler("share.iscsi.auth.delete", DeleteISCSIAuthGroupTask)
+    plugin.register_task_handler("share.iscsi.portal.create", CreateISCSIPortalTask)
+    plugin.register_task_handler("share.iscsi.portal.update", UpdateISCSIPortalTask)
+    plugin.register_task_handler("share.iscsi.portal.delete", DeleteISCSIPortalTask)
 
     plugin.register_provider("shares.iscsi", ISCSISharesProvider)
     plugin.register_provider("shares.iscsi.target", ISCSITargetsProvider)
     plugin.register_provider("shares.iscsi.auth", ISCSIAuthProvider)
+    plugin.register_provider("shares.iscsi.portal", ISCSIPortalProvider)
     plugin.register_event_type('shares.iscsi.changed')
