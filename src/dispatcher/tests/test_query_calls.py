@@ -47,63 +47,64 @@ class QueryTest(BaseTestCase):
 
     def test_query_volumes(self):
         volumes = self.conn.call_sync('volumes.query')
-        pretty_print(volumes)
+        self.pretty_print(volumes)
 
     def test_query_sessions(self):
         sessions = self.conn.call_sync('sessions.query')
-        pretty_print(sessions)
+        self.pretty_print(sessions)
     
         
-    def test_query_all_disks(self):
+    def test_disks_query(self):
         disks = self.conn.call_sync('disks.query')
-        pretty_print(disks)
+        self.pretty_print(disks)
         self.assertIsInstance(disks, list)
 
-    def test_query_boot_envoronments(self):
+    def test_boot_envoronments_query(self):
         res = self.conn.call_sync('boot.environments.query')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertTrue(len(res))
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], dict)
 
-    def test_query_zfs_pool(self):
+    def test_zfs_pool_query(self):
         res = self.conn.call_sync('zfs.pool.query')
-        pretty_print(res)    
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)    
 
-    def atest_get_disk_path(self, disk):
-        disks = self.conn.call_sync('volumes.get_disks_allocation')
-        pretty_print(disks)  
+    def atest_get_disks_allocation(self, disk):
+        disks = self.conn.call_sync('volumes.get_disks_allocation', )
+        self.pretty_print(disks)  
         disks = self.conn.call_sync('volumes.find_media')
-        pretty_print(disks) 
+        self.pretty_print(disks) 
 
     def test_scheduler_management_query(self):
         res = self.conn.call_sync('scheduler.management.query')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, list) 
 
     def test_system_advanced_get_config(self):
         res = self.conn.call_sync('system.advanced.get_config')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict)
 
     def test_system_ui_get_config(self):
         res = self.conn.call_sync('system.ui.get_config')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict)    
 
     def test_networkd_configuration_query_interfaces(self):
         res = self.conn.call_sync('networkd.configuration.query_interfaces')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict)    
 
     def test_service_ssh_get_config(self):
         res = self.conn.call_sync('service.ssh.get_config')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict) 
 
     def test_service_ttfp_get_config(self):
         res = self.conn.call_sync('service.tftp.get_config')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict) 
 
     def test_service_smartd_get_config(self):
@@ -116,16 +117,36 @@ class QueryTest(BaseTestCase):
          "service smartd stop" 
         '''
         res = self.conn.call_sync('service.smartd.get_config')
-        pretty_print(res)
+        self.pretty_print(res)
         self.assertIsInstance(res, dict) 
         self.assertTrue(res['enable'])
 
+    def test_statd_output_get_data_sources(self):
+        res = self.conn.call_sync('statd.output.get_data_sources')
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)
+        self.assertNotEqual(res, [])             
 
-# HELPER
-def pretty_print(res):
-    if '-v' in sys.argv:
-        print json.dumps(res, indent=4, sort_keys=True)
+    def test_shares_iscsi_target_query(self):
+        res = self.conn.call_sync('shares.iscsi.target.query')
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)
 
+    def test_shares_query(self):
+        res = self.conn.call_sync('shares.query')
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)
+        if len(res):
+            self.assertIsInstance(res[0], dict)  
+
+# ZFS
+    def test_qfs_dataset_query(self):
+        # all boots should be listed in here too
+        res = self.conn.call_sync('zfs.dataset.query')
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)
+        if len(res):
+            self.assertIsInstance(res[0], dict)  
 
 if __name__ == '__main__':
     unittest.main()
