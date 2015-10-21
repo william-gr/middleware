@@ -188,7 +188,8 @@ def run(context):
         'lun': generate_luns(context),
         'target': generate_targets(context),
         'auth-group': generate_auth_groups(context),
-        'portal-group': generate_portal_groups(context)
+        'portal-group': generate_portal_groups(context),
+        'isns-server': context.configstore.get('service.iscsi.isns_servers')
     }
 
     with open('/etc/ctl.conf', 'w') as f:
