@@ -498,6 +498,7 @@ def _init(dispatcher, plugin):
         'type': 'object',
         'additionalProperties': False,
         'properties': {
+            'id': {'type': 'string'},
             'description': {'type': 'string'},
             'discovery_auth_group': {'type': ['integer', 'null']},
             'discovery_auth_method': {
@@ -505,11 +506,13 @@ def _init(dispatcher, plugin):
                 'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
             },
             'portals': {
-                'type': 'object',
-                'additionalProperties': False,
-                'properties': {
-                    'address': {'$ref': 'ip-address'},
-                    'port': {'type': 'integer'}
+                'type': 'array',
+                'items': {
+                    'additionalProperties': False,
+                    'properties': {
+                        'address': {'$ref': 'ip-address'},
+                        'port': {'type': 'integer'}
+                    }
                 }
             }
         }
