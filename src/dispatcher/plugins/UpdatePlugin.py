@@ -755,11 +755,12 @@ class CheckFectchUpdateTask(ProgressTask):
                 self.dispatcher.call_sync('mail.send', {
                     'subject': 'Update Available',
                     'message': 'A new update is available for the {0} train.\n\nChangelog:\n{1}'.format(
-                        train, changelog
+                        train,
+                        '\n'.join(changelog),
                     ),
                 })
 
-            self.set_progres(100, 'Updates successfully Downloaded')
+            self.set_progress(100, 'Updates successfully Downloaded')
 
             return True
         return False
