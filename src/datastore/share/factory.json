@@ -735,7 +735,7 @@
             "service.simulator.enable": false,
             "service.iscsi.enable": false,
             "service.iscsi.base_name": "iqn.2005-10.org.freenas.ctl",
-            "service.iscsi.isns_name_servers": [],
+            "service.iscsi.isns_servers": [],
             "service.devd.enable": true,
             "service.syslog.enable": true,
             "service.collectd.enable": true,
