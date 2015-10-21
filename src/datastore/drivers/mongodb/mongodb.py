@@ -181,6 +181,15 @@ class MongodbDatastore(object):
         item = self.db['collections'].find_one({"_id": name})
         return item['pkey-type']
 
+    def collection_get_next_pkey(self, name, prefix):
+        counter = 0
+        while True:
+            pkey = prefix + str(counter)
+            if not self.exists(name, ('id', '=', pkey)):
+                return pkey
+
+            counter += 1
+
     def query(self, collection, *args, **kwargs):
         sort = kwargs.pop('sort', None)
         limit = kwargs.pop('limit', None)
