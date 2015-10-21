@@ -31,7 +31,6 @@ import logging
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns, private
 from task import Task, Provider, TaskException, ValidationException
-from fnutils import exclude
 
 
 logger = logging.getLogger('ISCSIPlugin')
@@ -59,7 +58,6 @@ class ISCSIConfigureTask(Task):
     def run(self, iscsi):
         try:
             node = ConfigNode('service.iscsi', self.configstore)
-            node.update(exclude(iscsi, 'portals'))
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
             self.dispatcher.call_sync('services.apply_state', 'iscsi')
@@ -87,30 +85,9 @@ def _init(dispatcher, plugin):
             'enable': {'type': 'boolean'},
             'base_name': {'type': 'string'},
             'pool_space_threshold': {'type': ['integer', 'null']},
-            'portals': {
+            'isns_servers': {
                 'type': 'array',
-                'items': {'$ref': 'iscsi-portal'}
-            }
-        }
-    })
-
-    plugin.register_schema_definition('iscsi-portal', {
-        'type': 'object',
-        'additionalProperties': False,
-        'properties': {
-            'description': {'type': 'string'},
-            'discovery_auth_group': {'type': ['integer', 'null']},
-            'discovery_auth_method': {
-                'type': 'string',
-                'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
-            },
-            'portals': {
-                'type': 'object',
-                'additionalProperties': False,
-                'properties': {
-                    'address': {'$ref': 'ip-address'},
-                    'port': {'type': 'integer'}
-                }
+                'items': {'type': 'string'}
             }
         }
     })
