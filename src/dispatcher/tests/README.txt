@@ -1,6 +1,6 @@
 
 Run tests from directory: middleware/src/dispatcher/tests
-PYTHONPATH should be set to ../../client/python:../py-fnutils
+PYTHONPATH should be set to ../client/python:../../py-fnutils
 TESTHOST should point to the server IP the tests are running on: example: 10.5.0.160
 
 Packages to install prior to running the tests:
@@ -9,6 +9,8 @@ Packages to install prior to running the tests:
  sudo pkg install py27-enum34-1.0.4
  sudo pkg install py27-dateutil-2.3
  sudo pkg install py27-ws4py-0.3.4
+ sudo pkg install py27-HTMLgen-2.2.2
+ 
 
 To run individual tests:
 python <name of the python test file>: python test_services.py
