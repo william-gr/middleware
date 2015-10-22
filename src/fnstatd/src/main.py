@@ -195,11 +195,12 @@ class DataSource(object):
         buckets = list(self.config.get_covered_buckets(start, end))
         df = pd.DataFrame()
 
-        for b in reversed(buckets):
+        for b in buckets:
             new = self.bucket_buffers[b.index].df
             if new is not None:
                 df = pd.concat((df, new))
 
+        df = df.reset_index().drop_duplicates(subset='index').set_index('index')
         df = df.sort()[0]
         df = df[start:end]
         df = df.resample(frequency, how='mean').interpolate()
