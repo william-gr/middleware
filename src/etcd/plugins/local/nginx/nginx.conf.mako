@@ -10,7 +10,7 @@
 %>\
 user www;
 pid /var/run/nginx.pid;
-error_log /var/log/nginx-error.log debug;
+error_log /var/log/nginx-error.log warn;
 
 events {
     worker_connections 1024;
