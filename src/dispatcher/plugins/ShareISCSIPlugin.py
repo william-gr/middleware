@@ -273,6 +273,7 @@ class CreateISCSIAuthGroupTask(Task):
             'operation': 'create',
             'ids': [id]
         })
+        return id
 
 
 @accepts(str, h.ref('iscsi-auth-group'))
@@ -333,6 +334,7 @@ class CreateISCSIPortalTask(Task):
             'operation': 'create',
             'ids': [id]
         })
+        return id
 
 
 @accepts(str, h.ref('iscsi-portal'))
