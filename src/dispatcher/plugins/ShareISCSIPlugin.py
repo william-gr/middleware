@@ -346,7 +346,7 @@ class UpdateISCSIPortalTask(Task):
     def run(self, id, updated_params):
         ag = self.datastore.get_by_id('iscsi.portals', id)
         ag.update(updated_params)
-        self.datastore.update('iscsi.auth', id, ag)
+        self.datastore.update('iscsi.portals', id, ag)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
         self.dispatcher.dispatch_event('iscsi.portal.changed', {
