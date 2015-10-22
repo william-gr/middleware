@@ -502,7 +502,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'id': {'type': 'string'},
             'description': {'type': 'string'},
-            'discovery_auth_group': {'type': ['integer', 'null']},
+            'discovery_auth_group': {'type': ['string', 'null']},
             'discovery_auth_method': {
                 'type': 'string',
                 'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
