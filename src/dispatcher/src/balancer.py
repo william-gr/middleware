@@ -381,7 +381,9 @@ class Balancer(object):
         errors = self.verify_schema(self.dispatcher.tasks[name], args)
         if len(errors) > 0:
             errors = list(validator.serialize_errors(errors))
-            self.logger.warning("Cannot submit task %s: schema verification failed", name)
+            self.logger.warning(
+                "Cannot submit task {0}: schema verification failed with errors {1}".format(name, errors)
+            )
             raise RpcException(errno.EINVAL, "Schema verification failed", extra=errors)
 
         task = Task(self.dispatcher, name)
