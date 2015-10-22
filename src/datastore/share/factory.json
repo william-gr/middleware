@@ -1679,6 +1679,19 @@
     },
     {
         "metadata": {
+            "name": "shares",
+            "migration": "keep",
+            "pkey-type": "uuid",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+
+        }
+    },
+    {
+        "metadata": {
             "name": "iscsi.targets",
             "migration": "keep",
             "pkey-type": "native",
