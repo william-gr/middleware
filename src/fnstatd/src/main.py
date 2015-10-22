@@ -185,7 +185,7 @@ class DataSource(object):
         self.last_value = value
 
     def persist(self, timestamp, buffer, bucket):
-        count = bucket.inverval.total_seconds() / self.config.buckets[0].interval.total_seconds()
+        count = bucket.interval.total_seconds() / self.config.buckets[0].interval.total_seconds()
         data = self.bucket_buffers[0].data
         mean = np.mean(data[-count:])
         buffer.push(timestamp, mean)
