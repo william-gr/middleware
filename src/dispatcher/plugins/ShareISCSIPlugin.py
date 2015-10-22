@@ -421,7 +421,6 @@ def _init(dispatcher, plugin):
             'id': {'type': 'string'},
             'description': {'type': 'string'},
             'auth_group': {'type': 'string'},
-            'auth_type': {'type': 'string'},
             'extents': {
                 'type': 'array',
                 'items': {
