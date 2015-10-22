@@ -267,6 +267,7 @@ class Task(object):
 
     def set_state(self, state, progress=None, error=None):
         event = {'id': self.id, 'name': self.name, 'state': state}
+        self.state = state
 
         if error:
             self.error = error
@@ -280,9 +281,14 @@ class Task(object):
             event['finished_at'] = self.finished_at
             event['result'] = self.result
 
-        self.state = state
-        self.dispatcher.dispatch_event('task.updated', event)
+        if state != TaskState.CREATED:
+            self.dispatcher.dispatch_event('task.updated', event)
+
         self.dispatcher.datastore.update('tasks', self.id, self)
+        self.dispatcher.dispatch_event('task.changed', {
+            'operation': 'create' if state == TaskState.CREATED else 'update',
+            'ids': [self.id]
+        })
 
         if progress:
             self.progress = progress
@@ -329,6 +335,8 @@ class Balancer(object):
         self.create_initial_queues()
         self.distribution_lock = RLock()
         self.debugger = None
+
+        self.dispatcher.register_event_type('task.changed')
 
         # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
         # from the previous dispatcher instance and set their
@@ -392,11 +400,10 @@ class Balancer(object):
         task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = copy.deepcopy(args)
-        task.state = TaskState.CREATED
         task.debugger = self.debugger
         task.id = self.dispatcher.datastore.insert("tasks", task)
+        task.set_state(TaskState.CREATED)
         self.task_queue.put(task)
-        self.dispatcher.dispatch_event('task.created', {'id': task.id, 'name': name, 'state': task.state})
         self.logger.info("Task %d submitted (type: %s, class: %s)", task.id, name, task.clazz)
         return task.id
 
@@ -410,11 +417,11 @@ class Balancer(object):
         task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = args
-        task.state = TaskState.CREATED
         task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
         task.parent = parent
+        task.set_state(TaskState.CREATED)
         self.task_list.append(task)
         task.start()
         return task
