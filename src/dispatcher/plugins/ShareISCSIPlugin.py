@@ -320,7 +320,7 @@ class CreateISCSIPortalTask(Task):
 
     def run(self, portal):
         normalize(portal, {
-            'id': self.datastore.collection_get_next_pkey('iscsi.auth', 'pg'),
+            'id': self.datastore.collection_get_next_pkey('iscsi.portals', 'pg'),
             'discovery_auth_group': None,
             'discovery_auth_method': 'NONE',
             'portals': []
