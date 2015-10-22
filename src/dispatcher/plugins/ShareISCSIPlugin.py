@@ -251,7 +251,7 @@ class DeleteISCSITargetTask(Task):
 @accepts(
     h.all_of(
         h.ref('iscsi-auth-group'),
-        h.required('id', 'type')
+        h.required('type')
     )
 )
 class CreateISCSIAuthGroupTask(Task):
