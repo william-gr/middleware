@@ -169,7 +169,6 @@ class DeleteiSCSIShareTask(Task):
         return ['service:ctl']
 
     def run(self, name):
-        share = self.datastore.get_by_id('shares', name)
         self.datastore.delete('shares', name)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
