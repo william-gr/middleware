@@ -332,7 +332,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'autotune' in props:
                 cs.set('system.autotune', props['autotune'])
-                self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
+                #self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
                 loader = True
 
             if 'debugkernel' in props:

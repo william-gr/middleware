@@ -2,19 +2,6 @@
     import os
     import pwd
     import subprocess
-    import sys
-    if '/usr/local/www' not in sys.path:
-        sys.path.append('/usr/local/www')
-
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'freenasUI.settings')
-    if 'DJANGO_LOGGING_DISABLE' not in os.environ:
-        os.environ['DJANGO_LOGGING_DISABLE'] = 'true'
-
-    # Make sure to load all modules
-    from django.db.models.loading import cache
-    cache.get_apps()
-
-    from freenasUI.sharing.models import WebDAV_Share
 
     cfg = dispatcher.call_sync('service.webdav.get_config')
 
@@ -228,20 +215,20 @@ Listen ${cfg[field]}
     Options Indexes FollowSymLinks
   </Directory>
 
-% for share in WebDAV_Share.objects.all():
-  Alias /${share.webdav_name} "${share.webdav_path}"
-  <Directory "${share.webdav_path}">
-  </Directory>
-% if share.webdav_ro:
-  <Location /${share.webdav_name}>
-    AllowMethods GET OPTIONS PROPFIND
-  </Location>
-% endif
-<%
-    if share.webdav_perm:
-        subprocess.Popen("chown -R webdav:webdav %s" % share.webdav_path, shell=True)
-%>
-% endfor
+##% for share in WebDAV_Share.objects.all():
+##  Alias /${share.webdav_name} "${share.webdav_path}"
+##  <Directory "${share.webdav_path}">
+##  </Directory>
+##% if share.webdav_ro:
+##  <Location /${share.webdav_name}>
+##    AllowMethods GET OPTIONS PROPFIND
+##  </Location>
+##% endif
+##<%
+##    if share.webdav_perm:
+##        subprocess.Popen("chown -R webdav:webdav %s" % share.webdav_path, shell=True)
+##%>
+##% endfor
 
   # The following directives disable redirects on non-GET requests for
   # a directory that does not include the trailing slash.  This fixes a
