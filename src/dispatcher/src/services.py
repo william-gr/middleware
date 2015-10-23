@@ -386,6 +386,8 @@ class TaskService(RpcService):
             if i.state != TaskState.FINISHED:
                 raise RpcException(errno.EFAULT, 'Subtask failed: {0}'.format(i.error['message']))
 
+        return map(lambda t: t.result, subtasks)
+
 
 class LockService(RpcService):
     def initialize(self, context):
