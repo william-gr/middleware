@@ -1669,11 +1669,13 @@
             "migration": "keep",
             "pkey-type": "uuid",
             "attributes": {
-                "type": "config"
+                "type": "config",
+                "unique_indexes": [
+                    ["name", "type"]
+                ]
             }
         },
         "data": {
-
         }
     },
     {
