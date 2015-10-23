@@ -157,23 +157,30 @@ class UpdateShareTask(Task):
 
     def run(self, id, updated_fields):
         share = self.datastore.get_by_id('shares', id)
+        pool = share['target']
 
         if 'name' in updated_fields:
-            old_ds_name = os.path.join(share['target'], share['type'], share['name'])
-            new_ds_name = os.path.join(share['target'], share['type'], updated_fields['name'])
+            old_ds_name = os.path.join(pool, share['type'], share['name'])
+            new_ds_name = os.path.join(pool, share['type'], updated_fields['name'])
             self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
 
         old_type = share['type']
-        old_ds_name = os.path.join(share['target'], share['type'], share['name'])
+        old_ds_name = os.path.join(pool, share['type'], share['name'])
         share.update(updated_fields)
 
         if 'type' in updated_fields:
             # Rename dataset and convert share type
-            new_ds_name = os.path.join(share['target'], share['type'], share['name'])
+            new_root_ds = root_ds = os.path.join(pool, share['type'])
+            new_ds_name = os.path.join(new_root_ds, share['name'])
             new_share_type = self.dispatcher.call_sync('shares.supported_types').get(updated_fields['type'])
 
+            # Ensure that parent dataset for new type exists
+            if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
+                # Create root dataset for given sharing type
+                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
+
             self.join_subtasks(
-                self.run_subtask('volume.dataset.update', share['target'], old_ds_name, {
+                self.run_subtask('volume.dataset.update', pool, old_ds_name, {
                     'name': new_ds_name,
                     'permissions_type': new_share_type['perm_type']
                 })
