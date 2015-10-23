@@ -84,20 +84,13 @@ class SharesProvider(Provider):
 
         return self.dispatcher.call_sync('shares.{0}.get_connected_clients'.format(share['type']), share_name)
 
-    @description("Get shares dependent on provided filesystem path")
+    @description("Get shares dependent on provided volume")
     @accepts(str)
     @returns(h.array('share'))
-    def get_dependencies(self, path):
-        result = []
-        for i in self.datastore.query('shares', ('enabled', '=', True)):
-            if i['target'][0] != '/':
-                # non-filesystem share
-                continue
-
-            if i['target'].startswith(path):
-                result.append(i)
-
-        return result
+    def get_dependencies(self, volume):
+        return self.query([
+            ('target', '=', volume)
+        ])
 
 
 @description("Creates new share")
@@ -263,14 +256,14 @@ class DeleteShareTask(Task):
 @description("Deletes all shares dependent on specified volume/dataset")
 @accepts(str)
 class DeleteDependentShares(Task):
-    def verify(self, path):
+    def verify(self, volume ):
         return ['system']
 
-    def run(self, path):
+    def run(self, volume):
         subtasks = []
         ids = []
-        for i in self.dispatcher.call_sync('shares.get_dependencies', path):
-            subtasks.append(self.run_subtask('share.delete', i['id']))
+        for i in self.dispatcher.call_sync('shares.get_dependencies', volume):
+            subtasks.append(self.run_subtask('share.delete', i['id'], True))
             ids.append(i['id'])
 
         self.join_subtasks(*subtasks)
