@@ -70,7 +70,7 @@ def generate_luns(context):
     for share in context.datastore.query('shares', ('type', '=', 'iscsi')):
         props = share['properties']
         extent = {
-            'path': share['target'],
+            'path': os.path.join('/dev/zvol', share['dataset_path']),
             'blocksize': props['block_size'],
             'serial': props['serial'],
             'options': {
