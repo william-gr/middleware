@@ -346,7 +346,7 @@ def _init(dispatcher, plugin):
             'description': {'type': 'string'},
             'enabled': {'type': 'boolean'},
             'type': {'type': 'string'},
-            'parent': {'type': ['string', 'null']},
+            'target': {'type': 'string'},
             'filesystem_path': {'type': 'string'},
             'dataset_path': {'type': 'string'},
             'properties': {'type': 'object'}
