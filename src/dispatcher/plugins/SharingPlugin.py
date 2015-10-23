@@ -67,7 +67,8 @@ class SharesProvider(Provider):
         for p in self.dispatcher.plugins.values():
             if p.metadata and p.metadata.get('type') == 'sharing':
                 result[p.metadata['method']] = {
-                    'subtype': p.metadata['subtype']
+                    'subtype': p.metadata['subtype'],
+                    'perm_type': p.metadata['perm_type']
                 }
 
         return result
@@ -112,14 +113,20 @@ class CreateShareTask(Task):
         pool = share['target']
         root_ds = os.path.join(pool, share['type'])
         ds_name = os.path.join(root_ds, share['name'])
+        share_type = self.dispatcher.call_sync('shares.supported_types').get(share['type'])
+
+        if not share_type:
+            raise TaskException('Unsupported sharing type {0}'.format(share['type']))
 
         if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
             # Create root dataset for given sharing type
-            self.join_subtasks(self.run_subtask('zfs.create_dataset', pool, root_ds, 'FILESYSTEM'))
+            self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
 
-        self.join_subtasks(self.run_subtask('zfs.create_dataset', pool, ds_name, 'FILESYSTEM'))
+        self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
+            'permissions_type': share['perm_type']
+        }))
+
         self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
-
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'create',
             'ids': [share['id']]
@@ -134,28 +141,38 @@ class CreateShareTask(Task):
     )
 )
 class UpdateShareTask(Task):
-    def verify(self, name, updated_fields):
-        share = self.datastore.get_by_id('shares', name)
+    def verify(self, id, updated_fields):
+        share = self.datastore.get_by_id('shares', id)
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
 
         return ['system']
 
-    def run(self, name, updated_fields):
-        share = self.datastore.get_by_id('shares', name)
+    def run(self, id, updated_fields):
+        share = self.datastore.get_by_id('shares', id)
 
         if 'name' in updated_fields:
             old_ds_name = os.path.join(share['target'], share['type'], share['name'])
             new_ds_name = os.path.join(share['target'], share['type'], updated_fields['name'])
             self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
 
+        old_type = share['type']
+        share.update(updated_fields)
+
         if 'type' in updated_fields:
             # Convert share type
-            pass
-
-        self.join_subtasks(
-            self.run_subtask('share.{0}.update'.format(share['type']), name, updated_fields)
-        )
+            new_share_type = self.dispatcher.call_sync('shares.supported_types').get(updated_fields['type'])
+            self.join_subtasks(
+                self.run_subtask('volume.dataset.update', {
+                    'permissions_type': new_share_type['perm_type']
+                }),
+                self.run_subtask('share.{0}.delete'.format(old_type), id),
+                self.run_subtask('share.{0}.create'.format(share['type']), share)
+            )
+        else:
+            self.join_subtasks(
+                self.run_subtask('share.{0}.update'.format(share['type']), id, updated_fields)
+            )
 
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'update',
@@ -179,7 +196,7 @@ class DeleteShareTask(Task):
 
         self.join_subtasks(
             self.run_subtask('share.{0}.delete'.format(share['type']), id),
-            self.run_subtask('zfs.destroy', ds_name)
+            self.run_subtask('volume.dataset.delete', ds_name)
         )
 
         self.dispatcher.dispatch_event('shares.changed', {
