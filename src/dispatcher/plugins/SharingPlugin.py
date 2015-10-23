@@ -30,6 +30,7 @@ import errno
 from dispatcher.rpc import description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, TaskException, VerifyException, Provider, RpcException, query
+from fnutils import normalize
 
 
 class SharesProvider(Provider):
@@ -68,7 +69,7 @@ class SharesProvider(Provider):
             if p.metadata and p.metadata.get('type') == 'sharing':
                 result[p.metadata['method']] = {
                     'subtype': p.metadata['subtype'],
-                    'perm_type': p.metadata['perm_type']
+                    'perm_type': p.metadata.get('perm_type')
                 }
 
         return result
@@ -106,30 +107,36 @@ class SharesProvider(Provider):
     h.forbidden('id')
 ))
 class CreateShareTask(Task):
-    def verify(self, share):
+    def verify(self, share, skip_dataset=False):
         return ['system']
 
-    def run(self, share):
+    def run(self, share, skip_dataset=False):
         pool = share['target']
         root_ds = os.path.join(pool, share['type'])
         ds_name = os.path.join(root_ds, share['name'])
         share_type = self.dispatcher.call_sync('shares.supported_types').get(share['type'])
 
+        normalize(share, {
+            'enabled': True,
+            'description': ''
+        })
+
         if not share_type:
             raise TaskException('Unsupported sharing type {0}'.format(share['type']))
 
-        if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
-            # Create root dataset for given sharing type
-            self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
+        if not skip_dataset:
+            if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
+                # Create root dataset for given sharing type
+                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
 
-        self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
-            'permissions_type': share['perm_type']
-        }))
+            self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
+                'permissions_type': share_type['perm_type']
+            }))
 
-        self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
+        ids = self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'create',
-            'ids': [share['id']]
+            'ids': ids
         })
 
 
@@ -231,7 +238,25 @@ def _depends():
 
 def _init(dispatcher, plugin):
     def on_dataset_create(args):
-        pass
+        tokens = args['ds'].split('/', 3)
+        if len(tokens) < 3:
+            # We don't care about root dataset being created
+            # neither about direct children of root datasets
+            return
+
+        types = dispatcher.call_sync('shares.supported_types').keys()
+        pool, share_type, rest = tokens
+
+        if share_type not in types:
+            # Unknown type
+            return
+
+        dispatcher.call_task_sync('share.create', {
+            'name': rest,
+            'type': share_type,
+            'target': pool,
+            'properties': {}
+        }, True)
 
     plugin.register_schema_definition('share', {
         'type': 'object',
