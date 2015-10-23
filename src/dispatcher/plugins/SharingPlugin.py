@@ -256,7 +256,10 @@ class DeleteShareTask(Task):
 @description("Deletes all shares dependent on specified volume/dataset")
 @accepts(str)
 class DeleteDependentShares(Task):
-    def verify(self, volume ):
+    def verify(self, volume):
+        if not self.dispatcher.call_sync('volumes.query', [('name', '=', volume)], {'single': True}):
+            raise VerifyException(errno.ENXIO, 'Volume {0} doesn\'t exist'.format(volume))
+
         return ['system']
 
     def run(self, volume):
