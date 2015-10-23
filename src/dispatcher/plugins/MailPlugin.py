@@ -154,7 +154,6 @@ def _init(dispatcher, plugin):
             'user': {'type': ['string', 'null']},
             'pass': {'type': ['string', 'null']},
         },
-        'required': ['from', 'server', 'port', 'auth', 'encryption'],
         'additionalProperties': False,
     })
 
