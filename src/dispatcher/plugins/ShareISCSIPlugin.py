@@ -98,7 +98,7 @@ class ISCSIPortalProvider(Provider):
 @accepts(h.ref('iscsi-share'))
 class CreateISCSIShareTask(Task):
     def describe(self, share):
-        return "Creating iSCSI share {0}".format(share['id'])
+        return "Creating iSCSI share {0}".format(share['name'])
 
     def verify(self, share):
         if share['target'][0] == '/':
@@ -123,59 +123,55 @@ class CreateISCSIShareTask(Task):
             'rpm': 'SSD'
         })
 
-        share['target'] = convert_share_target(share['target'])
         props['naa'] = self.dispatcher.call_sync('shares.iscsi.generate_naa')
-        self.datastore.insert('shares', share)
+        id = self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
 
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
             'operation': 'create',
-            'ids': [share['id']]
+            'ids': [id]
         })
 
 
 @description("Updates existing iSCSI share")
 @accepts(str, h.ref('iscsi-share'))
 class UpdateISCSIShareTask(Task):
-    def describe(self, name, updated_fields):
-        return "Updating iSCSI share {0}".format(name)
+    def describe(self, id, updated_fields):
+        return "Updating iSCSI share {0}".format(id)
 
-    def verify(self, name, updated_fields):
+    def verify(self, id, updated_fields):
         return ['service:ctl']
 
-    def run(self, name, updated_fields):
-        if 'target' in updated_fields:
-            updated_fields['target'] = convert_share_target(updated_fields['target'])
-
-        share = self.datastore.get_by_id('shares', name)
+    def run(self, id, updated_fields):
+        share = self.datastore.get_by_id('shares', id)
         share.update(updated_fields)
-        self.datastore.update('shares', name, share)
+        self.datastore.update('shares', id, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
 
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
             'operation': 'update',
-            'ids': [name]
+            'ids': [id]
         })
 
 
 @description("Removes iSCSI share")
 @accepts(str)
 class DeleteiSCSIShareTask(Task):
-    def describe(self, name):
-        return "Deleting iSCSI share {0}".format(name)
+    def describe(self, id):
+        return "Deleting iSCSI share {0}".format(id)
 
-    def verify(self, name):
+    def verify(self, id):
         return ['service:ctl']
 
-    def run(self, name):
-        self.datastore.delete('shares', name)
+    def run(self, id):
+        self.datastore.delete('shares', id)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'ctl')
         self.dispatcher.call_sync('services.reload', 'ctl')
 
         self.dispatcher.dispatch_event('shares.iscsi.changed', {
             'operation': 'delete',
-            'ids': [name]
+            'ids': [id]
         })
 
 
