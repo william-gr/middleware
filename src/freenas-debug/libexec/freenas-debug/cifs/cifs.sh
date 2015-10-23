@@ -1,6 +1,6 @@
 #!/bin/sh
 #+
-# Copyright 2013 iXsystems, Inc.
+# Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,63 +27,102 @@
 #####################################################################
 
 
-nfs_opt() { echo N; }
-nfs_help() { echo "Dump NFS Configuration"; }
-nfs_directory() { echo "NFS"; }
-nfs_func()
+cifs_opt() { echo C; }
+cifs_help() { echo "Dump CIFS Configuration"; }
+cifs_directory() { echo "CIFS"; }
+cifs_func()
 {
-	section_header "/etc/version"
-	sc "/etc/version"
-	section_footer
+	local workgroup
+	local netbiosname
+	local adminname
+	local domainname
+	local dcname
+	local pamfiles
+	local onoff
 
-	section_header "/etc/resolv.conf"
-	sc "/etc/resolv.conf"
-	section_footer
 
-	section_header "/etc/hosts"
-	sc "/etc/hosts"
-	section_footer
+	onoff=$(${FREENAS_SQLITE_CMD} ${FREENAS_CONFIG} "
+	SELECT
+		srv_enable
+	FROM
+		services_services
+	WHERE	
+		srv_service = 'cifs'
+	ORDER BY
+		-id
+	LIMIT 1
+	")
 
-	section_header "/etc/exports"
-	sc /etc/exports
-	section_footer
-	
-	section_header "showmount -e"
-	if srv_enabled nfs
+	enabled="DISABLED"
+	if [ "${onoff}" = "1" ]
 	then
-		showmount -e
+		enabled="ENABLED"
 	fi
+
+	section_header "CIFS Status"
+	echo "CIFS is ${enabled}"
 	section_footer
 
-	section_header "rpcinfo -p"
-	rpcinfo -p
+
+	#
+	#	Dump samba configuration
+	#
+	section_header "${SAMBA_CONF}"
+	sc "${SAMBA_CONF}"
 	section_footer
 
-	section_header "nfsstat"
-	nfsstat
+	local IFS="|"
+
+	#
+	#	Dump CIFS shares
+	#
+	section_header "CIFS Shares & Permissions"
+	${FREENAS_SQLITE_CMD} ${FREENAS_CONFIG} "
+	SELECT
+		cifs_path,
+		cifs_name
+	FROM
+		sharing_cifs_share
+	ORDER BY
+		-id
+	" | while read -r cifs_path cifs_name
+	do
+		section_header "${cifs_name}:${cifs_path}"
+		ls -ld "${cifs_path}"
+		printf "\n"
+		getfacl "${cifs_path}"
+		printf "\n"
+	done
 	section_footer
 
-	section_header "nfsstat -c"
-	nfsstat -c
+	section_header "net getlocalsid"
+	net getlocalsid
+	section_footer
+	section_header "net getdomainsid"
+	net getdomainsid
+	section_footer
+	section_header "net usersidlist"
+	net usersidlist
+	section_footer
+	section_header "net groupmap list"
+	net groupmap list
 	section_footer
 
-	section_header "nfsstat -s"
-	nfsstat -s
+	section_header "net status sessions"
+	net status sessions
+	section_footer
+	section_header "net status shares"
+	net status shares
 	section_footer
 
-	section_header "netstat -m"
-	netstat -m
-	section_footer
 
-	section_header "netstat -s -p udp"
-	netstat -s -p udp
-	section_footer
-
-	section_header "getent passwd"
-	getent passwd
-	section_footer
-
-	section_header "getent group"
-	getent group
+	#
+	#	Dump CIFS users and groups
+	#
+	section_header "Users and Groups"
+	section_header "Users"
+	wbinfo -u
+	section_header "Groups"
+	wbinfo -g
 	section_footer
 }

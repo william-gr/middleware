@@ -27,24 +27,13 @@
 #####################################################################
 
 
-ipmi_opt() { echo I; }
-ipmi_help() { echo "Dump IPMI Configuration"; }
-ipmi_directory() { echo "IPMI"; }
-ipmi_func()
+verify_opt() { echo v; }
+verify_help() { echo "Dump Boot System File Verification Status and Inconsistencies(if any)"; }
+verify_directory() { echo "Verify"; }
+verify_func()
 {
-	section_header "ipmitool lan print"
-	ipmitool lan print
-	section_footer
-
-	section_header "ipmitool -I open sel list"
-	ipmitool -I open sel list
-	section_footer
-
-	section_header "ipmitool sdr list | grep Temp"
-	ipmitool sdr list | grep Temp
-	section_footer
-
-	section_header "ipmitool sensor"
-	ipmitool sensor
+	section_header "Verifier Results"
+	echo "Running Verifier...."
+	freenas-verify
 	section_footer
 }

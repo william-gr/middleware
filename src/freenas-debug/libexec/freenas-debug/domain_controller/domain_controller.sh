@@ -1,6 +1,6 @@
 #!/bin/sh
 #+
-# Copyright 2011 iXsystems, Inc.
+# Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,29 +27,35 @@
 #####################################################################
 
 
-active_directory_opt() { echo a; }
-active_directory_help() { echo "Dump Active Directory Configuration"; }
-active_directory_directory() { echo "ActiveDirectory"; }
-active_directory_func()
+domain_controller_opt() { echo D; }
+domain_controller_help() { echo "Dump Domain Controller Configuration"; }
+domain_controller_directory() { echo "DomainController"; }
+domain_controller_func()
 {
-	local workgroup
-	local netbiosname
-	local adminname
-	local domainname
-	local dcname
-	local pamfiles
+	local realm
+	local domain
+	local role
+	local dns_backend
+	local dns_forwarder
+	local forest_level
+	local krb_realm
+	local kdc
+	local admin_server
+	local kpasswd_server
 	local onoff
 	local enabled="DISABLED"
 
 
 	#
-	#	First, check if the Active Directory service is enabled.
+	#	First, check if the Domain Controller service is enabled.
 	#
 	onoff=$(${FREENAS_SQLITE_CMD} ${FREENAS_CONFIG} "
 	SELECT
-		ad_enable
+		srv_enable
 	FROM
-		directoryservice_activedirectory
+		services_services
+	WHERE
+		srv_service =  'domaincontroller'
 	ORDER BY
 		-id
 
@@ -62,56 +68,58 @@ active_directory_func()
 		enabled="ENABLED"
 	fi
 
-	section_header "Active Directory Status"
-	echo "Active Directory is ${enabled}"
+	section_header "Domain Controller Status"
+	echo "Domain Controller is ${enabled}"
 	section_footer
 
 	#
-	#	Next, dump Active Directory configuration
+	#	Next, dump Domain Controller configuration
 	#
 	local IFS="|"
-	read domainname bindname netbiosname ssl \
-		unix_extensions allow_trusted_doms use_default_domain \
-		dcname gcname timeout dns_timeout <<-__AD__
+	read realm domain role dns_backend dns_forwarder forest_level \
+		krb_realm kdc admin_server kpasswd_server <<-__DC__
 	$(${FREENAS_SQLITE_CMD} ${FREENAS_CONFIG} "
 	SELECT
-		ad_domainname,
-		ad_bindname,
-		ad_netbiosname,
-		ad_ssl,
-		ad_unix_extensions,
-		ad_allow_trusted_doms,
-		ad_use_default_domain,
-		ad_dcname,
-		ad_gcname,
-		ad_timeout,
-		ad_dns_timeout
-
+		sd.dc_realm,
+		sd.dc_domain,
+		sd.dc_role,
+		sd.dc_dns_backend,
+		sd.dc_dns_forwarder,
+		sd.dc_forest_level,
+		dk.krb_realm,
+		dk.krb_kdc,
+		dk.krb_admin_server,
+		dk.krb_kpasswd_server
 	FROM
-		directoryservice_activedirectory
+		services_domaincontroller as sd
+
+	INNER JOIN
+		directoryservice_kerberosrealm as dk
+	ON
+		(sd.dc_kerberos_realm_id = dk.id)
 
 	ORDER BY
-		-id
+		-sd.id
 
 	LIMIT 1
 	")
-__AD__
+__DC__
 	
 	IFS="
 "
 
-	section_header "Active Directory Settings"
+	section_header "Domain Controller Settings"
 	cat<<-__EOF__
-	Domain:                 ${domainname}
-	Workgroup:              ${netbiosname}
-	Bind name:              ${bindname}
-	UNIX extensions:        ${unix_extensions}
-	Trusted domains:        ${allow_trusted_doms}
-	SSL:                    ${ssl}
-	Timeout:                ${timeout}
-	DNS Timeout:            ${dns_timeout}
-	Domain controller:      ${dcname}
-	Global Catalog Server:  ${gcname}
+	Realm:                   ${realm}
+	Domain:                  ${domain}
+	Role:                    ${role}
+	DNS Backend:             ${dns_backend}
+	DNS Forwarder:           ${dns_forwarder}
+	Forst Level:             ${forest_level}
+	Kerberos Realm:          ${realm}
+	Kerberos KDC:            ${kdc}
+	Kerberos Admin Server:   ${admin_server}
+	Kerberos Kpasswd Server: ${kpasswd_server}
 __EOF__
 	section_footer
 
@@ -144,76 +152,69 @@ __EOF__
 	section_footer
 
 	#
-	#	Dump Active Directory SSSD configuration
+	#	Dump Domain Controller SSSD configuration
 	#
 	section_header "${SSSD_CONF}"
 	sc "${SSSD_CONF}" | grep -iv ldap_default_authtok
 	section_footer
 
 	#
-	#	Dump generated AD config file
+	#	Dump generated DC config file
 	#
-	section_header "${AD_CONFIG_FILE}"
-	sc "${AD_CONFIG_FILE}"
-	section_footer
+	#section_header "${AD_CONFIG_FILE}"
+	#sc "${AD_CONFIG_FILE}"
+	#section_footer
 
 	#
-	#	Try to generate an AD config file
+	#	Try to generate a DC config file
 	#
-	section_header "adtool get config_file"
-	adtool get config_file
-	section_footer
+	#section_header "adtool get config_file"
+	#adtool get config_file
+	#section_footer
 
 	#
-	#	Dump Active Directory domain info
+	#	Dump Domain Controller domain info
 	#
-	section_header "Active Directory Domain Info"
+	section_header "Domain Controller Domain Info"
 	net ads info
-	section_footer
-
-	#
-	#	Dump Active Directory domain status
-	#
-	section_header "Active Directory Domain Status"
-	net ads status
 	section_footer
 
 	#
 	#	Dump wbinfo information
 	#
-	section_header "Active Directory Trust Secret"
+	section_header "Domain Controller Trust Secret"
 	wbinfo -t
 	section_footer
-	section_header "Active Directory NETLOGON connection"
+	section_header "Domain Controller NETLOGON connection"
 	wbinfo -P
 	section_footer
-	section_header "Active Directory trusted domains"
+	section_header "Domain Controller trusted domains"
 	wbinfo -m
 	section_footer
-	section_header "Active Directory all domains"
+	section_header "Domain Controller all domains"
 	wbinfo --all-domains
 	section_footer
-	section_header "Active Directory own domain"
+	section_header "Domain Controller own domain"
 	wbinfo --own-domain
 	section_footer
 	section_footer
-	section_header "Active Directory online status"
+	section_header "Domain Controller online status"
 	wbinfo --online-status
 	section_footer
-	section_header "Active Directory domain info"
+	section_header "Domain Controller domain info"
 	wbinfo --domain-info="$(wbinfo --own-domain)"
 	section_footer
-	section_header "Active Directory DC name"
+	section_header "Domain Controller DC name"
 	wbinfo --dsgetdcname="$(wbinfo --own-domain)"
 	section_footer
-	section_header "Active Directory DC info"
+	section_header "Domain Controller DC info"
 	wbinfo --dc-info="$(wbinfo --own-domain)"
 	section_footer
 
 	#
-	#	Dump Active Directory users and groups
+	#	Dump Domain Controller users and groups
 	#
-	section_header "Active Directory Users and Groups"
+	section_header "Domain Controller Users and Groups"
 	section_header "Using wbinfo"
 	section_header "Users"
 	wbinfo -u
@@ -225,9 +226,4 @@ __EOF__
 	section_header "Groups"
 	getent group
 	section_footer
-
-	#
-	#	Dump cache info
-	#
-	cache_func "AD"
 }
