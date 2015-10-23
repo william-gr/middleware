@@ -36,6 +36,7 @@ class SharesProvider(Provider):
     @query('share')
     def query(self, filter=None, params=None):
         def extend(share):
+            share['dataset_path'] = os.path.join(share['target'], share['type'], share['name'])
             share['filesystem_path'] = self.translate_path(
                 share['type'],
                 share['target'],
@@ -62,10 +63,12 @@ class SharesProvider(Provider):
     @description("Returns list of supported sharing providers")
     @returns(h.array(str))
     def supported_types(self):
-        result = []
+        result = {}
         for p in self.dispatcher.plugins.values():
             if p.metadata and p.metadata.get('type') == 'sharing':
-                result.append(p.metadata['method'])
+                result[p.metadata['method']] = {
+                    'subtype': p.metadata['subtype']
+                }
 
         return result
 
@@ -210,6 +213,9 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
+    def on_dataset_create(args):
+        pass
+
     plugin.register_schema_definition('share', {
         'type': 'object',
         'properties': {
@@ -220,6 +226,7 @@ def _init(dispatcher, plugin):
             'type': {'type': 'string'},
             'parent': {'type': ['string', 'null']},
             'filesystem_path': {'type': 'string'},
+            'dataset_path': {'type': 'string'},
             'properties': {'type': 'object'}
         }
     })
@@ -243,3 +250,5 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('share.delete', DeleteShareTask)
     plugin.register_task_handler('share.delete_dependent', DeleteDependentShares)
     plugin.register_event_type('shares.changed')
+
+    plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_create)
