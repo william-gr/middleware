@@ -3,8 +3,8 @@ from ipaddr import _IPAddrBase, IPAddress, IPNetwork
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from dojango import forms
-from dojango.forms import widgets
+from django import forms
+from django.forms import widgets
 
 from south.modelsinspector import add_introspection_rules
 add_introspection_rules([],
