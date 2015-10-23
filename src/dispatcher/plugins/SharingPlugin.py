@@ -208,14 +208,14 @@ class DeleteShareTask(Task):
 
         return ['system']
 
-    def run(self, id):
+    def run(self, id, skip_dataset=False):
         share = self.datastore.get_by_id('shares', id)
         ds_name = os.path.join(share['target'], share['type'], share['name'])
 
-        self.join_subtasks(
-            self.run_subtask('share.{0}.delete'.format(share['type']), id),
-            self.run_subtask('volume.dataset.delete', ds_name)
-        )
+        self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), id))
+
+        if not skip_dataset:
+            self.join_subtasks(self.run_subtask('volume.dataset.delete', ds_name))
 
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'delete',
@@ -276,6 +276,35 @@ def _init(dispatcher, plugin):
                 'properties': {}
             }, True)
 
+    def on_dataset_delete(args):
+        with dispatcher.get_lock('sharing'):
+            tokens = args['ds'].split('/', 3)
+            if len(tokens) < 3:
+                # We don't care about root dataset being created
+                # neither about direct children of root datasets
+                return
+
+            types = dispatcher.call_sync('shares.supported_types').keys()
+            pool, share_type, rest = tokens
+
+            if share_type not in types:
+                # Unknown type
+                return
+
+            share = dispatcher.query('shares', [
+                ('name', '=', rest),
+                ('type', '=', share_type)
+            ], {'single': True})
+
+            if not share:
+                return
+
+            dispatcher.call_task_sync('share.delete', share['id'], True)
+
+    def on_dataset_rename(args):
+        on_dataset_delete({'ds': args['ds']})
+        on_dataset_create({'ds': args['new_ds']})
+
     plugin.register_schema_definition('share', {
         'type': 'object',
         'properties': {
@@ -312,3 +341,5 @@ def _init(dispatcher, plugin):
     plugin.register_event_type('shares.changed')
 
     plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_create)
+    plugin.register_event_handler('fs.zfs.dataset.deleted', on_dataset_delete)
+    plugin.register_event_handler('fs.zfs.dataset.renamed', on_dataset_rename)
