@@ -164,15 +164,22 @@ class UpdateShareTask(Task):
             self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
 
         old_type = share['type']
+        old_ds_name = os.path.join(share['target'], share['type'], share['name'])
         share.update(updated_fields)
 
         if 'type' in updated_fields:
-            # Convert share type
+            # Rename dataset and convert share type
+            new_ds_name = os.path.join(share['target'], share['type'], share['name'])
             new_share_type = self.dispatcher.call_sync('shares.supported_types').get(updated_fields['type'])
+
             self.join_subtasks(
-                self.run_subtask('volume.dataset.update', {
+                self.run_subtask('volume.dataset.update', share['target'], old_ds_name, {
+                    'name': new_ds_name,
                     'permissions_type': new_share_type['perm_type']
-                }),
+                })
+            )
+
+            self.join_subtasks(
                 self.run_subtask('share.{0}.delete'.format(old_type), id),
                 self.run_subtask('share.{0}.create'.format(share['type']), share)
             )
