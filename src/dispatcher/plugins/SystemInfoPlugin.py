@@ -382,11 +382,11 @@ class SystemUIConfigureTask(Task):
     def run(self, props):
         self.configstore.set(
             'service.nginx.http.enable',
-            True if 'HTTP' in props.get('webui_protocol') else False,
+            True if 'HTTP' in props.get('webui_protocol', []) else False,
         )
         self.configstore.set(
             'service.nginx.https.enable',
-            True if 'HTTPS' in props.get('webui_protocol') else False,
+            True if 'HTTPS' in props.get('webui_protocol', []) else False,
         )
         self.configstore.set('service.nginx.listen', props.get('webui_listen'))
         self.configstore.set('service.nginx.http.port', props.get('webui_http_port'))
