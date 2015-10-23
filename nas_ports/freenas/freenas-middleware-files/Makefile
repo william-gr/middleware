@@ -39,8 +39,6 @@ MAKE_JOBS_UNSAFE=yes
 do-build:
 	${MAKE} -C ${WRKSRC}/extract-tarball   obj
 	${MAKE} -C ${WRKSRC}/extract-tarball  all
-	${MAKE} -C ${WRKSRC}/winacl   obj
-	${MAKE} -C ${WRKSRC}/winacl  all
 
 do-install:
 	cp -a ${WRKSRC}/middleware-files/ ${STAGEDIR}${PREFIX}/
