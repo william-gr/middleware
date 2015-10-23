@@ -122,7 +122,6 @@ class ZpoolProvider(Provider):
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
-
     @accepts(str)
     @returns()
     def ensure_resilvered(self, name):
@@ -547,10 +546,8 @@ class ZfsBaseTask(Task):
         try:
             zfs = libzfs.ZFS()
             dataset = zfs.get_dataset(path)
-            if not dataset:
-                raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(path))
         except libzfs.ZFSException, err:
-            raise TaskException(errno.EFAULT, str(err))
+            raise TaskException(errno.ENOENT, str(err))
 
         return ['zpool:{0}'.format(dataset.pool.name)]
 
