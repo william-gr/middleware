@@ -33,7 +33,7 @@ do-install:
 
 post-install:
 	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/migrate93
-	(cd ${STAGEDIR}${PREFIX}/lib/migrate93; ${FIND} -E . -type f -regex ".*.pyc?" \
+	(cd ${STAGEDIR}${PREFIX}/lib/migrate93; ${FIND} . -type f \
 		| ${SED} -e 's,^\./,,g' \
 		| ${AWK} '{print length, $$0}' | ${SORT} -rn \
 		| ${AWK} '{print "lib/migrate93/"$$2 }' >> ${TMPPLIST})
