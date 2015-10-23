@@ -1,17 +1,14 @@
-#
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       freenas-middleware-files
+PORTNAME=	freenas-middleware-files
 PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
 
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+=	freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        miscellaneous files for FreeNAS middleware
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	Miscellaneous files for FreeNAS middleware
 
 USE_XZ=		yes
 
@@ -24,10 +21,8 @@ PLIST_SUB=	MACHINE_ARCH=${MACHINE_ARCH}
 EXTRACT_ONLY=
 WRKSRC=/usr/middleware_src
 
-# no checksum, we just used git!
- #extract:
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 pre-clean:
 	@
@@ -37,8 +32,7 @@ ALL_TARGET=obj all
 MAKE_JOBS_UNSAFE=yes
 
 do-build:
-	${MAKE} -C ${WRKSRC}/extract-tarball   obj
-	${MAKE} -C ${WRKSRC}/extract-tarball  all
+	@${DO_NADA}
 
 do-install:
 	cp -a ${WRKSRC}/middleware-files/ ${STAGEDIR}${PREFIX}/
