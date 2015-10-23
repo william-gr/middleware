@@ -24,7 +24,10 @@ checksum fetch:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 do-install:
-	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
+	${MKDIR} ${STAGEDIR}${PREFIX}/migrate93
+	cd ${WRKSRC} && ${COPYTREE_SHARE} src ${STAGEDIR}${PREFIX}/migrate93/
+	cd ${WRKSRC} && ${COPYTREE_SHARE} freenasUI ${STAGEDIR}${PREFIX}/migrate93/
+	${INSTALL_SCRIPT} ${WRKSRC}/sbin/migrate93 {STAGEDIR}${PREFIX}/sbin/
 
 post-install:
 	${PYTHON_CMD} -m compileall ${STAGEDIR}${PREFIX}/lib/migrate93
