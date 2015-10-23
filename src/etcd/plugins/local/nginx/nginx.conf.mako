@@ -1,13 +1,3 @@
-<%
-
-    import sys
-    if '/usr/local/www' not in sys.path:
-        sys.path.append('/usr/local/www')
-    from freenasUI import settings
-
-    dojo_version = settings.DOJANGO_DOJO_VERSION
-
-%>\
 user www;
 pid /var/run/nginx.pid;
 error_log /var/log/nginx-error.log warn;
