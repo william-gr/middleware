@@ -156,49 +156,46 @@ class UpdateShareTask(Task):
         return ['system']
 
     def run(self, id, updated_fields):
-        share = self.datastore.get_by_id('shares', id)
-        pool = share['target']
+        with self.dispatcher.get_lock('sharing'):
+            share = self.datastore.get_by_id('shares', id)
+            pool = share['target']
 
-        if 'name' in updated_fields:
+            if 'name' in updated_fields:
+                old_ds_name = os.path.join(pool, share['type'], share['name'])
+                new_ds_name = os.path.join(pool, share['type'], updated_fields['name'])
+                self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
+
+            old_type = share['type']
             old_ds_name = os.path.join(pool, share['type'], share['name'])
-            new_ds_name = os.path.join(pool, share['type'], updated_fields['name'])
-            self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
+            share.update(updated_fields)
 
-        old_type = share['type']
-        old_ds_name = os.path.join(pool, share['type'], share['name'])
-        share.update(updated_fields)
+            if 'type' in updated_fields:
+                # Rename dataset and convert share type
+                new_root_ds = root_ds = os.path.join(pool, share['type'])
+                new_ds_name = os.path.join(new_root_ds, share['name'])
+                new_share_type = self.dispatcher.call_sync('shares.supported_types').get(updated_fields['type'])
 
-        if 'type' in updated_fields:
-            # Rename dataset and convert share type
-            new_root_ds = root_ds = os.path.join(pool, share['type'])
-            new_ds_name = os.path.join(new_root_ds, share['name'])
-            new_share_type = self.dispatcher.call_sync('shares.supported_types').get(updated_fields['type'])
+                # Ensure that parent dataset for new type exists
+                if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
+                    # Create root dataset for given sharing type
+                    self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
 
-            # Ensure that parent dataset for new type exists
-            if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
-                # Create root dataset for given sharing type
-                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
+                self.join_subtasks(
+                    self.run_subtask('volume.dataset.update', pool, old_ds_name, {
+                        'name': new_ds_name,
+                        'permissions_type': new_share_type['perm_type']
+                    })
+                )
 
-            self.join_subtasks(
-                self.run_subtask('volume.dataset.update', pool, old_ds_name, {
-                    'name': new_ds_name,
-                    'permissions_type': new_share_type['perm_type']
-                })
-            )
+                self.join_subtasks(self.run_subtask('share.{0}.delete'.format(old_type), id))
+                self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
+            else:
+                self.join_subtasks(self.run_subtask('share.{0}.update'.format(share['type']), id, updated_fields))
 
-            self.join_subtasks(
-                self.run_subtask('share.{0}.delete'.format(old_type), id),
-                self.run_subtask('share.{0}.create'.format(share['type']), share)
-            )
-        else:
-            self.join_subtasks(
-                self.run_subtask('share.{0}.update'.format(share['type']), id, updated_fields)
-            )
-
-        self.dispatcher.dispatch_event('shares.changed', {
-            'operation': 'update',
-            'ids': [share['id']]
-        })
+            self.dispatcher.dispatch_event('shares.changed', {
+                'operation': 'update',
+                'ids': [share['id']]
+            })
 
 
 @description("Deletes share")
@@ -252,25 +249,32 @@ def _depends():
 
 def _init(dispatcher, plugin):
     def on_dataset_create(args):
-        tokens = args['ds'].split('/', 3)
-        if len(tokens) < 3:
-            # We don't care about root dataset being created
-            # neither about direct children of root datasets
-            return
+        with dispatcher.get_lock('sharing'):
+            tokens = args['ds'].split('/', 3)
+            if len(tokens) < 3:
+                # We don't care about root dataset being created
+                # neither about direct children of root datasets
+                return
 
-        types = dispatcher.call_sync('shares.supported_types').keys()
-        pool, share_type, rest = tokens
+            types = dispatcher.call_sync('shares.supported_types').keys()
+            pool, share_type, rest = tokens
 
-        if share_type not in types:
-            # Unknown type
-            return
+            if share_type not in types:
+                # Unknown type
+                return
 
-        dispatcher.call_task_sync('share.create', {
-            'name': rest,
-            'type': share_type,
-            'target': pool,
-            'properties': {}
-        }, True)
+            if dispatcher.query('shares', [
+                ('name', '=', rest),
+                ('type', '=', share_type)
+            ], {'single': True}):
+                return
+
+            dispatcher.call_task_sync('share.create', {
+                'name': rest,
+                'type': share_type,
+                'target': pool,
+                'properties': {}
+            }, True)
 
     plugin.register_schema_definition('share', {
         'type': 'object',
