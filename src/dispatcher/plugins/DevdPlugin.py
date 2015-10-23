@@ -201,7 +201,7 @@ class DevdEventSource(EventSource):
             params["ds"] = args.pop("ds")
 
         if "new_ds" in args:
-            params["new-ds"] = args.pop("new_ds")
+            params["new_ds"] = args.pop("new_ds")
 
         if args:
             params["extra"] = args
