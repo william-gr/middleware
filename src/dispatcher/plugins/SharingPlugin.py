@@ -245,7 +245,7 @@ class DeleteShareTask(Task):
         self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), id))
 
         if not skip_dataset:
-            self.join_subtasks(self.run_subtask('volume.dataset.delete', ds_name))
+            self.join_subtasks(self.run_subtask('volume.dataset.delete', share['target'], ds_name))
 
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'delete',
