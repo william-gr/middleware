@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+import errno
 import logging
 from task import Task, TaskStatus, Provider, TaskException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
@@ -125,9 +126,13 @@ class DeleteNFSShareTask(Task):
         self.dispatcher.call_sync('services.reload', 'nfs')
 
         dataset = dataset_for_share(self.dispatcher, share)
-        self.join_subtasks(self.run_subtask('zfs.configure', dataset, {
-            'sharenfs': {'value': 'off'}
-        }))
+        try:
+            self.join_subtasks(self.run_subtask('zfs.configure', dataset['name'], {
+                'sharenfs': {'value': 'off'}
+            }))
+        except TaskException, err:
+            if err.code == errno.ENOENT:
+                pass
 
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'delete',
