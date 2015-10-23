@@ -40,7 +40,7 @@ from dispatcher.rpc import (
     )
 from utils import first_or_default
 from datastore import DuplicateKeyException
-from fnutils import include
+from fnutils import include, normalize
 from fnutils.query import wrap
 from fnutils.copytree import count_files, copytree
 
@@ -722,6 +722,11 @@ class DatasetCreateTask(Task):
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, type, params=None):
+        if params:
+            normalize(params, {
+                'properties': {}
+            })
+
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
             pool_name,
