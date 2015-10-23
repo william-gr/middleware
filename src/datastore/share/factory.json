@@ -1495,14 +1495,6 @@
                 "pidfile": "/var/run/node.pid",
                 "name": "gui"
             },
-            "38f6d9ba-753a-4ffe-a9f5-df50d1b0598e": {
-                "rcng": {
-                    "rc-scripts": "django"
-                },
-                "builtin": true,
-                "pidfile": "/var/run/django.pid",
-                "name": "django"
-            },
             "D33F4044-AA6B-4839-8B0D-16AEAFC626F8": {
                 "rcng": {
                     "rc-scripts": "mdnsd"
