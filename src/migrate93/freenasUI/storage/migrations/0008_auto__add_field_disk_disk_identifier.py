@@ -5,7 +5,7 @@ import re
 
 from django.db import models
 
-from libxml2 import parseDoc
+from lxml import etree
 from south.db import db
 from south.v2 import DataMigration
 
@@ -25,16 +25,16 @@ def device_to_identifier(name):
     name = str(name)
     doc = geom_confxml()
 
-    search = doc.xpathEval("//class[name = 'PART']/..//*[name = '%s']//config[type = 'freebsd-zfs']/rawuuid" % name)
+    search = doc.xpath("//class[name = 'PART']/..//*[name = '%s']//config[type = 'freebsd-zfs']/rawuuid" % name)
     if len(search) > 0:
-        return "{uuid}%s" % search[0].content
-    search = doc.xpathEval("//class[name = 'PART']/geom/..//*[name = '%s']//config[type = 'freebsd-ufs']/rawuuid" % name)
+        return "{uuid}%s" % search[0].text
+    search = doc.xpath("//class[name = 'PART']/geom/..//*[name = '%s']//config[type = 'freebsd-ufs']/rawuuid" % name)
     if len(search) > 0:
-        return "{uuid}%s" % search[0].content
+        return "{uuid}%s" % search[0].text
 
-    search = doc.xpathEval("//class[name = 'LABEL']/geom[name = '%s']/provider/name" % name)
+    search = doc.xpath("//class[name = 'LABEL']/geom[name = '%s']/provider/name" % name)
     if len(search) > 0:
-        return "{label}%s" % search[0].content
+        return "{label}%s" % search[0].text
 
     serial = serial_from_device(name)
     if serial:
@@ -53,17 +53,17 @@ def identifier_to_device(ident):
     value = search.group("value")
 
     if tp == 'uuid':
-        search = doc.xpathEval("//class[name = 'PART']/geom//config[rawuuid = '%s']/../../name" % value)
+        search = doc.xpath("//class[name = 'PART']/geom//config[rawuuid = '%s']/../../name" % value)
         if len(search) > 0:
             for entry in search:
-                if not entry.content.startswith("label"):
-                    return entry.content
+                if not entry.text.startswith("label"):
+                    return entry.text
         return None
 
     elif tp == 'label':
-        search = doc.xpathEval("//class[name = 'LABEL']/geom//provider[name = '%s']/../name" % value)
+        search = doc.xpath("//class[name = 'LABEL']/geom//provider[name = '%s']/../name" % value)
         if len(search) > 0:
-            return search[0].content
+            return search[0].text
         return None
 
     elif tp == 'serial':
