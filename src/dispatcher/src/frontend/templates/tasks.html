@@ -115,7 +115,7 @@
 
             sock.on("login", function() {
                 refresh_tasks();
-                sock.subscribe("task.*");
+                sock.subscribe(["task.*"]);
                 sock.call("discovery.get_tasks", null, function (tasks) {
                     $.each(tasks, function(key, value) {
                         $("<div/>", {
