@@ -103,11 +103,27 @@ class SharesProvider(Provider):
 @description("Creates new share")
 @accepts(h.all_of(
     h.ref('share'),
-    h.required('type', 'target', 'properties'),
+    h.required('name', 'type', 'target', 'properties'),
     h.forbidden('id')
 ))
 class CreateShareTask(Task):
     def verify(self, share, skip_dataset=False):
+        if not self.dispatcher.call_sync('shares.supported_types').get(share['type']):
+            raise VerifyException(errno.ENXIO, 'Unknown sharing type {0}'.format(share['type']))
+
+        if not self.dispatcher.call_sync('volumes.query', [('name', '=', share['target'])], {'single': True}):
+            raise VerifyException(errno.ENXIO, 'Volume {0} doesn\'t exist'.format(share['target']))
+
+        if self.datastore.exists(
+            'shares',
+            ('type', '=', share['type']),
+            ('name', '=', share['name'])
+        ):
+            raise VerifyException(errno.EEXIST, 'Share {0} of type {1} already exists'.format(
+                share['name'],
+                share['type']
+            ))
+
         return ['system']
 
     def run(self, share, skip_dataset=False):
@@ -118,7 +134,8 @@ class CreateShareTask(Task):
 
         normalize(share, {
             'enabled': True,
-            'description': ''
+            'description': '',
+            'parent': None
         })
 
         if not share_type:
@@ -139,6 +156,8 @@ class CreateShareTask(Task):
             'ids': ids
         })
 
+        return ids[0]
+
 
 @description("Updates existing share")
 @accepts(
@@ -152,6 +171,24 @@ class UpdateShareTask(Task):
         share = self.datastore.get_by_id('shares', id)
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
+
+        share.update(updated_fields)
+
+        if not self.dispatcher.call_sync('shares.supported_types').get(share['type']):
+            raise VerifyException(errno.ENXIO, 'Unknown sharing type {0}'.format(share['type']))
+
+        if not self.dispatcher.call_sync('volumes.query', [('name', '=', share['target'])], {'single': True}):
+            raise VerifyException(errno.ENXIO, 'Volume {0} doesn\'t exist'.format(share['target']))
+
+        if self.datastore.exists(
+            'shares',
+            ('type', '=', share['type']),
+            ('name', '=', share['name'])
+        ):
+            raise VerifyException(errno.EEXIST, 'Share {0} of type {1} already exists'.format(
+                share['name'],
+                share['type']
+            ))
 
         return ['system']
 
