@@ -126,13 +126,10 @@ class DeleteNFSShareTask(Task):
         self.dispatcher.call_sync('services.reload', 'nfs')
 
         dataset = dataset_for_share(self.dispatcher, share)
-        try:
+        if dataset:
             self.join_subtasks(self.run_subtask('zfs.configure', dataset['name'], {
                 'sharenfs': {'value': 'off'}
             }))
-        except TaskException, err:
-            if err.code == errno.ENOENT:
-                pass
 
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'delete',
