@@ -25,9 +25,9 @@
 #
 #####################################################################
 
-
+import os
 import errno
-from dispatcher.rpc import description, accepts, returns
+from dispatcher.rpc import description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, TaskException, VerifyException, Provider, RpcException, query
 
@@ -35,7 +35,29 @@ from task import Task, TaskException, VerifyException, Provider, RpcException, q
 class SharesProvider(Provider):
     @query('share')
     def query(self, filter=None, params=None):
-        return self.datastore.query('shares', *(filter or []), **(params or {}))
+        def extend(share):
+            share['filesystem_path'] = self.translate_path(
+                share['type'],
+                share['target'],
+                share['name']
+            )
+
+            return share
+
+        return self.datastore.query('shares', *(filter or []), callback=extend, **(params or {}))
+
+    @private
+    def translate_path(self, type, target, name):
+        root = self.dispatcher.call_sync('volumes.get_volumes_root')
+        return os.path.join(root, target, type, name)
+
+    @private
+    def translate_dataset(self, type, target, name):
+        return self.dispatcher.call_sync(
+            'zfs.dataset.query',
+            [('name', '=', os.path.join(target, type, name))],
+            {'single': True}
+        )
 
     @description("Returns list of supported sharing providers")
     @returns(h.array(str))
@@ -76,14 +98,25 @@ class SharesProvider(Provider):
 @description("Creates new share")
 @accepts(h.all_of(
     h.ref('share'),
-    h.required('id', 'type', 'target', 'properties')
+    h.required('type', 'target', 'properties'),
+    h.forbidden('id')
 ))
 class CreateShareTask(Task):
     def verify(self, share):
         return ['system']
 
     def run(self, share):
+        pool = share['target']
+        root_ds = os.path.join(pool, share['type'])
+        ds_name = os.path.join(root_ds, share['name'])
+
+        if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
+            # Create root dataset for given sharing type
+            self.join_subtasks(self.run_subtask('zfs.create_dataset', pool, root_ds, 'FILESYSTEM'))
+
+        self.join_subtasks(self.run_subtask('zfs.create_dataset', pool, ds_name, 'FILESYSTEM'))
         self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
+
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'create',
             'ids': [share['id']]
@@ -91,7 +124,12 @@ class CreateShareTask(Task):
 
 
 @description("Updates existing share")
-@accepts(str, h.ref('share'))
+@accepts(
+    str, h.all_of(
+        h.ref('share'),
+        h.forbidden('id')
+    )
+)
 class UpdateShareTask(Task):
     def verify(self, name, updated_fields):
         share = self.datastore.get_by_id('shares', name)
@@ -102,9 +140,20 @@ class UpdateShareTask(Task):
 
     def run(self, name, updated_fields):
         share = self.datastore.get_by_id('shares', name)
+
+        if 'name' in updated_fields:
+            old_ds_name = os.path.join(share['target'], share['type'], share['name'])
+            new_ds_name = os.path.join(share['target'], share['type'], updated_fields['name'])
+            self.join_subtasks(self.run_subtask('zfs.rename', old_ds_name, new_ds_name))
+
+        if 'type' in updated_fields:
+            # Convert share type
+            pass
+
         self.join_subtasks(
             self.run_subtask('share.{0}.update'.format(share['type']), name, updated_fields)
         )
+
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'update',
             'ids': [share['id']]
@@ -114,19 +163,25 @@ class UpdateShareTask(Task):
 @description("Deletes share")
 @accepts(str)
 class DeleteShareTask(Task):
-    def verify(self, name):
-        share = self.datastore.get_by_id('shares', name)
+    def verify(self, id):
+        share = self.datastore.get_by_id('shares', id)
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
 
         return ['system']
 
-    def run(self, name):
-        share = self.datastore.get_by_id('shares', name)
-        self.join_subtasks(self.run_subtask('share.{0}.delete'.format(share['type']), name))
+    def run(self, id):
+        share = self.datastore.get_by_id('shares', id)
+        ds_name = os.path.join(share['target'], share['type'], share['name'])
+
+        self.join_subtasks(
+            self.run_subtask('share.{0}.delete'.format(share['type']), id),
+            self.run_subtask('zfs.destroy', ds_name)
+        )
+
         self.dispatcher.dispatch_event('shares.changed', {
             'operation': 'delete',
-            'ids': [name]
+            'ids': [id]
         })
 
 
@@ -150,16 +205,21 @@ class DeleteDependentShares(Task):
         })
 
 
+def _depends():
+    return ['VolumePlugin']
+
+
 def _init(dispatcher, plugin):
     plugin.register_schema_definition('share', {
         'type': 'object',
         'properties': {
             'id': {'type': 'string'},
+            'name': {'type': 'string'},
             'description': {'type': 'string'},
             'enabled': {'type': 'boolean'},
             'type': {'type': 'string'},
-            'target': {'type': 'string'},
-            'homedirs': {'type': 'boolean'},
+            'parent': {'type': ['string', 'null']},
+            'filesystem_path': {'type': 'string'},
             'properties': {'type': 'object'}
         }
     })
@@ -177,7 +237,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('shares', 'string')
     plugin.register_provider('shares', SharesProvider)
     plugin.register_task_handler('share.create', CreateShareTask)
     plugin.register_task_handler('share.update', UpdateShareTask)

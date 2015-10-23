@@ -384,7 +384,8 @@ def convert_share_target(target):
 def _metadata():
     return {
         'type': 'sharing',
-        'method': 'iscsi'
+        'subtype': 'block',
+        'method': 'iscsi',
     }
 
 

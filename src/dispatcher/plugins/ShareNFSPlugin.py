@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 class NFSSharesProvider(Provider):
     @private
     @accepts(str)
-    def get_connected_clients(self, share_name):
-        share = self.datastore.get_one('shares', ('type', '=', 'nfs'), ('id', '=', share_name))
+    def get_connected_clients(self, share_id=None):
+        share = self.datastore.get_one('shares', ('type', '=', 'nfs'), ('id', '=', share_id))
         result = []
         f = open('/var/db/mountdtab')
         for line in f:
@@ -47,7 +47,7 @@ class NFSSharesProvider(Provider):
             if share['target'] in path:
                 result.append({
                     'host': host,
-                    'share': share_name,
+                    'share': share_id,
                     'user': None,
                     'connected_at': None
                 })
@@ -60,25 +60,27 @@ class NFSSharesProvider(Provider):
 @accepts(h.ref('nfs-share'))
 class CreateNFSShareTask(Task):
     def describe(self, share):
-        return "Creating NFS share {0}".format(share['id'])
+        return "Creating NFS share {0}".format(share['name'])
 
     def verify(self, share):
         return ['service:nfs']
 
     def run(self, share):
-        self.datastore.insert('shares', share)
+        id = self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
         self.dispatcher.call_sync('services.reload', 'nfs')
 
-        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        dataset = dataset_for_share(self.dispatcher, share)
         self.join_subtasks(self.run_subtask('zfs.configure', dataset['pool'], dataset['name'], {
             'sharenfs': {'value': opts(share)}
         }))
 
         self.dispatcher.dispatch_event('shares.nfs.changed', {
             'operation': 'create',
-            'ids': [share['id']]
+            'ids': [id]
         })
+
+        return id
 
 
 @description("Updates existing NFS share")
@@ -96,7 +98,7 @@ class UpdateNFSShareTask(Task):
         self.datastore.update('shares', name, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
 
-        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        dataset = dataset_for_share(self.dispatcher, share)
         self.join_subtasks(self.run_subtask('zfs.configure', dataset['pool'], dataset['name'], {
             'sharenfs': {'value': opts(share)}
         }))
@@ -122,7 +124,7 @@ class DeleteNFSShareTask(Task):
         self.dispatcher.call_sync('etcd.generation.generate_group', 'nfs')
         self.dispatcher.call_sync('services.reload', 'nfs')
 
-        dataset = dataset_for_mountpoint(self.dispatcher, share['target'])
+        dataset = dataset_for_share(self.dispatcher, share)
         self.join_subtasks(self.run_subtask('zfs.configure', dataset, {
             'sharenfs': {'value': 'off'}
         }))
@@ -133,11 +135,12 @@ class DeleteNFSShareTask(Task):
         })
 
 
-def dataset_for_mountpoint(dispatcher, mountpoint):
+def dataset_for_share(dispatcher, share):
     return dispatcher.call_sync(
-        'zfs.dataset.query',
-        [('mountpoint', '=', mountpoint)],
-        {'single': True}
+        'shares.translate_dataset',
+        'nfs',
+        share['target'],
+        share['name']
     )
 
 
@@ -185,12 +188,13 @@ def opts(share):
 def _metadata():
     return {
         'type': 'sharing',
+        'subtype': 'file',
         'method': 'nfs'
     }
 
 
 def _depends():
-    return ['ZfsPlugin']
+    return ['ZfsPlugin', 'SharingPlugin']
 
 
 def _init(dispatcher, plugin):
@@ -225,10 +229,10 @@ def _init(dispatcher, plugin):
     plugin.register_event_type('shares.nfs.changed')
 
     for share in dispatcher.datastore.query('shares', ('type', '=', 'nfs')):
-        dataset = dataset_for_mountpoint(dispatcher, share['target'])
+        dataset = dataset_for_share(dispatcher, share)
         if not dataset:
             logger.warning('Invalid share: {0} pointing to {1}, target dataset doesn\'t exist'.format(
-                share['id'],
+                share['name'],
                 share['target']
             ))
             continue

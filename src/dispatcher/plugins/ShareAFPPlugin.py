@@ -37,7 +37,7 @@ from fnutils import first_or_default, normalize
 @description("Provides info about configured AFP shares")
 class AFPSharesProvider(Provider):
     @private
-    def get_connected_clients(self, share_name):
+    def get_connected_clients(self, share_id=None):
         result = []
         for i in psutil.process_iter():
             if i.name() != 'afpd':
@@ -60,7 +60,7 @@ class AFPSharesProvider(Provider):
 @accepts(h.ref('afp-share'))
 class CreateAFPShareTask(Task):
     def describe(self, share):
-        return "Creating AFP share {0}".format(share['id'])
+        return "Creating AFP share {0}".format(share['name'])
 
     def verify(self, share):
         return ['service:afp']
@@ -80,13 +80,15 @@ class CreateAFPShareTask(Task):
             'hosts_deny': None
         })
 
-        self.datastore.insert('shares', share)
+        id = self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'afp')
         self.dispatcher.call_sync('services.reload', 'afp')
         self.dispatcher.dispatch_event('shares.afp.changed', {
             'operation': 'create',
-            'ids': [share['id']]
+            'ids': [id]
         })
+
+        return id
 
 
 @description("Updates existing AFP share")
@@ -95,18 +97,18 @@ class UpdateAFPShareTask(Task):
     def describe(self, name, updated_fields):
         return "Updating AFP share {0}".format(name)
 
-    def verify(self, name, updated_fields):
+    def verify(self, id, updated_fields):
         return ['service:afp']
 
     def run(self, name, updated_fields):
-        share = self.datastore.get_by_id('shares', name)
+        share = self.datastore.get_by_id('shares', id)
         share.update(updated_fields)
-        self.datastore.update('shares', name, share)
+        self.datastore.update('shares', id, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'afp')
         self.dispatcher.call_sync('services.reload', 'afp')
         self.dispatcher.dispatch_event('shares.afp.changed', {
             'operation': 'update',
-            'ids': [name]
+            'ids': [id]
         })
 
 
@@ -116,26 +118,27 @@ class DeleteAFPShareTask(Task):
     def describe(self, name):
         return "Deleting AFP share {0}".format(name)
 
-    def verify(self, name):
+    def verify(self, id):
         return ['service:afp']
 
-    def run(self, name):
-        self.datastore.delete('shares', name)
+    def run(self, id):
+        self.datastore.delete('shares', id)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'afp')
         self.dispatcher.call_sync('services.reload', 'afp')
         self.dispatcher.dispatch_event('shares.afp.changed', {
             'operation': 'delete',
-            'ids': [name]
+            'ids': [id]
         })
 
 
 def _depends():
-    return ['AFPPlugin']
+    return ['AFPPlugin', 'SharingPlugin']
 
 
 def _metadata():
     return {
         'type': 'sharing',
+        'subtype': 'file',
         'method': 'afp'
     }
 
@@ -144,7 +147,6 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('afp-share', {
         'type': 'object',
         'properties': {
-            'id': {'type': 'string'},
             'comment': {'type': 'string'},
             'read_only': {'type': 'boolean'},
             'time_machine': {'type': 'boolean'},
