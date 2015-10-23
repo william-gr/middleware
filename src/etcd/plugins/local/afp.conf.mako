@@ -48,7 +48,7 @@
 
 % for share in dispatcher.call_sync("shares.query", [("type", "=", "afp")]):
 [${share["id"]}]
-${opt("path", share["target"])}\
+${opt("path", share["filesystem_path"])}\
 ${opt("valid users", share["properties"].get("users_allow"))}\
 ${opt("invalid users", share["properties"].get("users_deny"))}\
 ${opt("hosts allow", share["properties"].get("hosts_allow"))}\
