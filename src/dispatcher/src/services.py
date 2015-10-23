@@ -119,12 +119,14 @@ class DebugService(RpcService):
         pydevd.stoptrace()
 
     @private
-    def set_tasks_debug(self, host, port):
+    def set_tasks_debug(self, host, port, tasks=None):
         self.dispatcher.balancer.debugger = (host, port)
+        self.dispatcher.balancer.debugged_tasks = tasks or ['*']
 
     @private
     def cancel_tasks_debug(self):
         self.dispatcher.balancer.debugger = None
+        self.dispatcher.balancer.debugged_tasks = None
 
 
 class EventService(RpcService):

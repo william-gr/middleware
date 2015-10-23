@@ -31,6 +31,7 @@ import traceback
 import errno
 import copy
 import uuid
+import fnmatch
 import inspect
 import subprocess
 import bsd
@@ -335,6 +336,7 @@ class Balancer(object):
         self.create_initial_queues()
         self.distribution_lock = RLock()
         self.debugger = None
+        self.debugged_tasks = None
 
         self.dispatcher.register_event_type('task.changed')
 
@@ -400,7 +402,12 @@ class Balancer(object):
         task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = copy.deepcopy(args)
-        task.debugger = self.debugger
+
+        if self.debugger:
+            for m in self.debugged_tasks:
+                if fnmatch.fnmatch(name, m):
+                    task.debugger = self.debugger
+
         task.id = self.dispatcher.datastore.insert("tasks", task)
         task.set_state(TaskState.CREATED)
         self.task_queue.put(task)
@@ -421,6 +428,12 @@ class Balancer(object):
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
         task.parent = parent
+
+        if self.debugger:
+            for m in self.debugged_tasks:
+                if fnmatch.fnmatch(name, m):
+                    task.debugger = self.debugger
+
         task.set_state(TaskState.CREATED)
         self.task_list.append(task)
         task.start()
