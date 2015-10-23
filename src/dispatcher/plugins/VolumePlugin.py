@@ -792,11 +792,15 @@ class DatasetConfigureTask(Task):
     def run(self, pool_name, path, updated_params):
         ds = wrap(self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', path)], {'single': True}))
 
+        if 'name' in updated_params:
+            self.join_subtasks(self.run_subtask('zfs.rename', ds['name'], updated_params['name']))
+            ds['name'] = updated_params['name']
+
         if 'properties' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, updated_params['properties']))
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], updated_params['properties']))
 
         if 'share_type' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], {
                 'org.freenas:share_type': {'value': updated_params['share_type']}
             }))
 
@@ -812,10 +816,10 @@ class DatasetConfigureTask(Task):
                 raise TaskException(errno.EINVAL, 'Cannot use acls with Mac share type')
 
             if oldtyp != 'ACL' and typ == 'ACL':
-                self.switch_to_acl(pool_name, path)
+                self.switch_to_acl(pool_name, ds['name'])
 
             if oldtyp != 'PERMS' and typ == 'PERMS':
-                self.switch_to_chmod(pool_name, path)
+                self.switch_to_chmod(pool_name, ds['name'])
 
 
 class SnapshotCreateTask(Task):
