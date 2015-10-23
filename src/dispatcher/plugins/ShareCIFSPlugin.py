@@ -206,6 +206,7 @@ def _metadata():
     return {
         'type': 'sharing',
         'subtype': 'file',
+        'perm_type': 'ACL',
         'method': 'cifs'
     }
 

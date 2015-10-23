@@ -139,6 +139,7 @@ def _metadata():
     return {
         'type': 'sharing',
         'subtype': 'file',
+        'perm_type': 'PERMS',
         'method': 'afp'
     }
 
