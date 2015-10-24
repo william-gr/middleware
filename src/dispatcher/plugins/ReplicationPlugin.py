@@ -25,15 +25,25 @@
 #
 #####################################################################
 
-
-from task import Task
+import os
+import errno
+import re
+from datetime import datetime
+from dateutil.parser import parse as parse_datetime
+from task import Task, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from lib.system import SubprocessException, system
 from shlex import split as shlex_split
-import re
+from fnutils import to_timedelta
+from fnutils.query import wrap
+
 
 # Pattern to match the system dataset.
-system_re = re.compile('^[^/]+/.system.*')
+SYSTEM_RE = re.compile('^[^/]+/.system.*')
+AUTOSNAP_RE = re.compile(
+    '^auto-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
+    '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])$'
+)
 
 #
 # Parse a list of 'zfs list -H -t snapshot -p -o name,creation' output
@@ -134,13 +144,38 @@ def sendzfs(fromsnap, tosnap, dataset, localfs, remotefs, compression, throttle,
     #    replication.save()
     return (msg == "Succeeded")
 
-class SnapshotDatasetTask(Task):
-    def verify(self, pool, dataset, recursive, exclude_system, lifetime):
-        # XXX: check whether pool exists
-        return ['zpool:{0}'.format(pool)]
 
-    def run(self, pool, dataset, recursive, exclude_system, lifetime):
-        pass
+@accepts(str, str, bool, str)
+@returns(str)
+class SnapshotDatasetTask(Task):
+    def verify(self, pool, dataset, recursive, lifetime):
+        if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', dataset)], {'single': True}):
+            raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(dataset))
+
+        return ['zfs:{0}'.format(dataset)]
+
+    def run(self, pool, dataset, recursive, lifetime):
+        def is_expired(snapshot):
+            _, snapname = snapshot['name'].split('@')
+            match = AUTOSNAP_RE.match(snapname)
+            if not match:
+                return False
+
+            if snapshot['holds']:
+                return False
+
+            delta = to_timedelta(match.group('lifetime'))
+            creation = parse_datetime(snapshot['properties.creation.value'])
+            return creation + delta < datetime.now()
+
+        snapshots = filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset)))
+        snapname = 'auto-{0:%Y%m%d.%H%M}-{1}'.format(datetime.now(), lifetime)
+
+        self.join_subtasks(
+            self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive),
+            *map(lambda s: self.run_subtask('zfs.destroy', s['name']), snapshots)
+        )
+
 
 @description("Runs an ZFS Replication Task with the specified arguments")
 @accepts(h.all_of(
@@ -457,9 +492,10 @@ Hello,
                     except:
                         log.warn("Unable to destroy dataset %s on remote system" % (zfsname))
 
+
 def _init(dispatcher, plugin):
     plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
-    plugin.register_schema_definition('autorepl', {
+    plugin.register_schema_definition('replication', {
         'type': 'object',
         'properties': {
             'remote': {'type': 'string'},
@@ -473,9 +509,11 @@ def _init(dispatcher, plugin):
                 'enum': ['none', 'pigz', 'plzip', 'lz4', 'xz']
             },
             'bandlim' : {'type': 'string'},
-            'followdelete' : {'type': 'boolean'},
-            'recursive' : {'type': 'boolean'},
+            'followdelete': {'type': 'boolean'},
+            'recursive': {'type': 'boolean'},
         },
         'additionalProperties': False,
     })
+
+    plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_task_handler('replication.replicate_dataset', ReplicateDatasetTask)
