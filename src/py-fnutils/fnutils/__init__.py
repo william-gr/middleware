@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+from datetime import timedelta
 import logging
 import logging.handlers
 import copy
@@ -87,6 +88,25 @@ def materialized_paths_to_tree(lst, separator='.'):
         add(result, path)
 
     return result
+
+
+def to_timedelta(time_val):
+    num = int(time_val[:-1])
+
+    if time_val.endswith('s'):
+        return timedelta(seconds=num)
+
+    elif time_val.endswith('m'):
+        return timedelta(minutes=num)
+
+    elif time_val.endswith('h'):
+        return timedelta(hours=num)
+
+    elif time_val.endswith('d'):
+        return timedelta(days=num)
+
+    elif time_val.endswith('y'):
+        return timedelta(days=(365 * num))
 
 
 def configure_logging(path, level):

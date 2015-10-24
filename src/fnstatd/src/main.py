@@ -44,7 +44,7 @@ import socket
 import time
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import gevent
 import gevent.monkey
 import gevent.socket
@@ -54,31 +54,12 @@ from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
 from fnutils.debug import DebugService
-from fnutils import configure_logging
+from fnutils import configure_logging, to_timedelta
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 DEFAULT_DBFILE = 'stats.hdf'
 gevent.monkey.patch_all(thread=False)
-
-
-def to_timedelta(time_val):
-    num = int(time_val[:-1])
-
-    if time_val.endswith('s'):
-        return timedelta(seconds=num)
-
-    elif time_val.endswith('m'):
-        return timedelta(minutes=num)
-
-    elif time_val.endswith('h'):
-        return timedelta(hours=num)
-
-    elif time_val.endswith('d'):
-        return timedelta(days=num)
-
-    elif time_val.endswith('y'):
-        return timedelta(days=(365 * num))
 
 
 def round_timestamp(timestamp, frequency):
