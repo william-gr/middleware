@@ -151,18 +151,15 @@ class ZfsDatasetProvider(Provider):
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
-    @accepts(str, str)
-    @returns(str)
-    def get_most_recent_snapshot(self, dataset_name):
+    @accepts(str)
+    @returns(h.array(h.ref('zfs-snapshot')))
+    def get_snapshots(self, dataset_name):
         try:
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(dataset_name)
             snaps = list(ds.snapshots)
             snaps.sort(key=lambda s: s.properties['creation'].value, reverse=True)
-            if snaps:
-                return snaps[0].name
-
-            return None
+            return snaps
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
