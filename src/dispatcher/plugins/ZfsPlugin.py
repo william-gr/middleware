@@ -542,7 +542,7 @@ class ZfsBaseTask(Task):
         path = args[0]
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(path)
+            dataset = zfs.get_object(path)
         except libzfs.ZFSException, err:
             raise TaskException(errno.ENOENT, str(err))
 
@@ -656,7 +656,7 @@ class ZfsDestroyTask(ZfsBaseTask):
     def run(self, name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(name)
+            dataset = zfs.get_object(name)
             dataset.delete()
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
@@ -666,7 +666,7 @@ class ZfsRenameTask(ZfsBaseTask):
     def run(self, name, new_name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(name)
+            dataset = zfs.get_object(name)
             dataset.rename(new_name)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
