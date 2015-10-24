@@ -579,6 +579,9 @@ def generate_partitions_list(gpart):
 
     for p in gpart.providers:
         paths = [os.path.join("/dev", p.name)]
+        if not p.config:
+            continue
+
         label = p.config.get('label')
         uuid = p.config.get('rawuuid')
 
