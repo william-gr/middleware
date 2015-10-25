@@ -67,7 +67,7 @@ class Task(object):
         return self.dispatcher.run_subtask(self, classname, args)
 
     def join_subtasks(self, *tasks):
-        self.dispatcher.join_subtasks(*tasks)
+        return self.dispatcher.join_subtasks(*tasks)
 
     def chain(self, task, *args):
         self.dispatcher.balancer.submit(task, *args)
