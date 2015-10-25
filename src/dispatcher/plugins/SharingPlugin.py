@@ -127,8 +127,7 @@ class CreateShareTask(Task):
 
         normalize(share, {
             'enabled': True,
-            'description': '',
-            'parent': None
+            'description': ''
         })
 
         if not share_type:
@@ -165,10 +164,19 @@ class UpdateShareTask(Task):
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
 
+        share_types = self.dispatcher.call_sync('shares.supported_types')
+        oldtype = share_types.get(share['type'])
+        newtype = share_types.get(updated_fields.get('type', share['type']))
         share.update(updated_fields)
 
-        if not self.dispatcher.call_sync('shares.supported_types').get(share['type']):
+        if not newtype:
             raise VerifyException(errno.ENXIO, 'Unknown sharing type {0}'.format(share['type']))
+
+        if oldtype['subtype'] != newtype['subtype']:
+            raise VerifyException(errno.EINVAL, 'Cannot convert from {0} sharing to {1} sharing'.format(
+                oldtype['subtype'],
+                newtype['subtype']
+            ))
 
         if not self.dispatcher.call_sync('volumes.query', [('name', '=', share['target'])], {'single': True}):
             raise VerifyException(errno.ENXIO, 'Volume {0} doesn\'t exist'.format(share['target']))
