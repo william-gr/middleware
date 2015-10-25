@@ -173,16 +173,6 @@ class UpdateShareTask(Task):
         if not self.dispatcher.call_sync('volumes.query', [('name', '=', share['target'])], {'single': True}):
             raise VerifyException(errno.ENXIO, 'Volume {0} doesn\'t exist'.format(share['target']))
 
-        if self.datastore.exists(
-            'shares',
-            ('type', '=', share['type']),
-            ('name', '=', share['name'])
-        ):
-            raise VerifyException(errno.EEXIST, 'Share {0} of type {1} already exists'.format(
-                share['name'],
-                share['type']
-            ))
-
         return ['system']
 
     def run(self, id, updated_fields):
