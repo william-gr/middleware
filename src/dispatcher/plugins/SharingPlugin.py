@@ -294,7 +294,7 @@ def _init(dispatcher, plugin):
                 # Unknown type
                 return
 
-            if dispatcher.query('shares', [
+            if dispatcher.datastore.query('shares', [
                 ('name', '=', rest),
                 ('type', '=', share_type)
             ], {'single': True}):
@@ -322,7 +322,7 @@ def _init(dispatcher, plugin):
                 # Unknown type
                 return
 
-            share = dispatcher.query('shares', [
+            share = dispatcher.datastore.query('shares', [
                 ('name', '=', rest),
                 ('type', '=', share_type)
             ], {'single': True})
