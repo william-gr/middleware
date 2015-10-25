@@ -40,7 +40,7 @@ from dispatcher.rpc import (
     )
 from utils import first_or_default
 from datastore import DuplicateKeyException
-from fnutils import include, normalize
+from fnutils import include, exclude, normalize
 from fnutils.query import wrap
 from fnutils.copytree import count_files, copytree
 
@@ -797,7 +797,8 @@ class DatasetConfigureTask(Task):
             ds['name'] = updated_params['name']
 
         if 'properties' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], updated_params['properties']))
+            props = exclude(updated_params['properties'], 'used', 'available', 'dedup', 'casesensitivity')
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], props))
 
         if 'share_type' in updated_params:
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], {
