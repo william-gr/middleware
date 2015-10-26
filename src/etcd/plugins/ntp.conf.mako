@@ -17,8 +17,8 @@ server ${ntp['address']}\
 % endif
 
 % endfor
-restrict -4 default nomodify nopeer noquery notrap
-restrict -6 default nomodify nopeer noquery notrap
+restrict default limited kod nomodify notrap nopeer noquery
+restrict -6 default limited kod nomodify notrap nopeer noquery
 restrict 127.0.0.1
 restrict -6 ::1
 restrict 127.127.1.0
