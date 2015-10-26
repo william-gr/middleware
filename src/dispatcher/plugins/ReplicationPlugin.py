@@ -256,6 +256,11 @@ class ReplicateDatasetTask(Task):
             src, tgt = pair
             _, srcsnap = src['name'].split('@')
             _, tgtsnap = tgt['name'].split('@')
+
+            if src['properties.org\\.freenas:replicate.value'] != 'yes':
+                # Snapshot is not subject to replication
+                return False
+
             return srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']
 
         if remote_snapshots:
