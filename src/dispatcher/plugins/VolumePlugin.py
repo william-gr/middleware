@@ -109,7 +109,7 @@ class VolumeProvider(Provider):
                     'root_vdev': config['root_vdev'],
                     'status': config['status'],
                     'scan': config['scan'],
-                    'properties': config['properties'],
+                    'properties': config['properties']
                 })
 
                 if config['status'] != 'UNAVAIL':
@@ -434,7 +434,8 @@ class VolumeCreateTask(ProgressTask):
                 'id': str(pool['guid']),
                 'name': name,
                 'type': type,
-                'mountpoint': mountpoint
+                'mountpoint': mountpoint,
+                'attributes': volume.get('attributes', {})
             })
 
         self.set_progress(90)
@@ -927,7 +928,8 @@ def _init(dispatcher, plugin):
                         dispatcher.datastore.insert('volumes', {
                             'id': i,
                             'name': pool['name'],
-                            'type': 'zfs'
+                            'type': 'zfs',
+                            'attributes': {}
                         })
                     except DuplicateKeyException:
                         # already inserted by task
@@ -967,7 +969,8 @@ def _init(dispatcher, plugin):
                 'enum': ['zfs']
             },
             'topology': {'$ref': 'zfs-topology'},
-            'params': {'type': 'object'}
+            'params': {'type': 'object'},
+            'attributes': {'type': 'object'}
         }
     })
 
