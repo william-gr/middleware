@@ -92,7 +92,7 @@ class Updater(BaseTestCase):
             self.assertTaskCompletion(tid)
             
             print 'Applying update...'
-            tid = self.submitTask('update.update', True) 
+            tid = self.submitTask('update.update') 
             self.assertTaskCompletion(tid)
             
             print 'Will reboot...'
