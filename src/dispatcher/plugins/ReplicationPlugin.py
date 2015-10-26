@@ -276,18 +276,30 @@ class ReplicateDatasetTask(Task):
                     delete=delete
                 ))
             else:
-                actions.append(DatasetAction(initialize=True, snapshots=snapshots))
+                actions.append(DatasetAction(
+                    delete=remote_snapshots[:],
+                    initialize=True,
+                    snapshots=snapshots
+                ))
         else:
             actions.append(DatasetAction(initialize=True, create=True, snapshots=snapshots))
 
         for action in actions:
-            if action.initialize and not action.create:
-                # Remove all snapshots on remote side
+            if action.delete:
+                for snap in action.delete:
+                    _, snapname = snap['name'].split('@')
+                    logger.info('Will delete {0}:{1}@{2}'.format(
+                        remote,
+                        remotefs,
+                        snapname
+                    ))
+
+                # Remove snapshots on remote side
                 remote_client.call_task_sync(
                     'zfs.delete_multiple_snapshots',
                     remotefs.split('/')[0],
                     remotefs,
-                    map(lambda s: s['name'], remote_snapshots)
+                    map(lambda s: s['name'], action.delete)
                 )
 
             start_full = action.create or action.initialize
@@ -310,22 +322,6 @@ class ReplicateDatasetTask(Task):
                     prev = action.snapshots[idx - 1] if idx > 0 else action.anchor_snapshot
                     _, prev_snapname = prev['name'].split('@')
                     sendzfs(remote, prev_snapname, snapname, localfs, remotefs, '', '')
-
-            if action.delete:
-                for snap in action.delete:
-                    _, snapname = snap['name'].split('@')
-                    logger.info('Will delete {0}:{1}@{2}'.format(
-                        remote,
-                        remotefs,
-                        snapname
-                    ))
-
-                remote_client.call_task_sync(
-                    'zfs.delete_multiple_snapshots',
-                    remotefs.split('/')[0],
-                    remotefs,
-                    map(lambda s: s['name'], action.delete)
-                )
 
 
 def _init(dispatcher, plugin):
