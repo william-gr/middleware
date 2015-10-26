@@ -250,7 +250,6 @@ class ReplicateDatasetTask(Task):
         local_snapshots = wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
         remote_snapshots = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
         snapshots = local_snapshots[:]
-        found = None
         delete = None
 
         def matches(pair):
@@ -320,6 +319,13 @@ class ReplicateDatasetTask(Task):
                         remotefs,
                         snapname
                     ))
+
+                remote_client.call_task_sync(
+                    'zfs.delete_multiple_snapshots',
+                    remotefs.split('/')[0],
+                    remotefs,
+                    map(lambda s: s['name'], action.delete)
+                )
 
 
 def _init(dispatcher, plugin):
