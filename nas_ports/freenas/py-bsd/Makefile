@@ -1,32 +1,26 @@
-#
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       bsd
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
-PORTREVISION=   ${REVISION}
-PKGNAMEPREFIX=  ${PYTHON_PKGNAMEPREFIX}
+PORTNAME=	bsd
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTREVISION=	${REVISION}
+PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        Python wrappers for various BSD interfaces
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	Python wrappers for various BSD interfaces
 
-BUILD_DEPENDS=	
-
-USES=		python
 EXTRACT_ONLY=
 BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython \
 		${PYTHON_PKGNAMEPREFIX}six>0:${PORTSDIR}/devel/py-six
 
 WRKSRC=		/usr/middleware_src/py-bsd
 
-USES=		python:2
+USES=		python
 USE_PYTHON=	autoplist distutils
 
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 .include <bsd.port.mk>
