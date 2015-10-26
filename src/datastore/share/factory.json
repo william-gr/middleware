@@ -37,7 +37,7 @@
                 "password_disabled": false,
                 "email": null,
                 "group": 666,
-                "home": "/var/empty",
+                "home": "/nonexistent",
                 "full_name": "WebDAV Anonymous User",
                 "username": "webdav",
                 "sshpubkey": null,

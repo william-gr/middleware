@@ -34,10 +34,11 @@ def run(context):
         home = user['home']
         uid = user['id']
         gid = user['group']
+        builtin = user['builtin']
         filename = os.path.join(home, '.ssh', 'authorized_keys')
 
-        if not os.path.isdir(home):
-            # No home directory - ignore
+        if not os.path.isdir(home) or (uid != 0 and builtin):
+            # No home directory or builting and non-root user - ignore
             continue
 
         if not os.path.isdir(os.path.join(home, '.ssh')):
