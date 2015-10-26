@@ -36,7 +36,7 @@ from task import Task, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
-from fnutils import to_timedelta
+from fnutils import to_timedelta, first_or_default
 from fnutils.query import wrap
 
 
@@ -52,7 +52,9 @@ class DatasetAction(object):
     def __init__(self, **kwargs):
         self.initialize = False
         self.create = False
+        self.anchor_snapshot = None
         self.snapshots = []
+        self.delete = []
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -81,13 +83,15 @@ def compress_pipecmds(compression):
 #
 # Attempt to send a snapshot or increamental stream to remote.
 #
-def sendzfs(fromsnap, tosnap, dataset, localfs, remotefs, compression, throttle, reached_last, is_truenas = False):
-    global results
-    global templog
+def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
+    templog = '/tmp/templog'
+    sshcmd = '/usr/bin/ssh -i /data/ssh/replication -o BatchMode=yes' \
+        ' -o StrictHostKeyChecking=yes' \
+        ' -o ConnectTimeout=7 %s ' % remote
 
     # progressfile = '/tmp/.repl_progress_%d' % replication.id
     progressfile = '/tmp/.repl_progress_0' # XXX
-    cmd = ['/sbin/zfs', 'send', '-Vp']
+    cmd = ['/sbin/zfs', 'send', '-p']
     if fromsnap is None:
         cmd.append("%s@%s" % (dataset, tosnap))
     else:
@@ -108,7 +112,7 @@ def sendzfs(fromsnap, tosnap, dataset, localfs, remotefs, compression, throttle,
         os.close(writefd)
 
     compress, decompress = compress_pipecmds(compression)
-    replcmd = '%s%s/bin/dd obs=1m 2> /dev/null | /bin/dd obs=1m 2> /dev/null | %s "%s/sbin/zfs receive -F -d %s\'%s\' && echo Succeeded"' % (compress, throttle, sshcmd, decompress, rcro(is_truenas), remotefs)
+    replcmd = '%s%s/bin/dd obs=1m 2> /dev/null | /bin/dd obs=1m 2> /dev/null | %s "%s/sbin/zfs receive -F \'%s\' && echo Succeeded"' % (compress, throttle, sshcmd, decompress, remotefs)
     with open(templog, 'w+') as f:
         readobj = os.fdopen(readfd, 'r', 0)
         proc = subprocess.Popen(
@@ -126,12 +130,12 @@ def sendzfs(fromsnap, tosnap, dataset, localfs, remotefs, compression, throttle,
         msg = f.read().strip('\n').strip('\r')
     os.remove(templog)
     msg = msg.replace('WARNING: enabled NONE cipher\n', '')
-    log.debug("Replication result: %s" % (msg))
+    logger.debug("Replication result: %s" % (msg))
     # XXX results[replication.id] = msg
     # if reached_last and msg == "Succeeded":
     #    replication.repl_lastsnapshot = tosnap
     #    replication.save()
-    return (msg == "Succeeded")
+    return msg == "Succeeded"
 
 
 @accepts(str, str, bool, str)
@@ -190,6 +194,7 @@ class ReplicateDatasetTask(Task):
         remote = options['remote']
         localfs = options['localfs']
         remotefs = options['remotefs']
+        followdelete = options['followdelete']
         """
         remote = "127.0.0.1"    # Remote IP address
         remote_port = "22"      # SSH port number
@@ -244,26 +249,37 @@ class ReplicateDatasetTask(Task):
 
         local_snapshots = wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
         remote_snapshots = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
+        snapshots = local_snapshots[:]
         found = None
+        delete = None
+
+        def matches(pair):
+            src, tgt = pair
+            _, srcsnap = src['name'].split('@')
+            _, tgtsnap = tgt['name'].split('@')
+            return srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']
 
         if remote_snapshots:
             # Find out the last common snapshot.
-            for src, tgt in zip(local_snapshots, remote_snapshots):
-                srcsnap = src['name'].split('@')[-1]
-                tgtsnap = tgt['name'].split('@')[-1]
-                if srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']:
-                    found = src
-                    break
+            pairs = filter(matches, zip(local_snapshots, remote_snapshots))
+            pairs.sort(key=lambda p: int(p[0]['properties.creation.rawvalue']), reverse=True)
+            found, _ = first_or_default(None, pairs)
 
             if found:
+                if followdelete:
+                    delete = set(remote_snapshots) - set(local_snapshots)
+
+                index = local_snapshots.index(found)
                 actions.append(DatasetAction(
                     initialize=False,
-                    snapshots=local_snapshots[local_snapshots.index(found) + 1:]
+                    anchor_snapshot=local_snapshots[index],
+                    snapshots=local_snapshots[index+1:],
+                    delete=delete
                 ))
             else:
-                actions.append(DatasetAction(initialize=True))
+                actions.append(DatasetAction(initialize=True, snapshots=snapshots))
         else:
-            actions.append(DatasetAction(initialize=True, create=True))
+            actions.append(DatasetAction(initialize=True, create=True, snapshots=snapshots))
 
         for action in actions:
             if action.initialize and not action.create:
@@ -275,14 +291,9 @@ class ReplicateDatasetTask(Task):
                     map(lambda s: s['name'], remote_snapshots)
                 )
 
-            if action.create or action.initialize:
-                snapshots = local_snapshots
-                start_full = True
-            else:
-                snapshots = action.snapshots
-                start_full = False
+            start_full = action.create or action.initialize
 
-            for idx, snap in enumerate(snapshots):
+            for idx, snap in enumerate(action.snapshots):
                 _, snapname = snap['name'].split('@')
                 full = idx == 0 and start_full
 
@@ -293,6 +304,22 @@ class ReplicateDatasetTask(Task):
                     remotefs,
                     'fully' if full else 'incrementally'
                 ))
+
+                if full:
+                    sendzfs(remote, None, snapname, localfs, remotefs, '', '')
+                else:
+                    prev = action.snapshots[idx - 1] if idx > 0 else action.anchor_snapshot
+                    _, prev_snapname = prev['name'].split('@')
+                    sendzfs(remote, prev_snapname, snapname, localfs, remotefs, '', '')
+
+            if action.delete:
+                for snap in action.delete:
+                    _, snapname = snap['name'].split('@')
+                    logger.info('Will delete {0}:{1}@{2}'.format(
+                        remote,
+                        remotefs,
+                        snapname
+                    ))
 
 
 def _init(dispatcher, plugin):
