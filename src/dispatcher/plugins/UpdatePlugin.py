@@ -111,10 +111,10 @@ class CheckUpdateHandler(object):
         for c in self.changes:
             opdict = {
                 'operation': c['operation'],
-                'previous_name': c['old'].Name(),
-                'previous_version': c['old'].Version(),
-                'new_name': c['new'].Name(),
-                'new_version': c['new'].Version()
+                'previous_name': c['old'].Name() if c['old'] else None,
+                'previous_version': c['old'].Version() if c['old'] else None,
+                'new_name': c['new'].Name() if c['new'] else None,
+                'new_version': c['new'].Version() if c['new'] else None,
             }
             output.append(opdict)
         return output
@@ -822,14 +822,14 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('update-ops', {
         'type': 'object',
         'properties': {
-            'new_name': {'type': 'string'},
-            'previous_version': {'type': 'string'},
             'operation': {
                 'type': 'string',
                 'enum': ['delete', 'install', 'upgrade']
             },
-            'new_version': {'type': 'string'},
-            'previous_name': {'type': 'string'},
+            'new_name': {'type': ['string', 'null']},
+            'new_version': {'type': ['string', 'null']},
+            'previous_name': {'type': ['string', 'null']},
+            'previous_version': {'type': ['string', 'null']},
         }
     })
 
