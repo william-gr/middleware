@@ -28,40 +28,34 @@
 import os
 import errno
 import re
+import logging
+import subprocess
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from task import Task, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
-from shlex import split as shlex_split
 from fnutils import to_timedelta
 from fnutils.query import wrap
 
 
-# Pattern to match the system dataset.
+logger = logging.getLogger(__name__)
 SYSTEM_RE = re.compile('^[^/]+/.system.*')
 AUTOSNAP_RE = re.compile(
     '^auto-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
     '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])$'
 )
 
-#
-# Parse a list of 'zfs list -H -t snapshot -p -o name,creation' output
-# and place the result in a map of dataset name to a list of snapshot
-# name and timestamp.
-#
-def mapfromdata(input):
-    m = {}
-    for line in input:
-        if line == '':
-            continue
-        snapname, timestamp = line.split('\t')
-        dataset, snapname = snapname.split('@')
-        if m.has_key(dataset):
-            m[dataset].append((snapname, timestamp))
-        else:
-            m[dataset] = [(snapname, timestamp)]
-    return m
+
+class DatasetAction(object):
+    def __init__(self, **kwargs):
+        self.initialize = False
+        self.create = False
+        self.snapshots = []
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
 
 #
 # Return a pair of compression and decompress pipe commands
@@ -83,11 +77,6 @@ def compress_pipecmds(compression):
         decompress = ''
     return (compress, decompress)
 
-def rcro(is_truenas):
-    if is_truenas:
-        return '-o readonly=on '
-    else:
-        return ''
 
 #
 # Attempt to send a snapshot or increamental stream to remote.
@@ -148,13 +137,13 @@ def sendzfs(fromsnap, tosnap, dataset, localfs, remotefs, compression, throttle,
 @accepts(str, str, bool, str)
 @returns(str)
 class SnapshotDatasetTask(Task):
-    def verify(self, pool, dataset, recursive, lifetime):
+    def verify(self, pool, dataset, recursive, lifetime, prefix='auto'):
         if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', dataset)], {'single': True}):
             raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(dataset))
 
         return ['zfs:{0}'.format(dataset)]
 
-    def run(self, pool, dataset, recursive, lifetime):
+    def run(self, pool, dataset, recursive, lifetime, prefix='auto'):
         def is_expired(snapshot):
             _, snapname = snapshot['name'].split('@')
             match = AUTOSNAP_RE.match(snapname)
@@ -169,7 +158,7 @@ class SnapshotDatasetTask(Task):
             return creation + delta < datetime.now()
 
         snapshots = filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset)))
-        snapname = 'auto-{0:%Y%m%d.%H%M}-{1}'.format(datetime.now(), lifetime)
+        snapname = '{0}-{1:%Y%m%d.%H%M}-{1}'.format(prefix, datetime.now(), lifetime)
 
         self.join_subtasks(
             self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive),
@@ -178,29 +167,32 @@ class SnapshotDatasetTask(Task):
 
 
 @description("Runs an ZFS Replication Task with the specified arguments")
-@accepts(h.all_of(
-    h.ref('autorepl'),
-    h.required(
-        'remote',
-        'remote_port',
-        'dedicateduser',
-        'cipher',
-        'localfs',
-        'remotefs',
-        'compression',
-        'bandlim',
-        'followdelete',
-        'recursive',
-    ),
-))
+#@accepts(h.all_of(
+#    h.ref('autorepl'),
+#    h.required(
+#        'remote',
+#        'remote_port',
+#        'dedicateduser',
+#        'cipher',
+#        'localfs',
+#        'remotefs',
+#        'compression',
+#        'bandlim',
+#        'followdelete',
+#        'recursive',
+#    ),
+#))
 class ReplicateDatasetTask(Task):
-    def verify(self, pool, dataset, options):
-        pass
+    def verify(self, options, dry_run=False):
+        return ['zfs:{0}'.format(options['localfs'])]
 
-    def run(self, pool, dataset, options):
+    def run(self, options,):
+        remote = options['remote']
+        localfs = options['localfs']
+        remotefs = options['remotefs']
+        """
         remote = "127.0.0.1"    # Remote IP address
         remote_port = "22"      # SSH port number
-        dedicateduser = None    # If a dedicated user is used.  If not None, a username
         cipher = "Normal"       # or "fast", "disabled"
         remotefs = "tank"       # Receiving dataset
         localfs = "tank"        # Local dataset
@@ -209,7 +201,14 @@ class ReplicateDatasetTask(Task):
         followdelete = False    # Whether to "follow delete" snapshots that are deleted from source side
         recursive = True        # Whether the replication is recursive (includes children)
         is_truenas = False      # XXX
+        """
 
+        actions = []
+        remote_client = Client()
+        remote_client.connect(options['remote'])
+        remote_client.login_service('replicator')
+
+        """
         # Bandwidth Limit.
         if  bandlim != 0:
             throttle = '/usr/local/bin/throttle -K %d | ' % bandlim
@@ -239,258 +238,61 @@ class ReplicateDatasetTask(Task):
                       ' -o StrictHostKeyChecking=yes'
                       ' -o ConnectTimeout=7')
 
-        # Dedicated User
-        if dedicateduser:
-            sshcmd = "%s -l %s" % (sshcmd, dedicateduser.encode('utf-8'))
-
         # Remote IP/hostname and port.  This concludes the preparation task to build SSH command
         sshcmd = '%s -p %d %s' % (sshcmd, remote_port, remote)
+        """
 
-        #
-        # Create worklist.
-        #
+        local_snapshots = wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
+        remote_snapshots = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
+        found = None
 
-        remotefs_final = "%s%s%s" % (remotefs, localfs.partition('/')[1],localfs.partition('/')[2])
-        # Examine local list of snapshots, then remote snapshots, and determine if there is any work to do.
-        log.debug("Checking dataset %s" % (localfs))
+        if remote_snapshots:
+            # Find out the last common snapshot.
+            for src, tgt in zip(local_snapshots, remote_snapshots):
+                srcsnap = src['name'].split('@')[-1]
+                tgtsnap = tgt['name'].split('@')[-1]
+                if srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']:
+                    found = src
+                    break
 
-        #
-        # Grab map from local system.  TODO: this should be handled by a middleware cache.
-        #
-        if recursive:
-            output, error = system('/sbin/zfs', 'list', '-Hpt', 'snapshot', '-o', 'name,creation', '-r', str(localfs))
+            if found:
+                actions.append(DatasetAction(
+                    initialize=False,
+                    snapshots=local_snapshots[local_snapshots.index(found) + 1:]
+                ))
+            else:
+                actions.append(DatasetAction(initialize=True))
         else:
-            output, error = system('/sbin/zfs', 'list', '-Hpt', 'snapshot', '-o', 'name,creation', '-r', '-d', '1', str(localfs))
+            actions.append(DatasetAction(initialize=True, create=True))
 
-        # Parse output from local zfs list.
-        if output != '':
-            snaplist = output.split('\n')
-            snaplist = [x for x in snaplist if not system_re.match(x)]
-            map_source = mapfromdata(snaplist)
-        if is_truenas:
-            # Bi-directional replication: the remote side indicates that they are
-            # willing to receive snapshots by setting readonly to 'on', which prevents
-            # local writes.
-            #
-            # We expect to see "on" in the output, or cannot open '%s': dataset does not exist
-            # in the error.  To be safe, also check for children's readonly state.
-            may_proceed = False
-            rzfscmd = '"zfs list -H -o readonly -t filesystem,volume -r %s"' % (remotefs_final)
-            try:
-                output, error = system(shlex_split('%s %s' % (sshcmd, rzfscmd)))
-                if output != '' and output.find('off') == -1:
-                    may_proceed = True
-            except SubprocessException as e:
-                if e.err != '':
-                    if e.err.split('\n')[0] == ("cannot open '%s': dataset does not exist" % (remotefs_final)):
-                        may_proceed = True
-            if not may_proceed:
-                # Report the problem and continue
-                error, errmsg = send_mail(
-                    subject="Replication was refused by receiving system! (%s)" % remote,
-                    text="""
-Hello,
-    The remote system have denied our replication from local ZFS
-    %s to remote ZFS %s.  Please change the 'readonly' property
-    of:
-        %s
-    as well as its children to 'on' to allow receiving replication.
-                    """ % (localfs, remotefs_final, remotefs_final), interval=datetime.timedelta(hours=24), channel='autorepl')
-                # XXX results[replication.id] = 'Remote system denied receiving of snapshot on %s' % (remotefs_final)
-                raise # XXX
+        for action in actions:
+            if action.initialize and not action.create:
+                # Remove all snapshots on remote side
+                remote_client.call_task_sync(
+                    'zfs.delete_multiple_snapshots',
+                    remotefs.split('/')[0],
+                    remotefs,
+                    map(lambda s: s['name'], remote_snapshots)
+                )
 
-        # TODO: convert this to zfs.snapshot.query
-        # Grab map from remote system
-        if recursive:
-            rzfscmd = '"zfs list -H -t snapshot -p -o name,creation -r \'%s\'"' % (remotefs_final)
-        else:
-            rzfscmd = '"zfs list -H -t snapshot -p -o name,creation -d 1 -r \'%s\'"' % (remotefs_final)
-        try:
-            output, error = system(shlex_split('%s %s' % (sshcmd, rzfscmd)))
-            if output != '':
-                snaplist = output.split('\n')
-                snaplist = [x for x in snaplist if not system_re.match(x) and x != '']
-                # Process snaplist so that it matches the desired form of source side
-                l = len(remotefs_final)
-                snaplist = [ localfs + x[l:] for x in snaplist ]
-                map_target = mapfromdata(snaplist)
-        except SubprocessException as e:
-            if e.err != '':
-                raise TaskException(e.returncode, 'Failed: %s' % (e.err))
+            if action.create or action.initialize:
+                snapshots = local_snapshots
+                start_full = True
             else:
-                map_target = {}
+                snapshots = action.snapshots
+                start_full = False
 
-        # Calculate what needs to be done.
+            for idx, snap in enumerate(snapshots):
+                _, snapname = snap['name'].split('@')
+                full = idx == 0 and start_full
 
-        tasks = {}
-        delete_tasks = {}
-
-        # Now we have map_source and map_target, which would be used to calculate the replication
-        # path from source to target.
-        for dataset in map_source:
-            if map_target.has_key(dataset):
-                # Find out the last common snapshot.
-                #
-                # We have two ordered lists, list_source and list_target
-                # which are ordered by the creation time.  Because they
-                # are ordered, we can have two pointers and scan backward
-                # until we hit one identical item, or hit the end of
-                # either list.
-                list_source = map_source[dataset]
-                list_target = map_target[dataset]
-                i = len(list_source) - 1
-                j = len(list_target) - 1
-                sourcesnap, sourcetime = list_source[i]
-                targetsnap, targettime = list_target[j]
-                while i >= 0 and j >= 0:
-                    # found.
-                    if sourcesnap == targetsnap and sourcetime == targettime:
-                        break
-                    elif sourcetime > targettime:
-                        i-=1
-                        if i < 0:
-                            break
-                        sourcesnap, sourcetime = list_source[i]
-                    else:
-                        j-=1
-                        if j < 0:
-                            break
-                        targetsnap, targettime = list_target[j]
-                if sourcesnap == targetsnap and sourcetime == targettime:
-                    # found: i, j points to the right position.
-                    # we do not care much if j is pointing to the last snapshot
-                    # if source side have new snapshot(s), report it.
-                    if i < len(list_source) - 1:
-                        tasks[dataset] = [ m[0] for m in list_source[i:] ]
-                    if followdelete:
-                        # All snapshots that do not exist on the source side should
-                        # be deleted when followdelete is requested.
-                        delete_set = set([ m[0] for m in list_target]) - set([ m[0] for m in list_source])
-                        if len(delete_set) > 0:
-                            delete_tasks[dataset] = delete_set
-                else:
-                    # no identical snapshot found, nuke and repave.
-                    tasks[dataset] = [None] + [ m[0] for m in list_source[i:] ]
-            else:
-                # New dataset on source side: replicate to the target.
-                tasks[dataset] = [None] + [ m[0] for m in map_source[dataset] ]
-
-        # Removed dataset(s)
-        for dataset in map_target:
-            if not map_source.has_key(dataset):
-                tasks[dataset] = [map_target[dataset][-1][0], None]
-
-        previously_deleted = "/"
-        l = len(localfs)
-        total_datasets = len(tasks.keys())
-        if total_datasets == 0:
-            # XXX results[replication.id] = 'Up to date'
-            raise # XXX
-        current_dataset = 0
-        for dataset in sorted(tasks.keys()):
-            tasklist = tasks[dataset]
-            current_dataset += 1
-            reached_last = (current_dataset == total_datasets)
-            if tasklist[0] == None:
-                # No matching snapshot(s) exist.  If there is any snapshots on the
-                # target side, destroy all existing snapshots so we can proceed.
-                if map_target.has_key(dataset):
-                    list_target = map_target[dataset]
-                    snaplist = [ remotefs_final + dataset[l:] + '@' + x[0] for x in list_target ]
-                    failed_snapshots = []
-                    for snapshot in snaplist:
-                        rzfscmd = '"zfs destroy \'%s\'"' % (snapshot)
-                        args = shlex_split(str('%s %s' % (sshcmd, rzfscmd)))
-                        try:
-                            output, error = system(args)
-                        except SubprocessException:
-                            log.warn("Unable to destroy snapshot %s on remote system" % (snapshot))
-                            failed_snapshots.append(snapshot)
-                    if len(failed_snapshots) > 0:
-                        # We can't proceed in this situation, report
-                        error, errmsg = send_mail(
-                            subject="Replication failed! (%s)" % remote,
-                            text="""
-Hello,
-    The replication failed for the local ZFS %s because the remote system
-    has diverged snapshots with us and we were unable to remove them,
-    including:
-%s
-                            """ % (localfs, failed_snapshots), interval=datetime.timedelta(hours=2), channel='autorepl')
-                        # XXX results[replication.id] = 'Unable to destroy remote snapshot: %s' % (failed_snapshots)
-                        ### rzfs destroy %s
-                psnap = tasklist[1]
-                success = sendzfs(None, psnap, dataset, localfs, remotefs, throttle, compression, reached_last)
-                if success:
-                    for nsnap in tasklist[2:]:
-                        success = sendzfs(psnap, nsnap, dataset, localfs, remotefs, throttle, compression, reached_last)
-                        if not success:
-                            # Report the situation
-                            error, errmsg = send_mail(
-                                subject="Replication failed at %s@%s -> %s" % (dataset, psnap, nsnap),
-                                text="""
-Hello,
-    The replication failed for the local ZFS %s while attempting to
-    apply incremental send of snapshot %s -> %s to %s
-                                """ % (dataset, psnap, nsnap, remote), interval=datetime.timedelta(hours=2), channel='autorepl')
-                            # XXX results[replication.id] = 'Failed: %s (%s->%s)' % (dataset, psnap, nsnap)
-                            break
-                        psnap = nsnap
-                else:
-                    # Report the situation
-                    error, errmsg = send_mail(
-                        subject="Replication failed when sending %s@%s" % (dataset, psnap),
-                        text="""
-Hello,
-    The replication failed for the local ZFS %s while attempting to
-    send snapshot %s to %s
-                        """ % (dataset, psnap, remote), interval=datetime.timedelta(hours=2), channel='autorepl')
-                    # XXX results[replication.id] = 'Failed: %s (%s)' % (dataset, psnap)
-                    # Continue to try the next task, if there is any.
-                    continue
-            elif tasklist[1] != None:
-                # This is incremental send.  We always send psnap -> nsnap.
-                psnap = tasklist[0]
-                allsucceeded = True
-                for nsnap in tasklist[1:]:
-                    success = sendzfs(psnap, nsnap, dataset, localfs, remotefs, throttle, compression, reached_last)
-                    allsucceeded = allsucceeded and success
-                    if not success:
-                        # Report the situation
-                        error, errmsg = send_mail(
-                            subject="Replication failed at %s@%s -> %s" % (dataset, psnap, nsnap),
-                            text="""
-Hello,
-    The replication failed for the local ZFS %s while attempting to
-    apply incremental send of snapshot %s -> %s to %s
-                            """ % (dataset, psnap, nsnap, remote), interval=datetime.timedelta(hours=2), channel='autorepl')
-                        # XXX results[replication.id] = 'Failed: %s (%s->%s)' % (dataset, psnap, nsnap)
-                        # Bail out: if the receive fails, no task in the current list would succeed.
-                        break
-                    psnap = nsnap
-                if allsucceeded and delete_tasks.has_key(dataset):
-                    zfsname = remotefs_final + dataset[l:]
-                    for snapshot in delete_tasks[dataset]:
-                        rzfscmd = '"zfs destroy -d \'%s@%s\'"' % (zfsname, snapshot)
-                        try:
-                            system(shlex_split('%s %s' % (sshcmd, rzfscmd)))
-                        except:
-                            pass
-                if allsucceeded:
-                    # XXX results[replication.id] = 'Succeeded'
-                    continue
-            else:
-                # Remove the named dataset because it's deleted from the source.
-                zfsname = remotefs_final + dataset[l:]
-                if zfsname.startswith(previously_deleted):
-                    continue
-                else:
-                    rzfscmd = '"zfs destroy -r \'%s\'"' % (zfsname)
-                    try:
-                        system(shlex_split('%s %s' % (sshcmd, rzfscmd)))
-                        previously_deleted = zfsname
-                    except:
-                        log.warn("Unable to destroy dataset %s on remote system" % (zfsname))
+                logger.info('Will {4} replicate {0}@{1} to {2}:{3}@{1}'.format(
+                    localfs,
+                    snapname,
+                    remote,
+                    remotefs,
+                    'fully' if full else 'incrementally'
+                ))
 
 
 def _init(dispatcher, plugin):
@@ -500,8 +302,10 @@ def _init(dispatcher, plugin):
         'properties': {
             'remote': {'type': 'string'},
             'remote_port': {'type': 'string'},
-            'dedicateduser': {'type': 'string'},
-            'cipher': {'type': 'string'},
+            'cipher': {
+                'type': 'string',
+                'enum': ['NORMAL', 'FAST', 'DISABLED']
+            },
             'localfs': {'type': 'string'},
             'remotefs': {'type': 'string'},
             'compression': {
