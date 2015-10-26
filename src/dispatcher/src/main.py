@@ -143,7 +143,7 @@ class Plugin(object):
             self.module._init(self.dispatcher, self)
             self.state = self.LOADED
             self.dispatcher.dispatch_event('server.plugin.initialized', {"name": os.path.basename(self.filename)})
-        except Exception, err:
+        except Exception as err:
             self.dispatcher.logger.exception('Plugin %s exception', self.filename)
             self.dispatcher.report_error('Cannot initalize plugin {0}'.format(self.filename), err)
             raise RuntimeError('Cannot load plugin {0}: {1}'.format(self.filename, str(err)))
@@ -409,7 +409,7 @@ class Dispatcher(object):
         for i in loadlist:
             try:
                 i.load(self)
-            except RuntimeError, err:
+            except RuntimeError as err:
                 self.logger.exception("Error initializing plugin %s: %s", i.filename, err.message)
 
     def reload_plugins(self):
@@ -481,7 +481,7 @@ class Dispatcher(object):
             plugin = Plugin(self, path)
             plugin.assign_module(imp.load_source(name, path))
             self.plugins[name] = plugin
-        except Exception, err:
+        except Exception as err:
             self.logger.exception("Cannot load plugin from %s", path)
             self.report_error('Cannot load plugin from {0}'.format(path), err)
             self.dispatch_event("server.plugin.load_error", {"name": os.path.basename(path)})
@@ -494,7 +494,7 @@ class Dispatcher(object):
             try:
                 self.__init_syslog()
                 self.unregister_event_handler('service.started', self.__on_service_started)
-            except IOError, err:
+            except IOError as err:
                 self.logger.warning('Cannot initialize syslog: %s', str(err))
 
     def __init_syslog(self):
@@ -515,7 +515,7 @@ class Dispatcher(object):
                 for h in self.event_handlers[name]:
                     try:
                         gevent.spawn(h, args)
-                    except BaseException, err:
+                    except BaseException as err:
                         self.report_error('Event handler for event {0} failed'.format(name), err)
                         self.logger.exception('Event handler for event %s failed', name)
 
@@ -628,7 +628,7 @@ class Dispatcher(object):
             try:
                 if not h(args):
                     return False
-            except BaseException, err:
+            except BaseException as err:
                 self.report_error('Hook for {0} with args {1} failed'.format(name, args), err)
                 return False
 
@@ -1228,7 +1228,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
     def send_json(self, obj):
         try:
             data = dumps(obj)
-        except UnicodeDecodeError, e:
+        except UnicodeDecodeError as e:
             self.dispatcher.logger.error('Error encoding following payload to JSON:')
             self.dispatcher.logger.error(repr(obj))
             return
@@ -1238,7 +1238,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         with self.rlock:
             try:
                 self.ws.send(data)
-            except WebSocketError, err:
+            except WebSocketError as err:
                 self.dispatcher.logger.error(
                     'Cannot send message to %s: %s', self.real_client_address, str(err))
 
@@ -1485,10 +1485,10 @@ def main():
     d = Dispatcher()
     try:
         d.read_config_file(args.c)
-    except IOError, err:
+    except IOError as err:
         logging.fatal("Cannot read config file {0}: {1}".format(args.c, str(err)))
         sys.exit(1)
-    except ValueError, err:
+    except ValueError as err:
         logging.fatal("Cannot parse config file {0}: {1}".format(args.c, str(err)))
         sys.exit(1)
 
