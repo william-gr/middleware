@@ -100,8 +100,7 @@ class ZpoolProvider(Provider):
             },
             'vdev_groups': {
                 'data': {
-                    'allowed_vdevs': ['disk', 'file', 'mirror',
-                                      'raidz1', 'raidz2', 'raidz3', 'spare']
+                    'allowed_vdevs': ['disk', 'file', 'mirror', 'raidz1', 'raidz2', 'raidz3', 'spare']
                 },
                 'log': {
                     'allowed_vdevs': ['disk', 'mirror']
@@ -158,7 +157,7 @@ class ZfsDatasetProvider(Provider):
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(dataset_name)
             snaps = list(ds.snapshots)
-            snaps.sort(key=lambda s: s.properties['creation'].value, reverse=True)
+            snaps.sort(key=lambda s: int(s.properties['creation'].rawvalue))
             return snaps
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
