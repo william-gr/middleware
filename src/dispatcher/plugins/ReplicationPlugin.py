@@ -164,7 +164,7 @@ class SnapshotDatasetTask(Task):
             return creation + delta < datetime.now()
 
         snapshots = filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset)))
-        snapname = '{0}-{1:%Y%m%d.%H%M}-{1}'.format(prefix, datetime.now(), lifetime)
+        snapname = '{0}-{1:%Y%m%d.%H%M}-{2}'.format(prefix, datetime.now(), lifetime)
 
         self.join_subtasks(
             self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive),
@@ -189,15 +189,15 @@ class SnapshotDatasetTask(Task):
 #    ),
 #))
 class ReplicateDatasetTask(Task):
-    def verify(self, options, dry_run=False):
-        return ['zfs:{0}'.format(options['localfs'])]
+    def verify(self, pool, localds, options, dry_run=False):
+        return ['zfs:{0}'.format(localds)]
 
-    def run(self, options):
+    def run(self, pool, localds, options, dry_run=False):
         remote = options['remote']
-        localds = options['localfs']
         remoteds = options['remotefs']
         followdelete = options.get('followdelete', False)
         recursive = options.get('recursive', False)
+        lifetime = options.get('lifetime', '1y')
 
 
         """
@@ -209,6 +209,15 @@ class ReplicateDatasetTask(Task):
         compression = ""        # See map_compression
         bandlim = 0             # Bandwidth limit
         """
+
+        self.join_subtasks(self.run_subtask(
+            'replication.snapshot_dataset',
+            pool,
+            localds,
+            True,
+            lifetime,
+            'repl'
+        ))
 
         datasets = [localds]
         actions = []
@@ -253,7 +262,7 @@ class ReplicateDatasetTask(Task):
         if recursive:
             datasets = self.dispatcher.call_sync(
                 'zfs.dataset.query',
-                [('name', '~', '^{0}'.format(localds))],
+                [('name', '~', '^{0}(/|$)'.format(localds))],
                 {'select': 'name'}
             )
 
