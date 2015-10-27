@@ -412,13 +412,12 @@ def _init(dispatcher, plugin):
                 'type': 'string',
                 'enum': ['NORMAL', 'FAST', 'DISABLED']
             },
-            'localfs': {'type': 'string'},
-            'remotefs': {'type': 'string'},
+            'remote_dataset': {'type': 'string'},
             'compression': {
                 'type': 'string',
                 'enum': ['none', 'pigz', 'plzip', 'lz4', 'xz']
             },
-            'bandlim' : {'type': 'string'},
+            'bandwidth_limit' : {'type': 'string'},
             'followdelete': {'type': 'boolean'},
             'recursive': {'type': 'boolean'},
         },
