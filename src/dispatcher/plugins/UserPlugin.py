@@ -309,9 +309,13 @@ class UserUpdateTask(Task):
         try:
             user = self.datastore.get_by_id('users', uid)
 
-            # Ignore home changes for builtin users
-            if 'home' in updated_fields and user.get('builtin'):
-                updated_fields.pop('home')
+            if user.get('builtin'):
+                # Ignore home changes for builtin users
+                if 'home' in updated_fields:
+                    updated_fields.pop('home')
+                # Similarly ignore uid changes for builtin users
+                if 'id' in updated_fields:
+                    updated_fields.pop('id')
 
             home_before = user.get('home')
             user.update(updated_fields)
