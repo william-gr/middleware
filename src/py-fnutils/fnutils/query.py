@@ -224,6 +224,7 @@ class QueryList(list):
         limit = params.pop('limit', None)
         sort = params.pop('sort', None)
         postprocess = params.pop('callback', None)
+        select = params.pop('select', None)
         result = []
 
         if len(rules) == 0:
@@ -232,6 +233,21 @@ class QueryList(list):
             for i in self:
                 if matches(i, *rules):
                     result.append(i)
+
+        if select:
+            def select_fn(fn, obj):
+                obj = fn(obj) if fn else obj
+                obj = wrap(obj)
+
+                if isinstance(select, (list, tuple)):
+                    return [obj.get(i) for i in select]
+
+                if isinstance(select, basestring):
+                    return obj.get(select)
+
+            old = postprocess
+            postprocess = lambda o: select_fn(old, o)
+
 
         if sort:
             def sort_transform(result, key):
