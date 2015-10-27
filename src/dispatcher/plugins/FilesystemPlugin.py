@@ -138,7 +138,7 @@ class FilesystemProvider(Provider):
         return token
 
     @pass_sender
-    @accepts(str, long, str)
+    @accepts(str, int, str)
     @returns(str)
     def upload(self, dest_path, size, mode, sender):
         try:
@@ -175,7 +175,7 @@ class DownloadFileTask(Task):
         return TaskStatus(percentage)
 
 
-@accepts(str, long)
+@accepts(str, int)
 @private
 class UploadFileTask(Task):
     def verify(self, name, connection):
@@ -344,11 +344,11 @@ def _init(dispatcher, plugin):
         'properties': {
             'tag': {
                 'type': 'string',
-                'enum': acl.ACLEntryTag.__members__.keys()
+                'enum': list(acl.ACLEntryTag.__members__.keys())
             },
             'type': {
                 'type': 'string',
-                'enum': acl.ACLEntryType.__members__.keys()
+                'enum': list(acl.ACLEntryType.__members__.keys())
             },
             'id': {'type': ['string', 'null']},
             'name': {'type': ['string', 'null']},

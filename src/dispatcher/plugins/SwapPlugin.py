@@ -43,7 +43,7 @@ class SwapProvider(Provider):
     @returns(h.array(h.ref('swap-mirror')))
     @description("Returns information about swap mirrors present in the system")
     def info(self):
-        return get_swap_info(self.dispatcher).values()
+        return list(get_swap_info(self.dispatcher).values())
 
 
 def get_available_disks(dispatcher):
@@ -90,7 +90,7 @@ def get_swap_info(dispatcher):
 
 def clear_swap(dispatcher):
     logger.info('Clearing all swap mirrors in system')
-    for swap in get_swap_info(dispatcher).values():
+    for swap in list(get_swap_info(dispatcher).values()):
         logger.debug('Clearing swap mirror %s', swap['name'])
         try:
             system('/sbin/swapoff', os.path.join('/dev/mirror', swap['name']))
@@ -102,7 +102,7 @@ def clear_swap(dispatcher):
 
 def remove_swap(dispatcher, disks):
     disks = set(disks)
-    for swap in get_swap_info(dispatcher).values():
+    for swap in list(get_swap_info(dispatcher).values()):
         if disks & set(swap['disks']):
             system('/sbin/swapoff', os.path.join('/dev/mirror', swap['name']))
             system('/sbin/gmirror', 'destroy', swap['name'])
@@ -114,7 +114,7 @@ def remove_swap(dispatcher, disks):
 
 
 def create_swap(dispatcher, disks):
-    disks = filter(lambda x: x is not None, map(lambda x: get_swap_partition(dispatcher, x), disks))
+    disks = [x for x in [get_swap_partition(dispatcher, x) for x in disks] if x is not None]
     for idx, pair in enumerate(zip(*[iter(disks)] * 2)):
         name = 'swap{0}'.format(idx)
         disk_a, disk_b = pair
@@ -124,9 +124,9 @@ def create_swap(dispatcher, disks):
 
 
 def rearrange_swap(dispatcher):
-    swap_info = get_swap_info(dispatcher).values()
+    swap_info = list(get_swap_info(dispatcher).values())
     swap_disks = set(get_available_disks(dispatcher))
-    active_swap_disks = set(sum(map(lambda s: s['disks'], swap_info), []))
+    active_swap_disks = set(sum([s['disks'] for s in swap_info], []))
 
     logger.debug('Rescanning available disks')
     logger.debug('Disks already used for swap: %s', ', '.join(active_swap_disks))

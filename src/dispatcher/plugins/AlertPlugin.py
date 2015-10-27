@@ -76,7 +76,7 @@ class AlertsProvider(Provider):
         # Try to find the first matching namespace
         emitters = None
         dot = alert['name'].split('.')
-        for i in xrange(len(dot), 0, -1):
+        for i in range(len(dot), 0, -1):
             namespace = '.'.join(dot[0:i])
             afilter = self.datastore.get_one(
                 'alerts-filters', ('name', '=', namespace),

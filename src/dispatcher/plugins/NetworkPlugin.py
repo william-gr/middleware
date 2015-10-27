@@ -39,7 +39,7 @@ logger = logging.getLogger('NetworkPlugin')
 
 
 def calculate_broadcast(address, netmask):
-    return ipaddress.ip_interface(u'{0}/{1}'.format(address, netmask)).network.broadcast_address
+    return ipaddress.ip_interface('{0}/{1}'.format(address, netmask)).network.broadcast_address
 
 
 @description("Provides access to global network configuration settings")
@@ -52,7 +52,7 @@ class NetworkProvider(Provider):
     def get_my_ips(self):
         ips = []
         ifaces = self.dispatcher.call_sync('networkd.configuration.query_interfaces')
-        for i, v in ifaces.iteritems():
+        for i, v in ifaces.items():
             if 'LOOPBACK' in v['flags']:
                 continue
             for aliases in v['aliases']:

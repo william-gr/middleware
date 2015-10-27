@@ -144,7 +144,7 @@ def configure_params(cifs):
     conf['oplocks'] = 'yes'
     conf['deadtime'] = '15'
     conf['max log size'] = '51200'
-    conf['max open files'] = str(long(get_sysctl('kern.maxfilesperproc')) - 25)
+    conf['max open files'] = str(int(get_sysctl('kern.maxfilesperproc')) - 25)
 
     if cifs['syslog']:
         conf['syslog only'] = 'yes'
@@ -232,7 +232,7 @@ def _init(dispatcher, plugin):
             'unix_charset': {'type': 'string'},
             'log_level': {
                 'type': 'string',
-                'enum': LogLevel.__members__.keys()
+                'enum': list(LogLevel.__members__.keys())
             },
             'syslog': {'type': 'boolean'},
             'local_master': {'type': 'boolean'},

@@ -369,7 +369,7 @@ class UpdateProvider(Provider):
         seltrain = self.dispatcher.configstore.get('update.train')
 
         data = []
-        for name in trains.keys():
+        for name in list(trains.keys()):
             if name in conf._trains:
                 train = conf._trains.get(name)
             else:
@@ -409,7 +409,7 @@ class UpdateProvider(Provider):
     @accepts(h.object())
     @returns()
     def update_cache_putter(self, value_dict):
-        for key, value in value_dict.iteritems():
+        for key, value in value_dict.items():
             update_cache.put(key, value)
 
     @private
@@ -445,7 +445,7 @@ class UpdateConfigureTask(Task):
             conf.LoadTrainsConfig()
             trains = conf.AvailableTrains() or []
             if trains:
-                trains = trains.keys()
+                trains = list(trains.keys())
             if train_to_set not in trains:
                 raise TaskException(errno.ENOENT, '{0} is not a valid train'.format(train_to_set))
             self.configstore.set('update.train', train_to_set)

@@ -96,7 +96,7 @@ class DeviceInfoPlugin(Provider):
 
     def _get_class_network(self):
         result = []
-        for i in netif.list_interfaces().keys():
+        for i in list(netif.list_interfaces().keys()):
             if i.startswith('lo'):
                 continue
 

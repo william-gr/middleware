@@ -102,7 +102,7 @@ class EntitySubscriberEventSource(EventSource):
 
     def run(self):
         # Scan through registered events for those ending with .changed
-        for i in self.dispatcher.event_types.keys():
+        for i in list(self.dispatcher.event_types.keys()):
             service, _, changed = i.rpartition('.')
             if changed == 'changed':
                 self.register(service)

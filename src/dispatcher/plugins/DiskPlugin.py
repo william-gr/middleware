@@ -633,7 +633,7 @@ def update_disk_cache(dispatcher, path):
     if gmultipath:
         # Path represents multipath device (not disk device)
         # MEDIACHANGE event -> use first member for hardware queries
-        cons = gmultipath.consumers.next()
+        cons = next(gmultipath.consumers)
         gdisk = cons.provider.geom
 
     if not gdisk:
@@ -901,7 +901,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('disk-selftest-type', {
         'type': 'string',
-        'enum': SelfTestType.__members__.keys()
+        'enum': list(SelfTestType.__members__.keys())
     })
 
     plugin.register_provider('disks', DiskProvider)

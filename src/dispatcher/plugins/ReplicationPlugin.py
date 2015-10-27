@@ -79,7 +79,7 @@ map_compression = {
 }
 
 def compress_pipecmds(compression):
-    if map_compression.has_key(compression):
+    if compression in map_compression:
         compress, decompress = map_compression[compression]
         compress = compress + ' | '
         decompress = decompress + ' | '
@@ -180,7 +180,7 @@ class SnapshotDatasetTask(Task):
             creation = parse_datetime(snapshot['properties.creation.value'])
             return creation + delta < datetime.now()
 
-        snapshots = filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset)))
+        snapshots = list(filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset))))
         snapname = '{0}-{1:%Y%m%d.%H%M}-{2}'.format(prefix, datetime.now(), lifetime)
         params = {'org.freenas:replicate': {'value': 'yes'}} if replicable else None
 
@@ -190,7 +190,7 @@ class SnapshotDatasetTask(Task):
                 'zfs.delete_multiple_snapshots',
                 pool,
                 dataset,
-                map(lambda s: s['snapshot_name'], snapshots),
+                list(map(lambda s: s['snapshot_name'], snapshots)),
                 True
             )
         )

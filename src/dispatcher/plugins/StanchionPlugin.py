@@ -66,7 +66,7 @@ class StanchionConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure Stanchion: {0}'.format(str(e))
             )

@@ -78,7 +78,7 @@ class IPMIProvider(Provider):
             raise RpcException(errno.EFAULT, 'Cannot receive IPMI configuration: {0}'.format(e.err.strip()))
 
         raw = {k.strip(): v.strip() for k, v in RE_ATTRS.findall(out)}
-        ret = {IPMI_ATTR_MAP[k]: v for k, v in raw.items() if k in IPMI_ATTR_MAP}
+        ret = {IPMI_ATTR_MAP[k]: v for k, v in list(raw.items()) if k in IPMI_ATTR_MAP}
         ret['channel'] = channel
         ret['vlan_id'] = None if ret['vlan_id'] == 'Disabled' else ret['vlan_id']
         ret['dhcp'] = True if ret['dhcp'] == 'DHCP Address' else False
@@ -133,7 +133,7 @@ class ConfigureIPMITask(Task):
 
 
 def cidr_to_netmask(cidr):
-    iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
+    iface = ipaddress.ip_interface('0.0.0.0/{0}'.format(cidr))
     return str(iface.netmask)
 
 

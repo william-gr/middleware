@@ -226,9 +226,9 @@ class UserCreateTask(Task):
             raise TaskException(
                 errno.ENXIO,
                 'Could not generate samba password. stdout: {0}\nstderr: {1}'.format(e.out, e.err))
-        except DuplicateKeyException, e:
+        except DuplicateKeyException as e:
             raise TaskException(errno.EBADMSG, 'Cannot add user: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO,
                 'Cannot regenerate users file, maybe etcd service is offline. Actual Error: {0}'.format(e)
@@ -242,7 +242,7 @@ class UserCreateTask(Task):
                     raise TaskException(err.code, err.message)
                 os.makedirs(user['home'])
             os.chown(user['home'], uid, user['group'])
-            os.chmod(user['home'], 0755)
+            os.chmod(user['home'], 0o755)
         elif not user['builtin'] and user['home'] not in (None, '/nonexistent'):
             raise TaskException(
                 errno.ENOENT,
@@ -280,7 +280,7 @@ class UserDeleteTask(Task):
         try:
             self.datastore.delete('users', uid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete user: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('users.changed', {
@@ -352,9 +352,9 @@ class UserUpdateTask(Task):
             raise TaskException(
                 errno.ENXIO,
                 'Could not generate samba password. stdout: {0}\nstderr: {1}'.format(e.out, e.err))
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update user: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot regenerate users file, etcd service is offline')
 
         volumes_root = self.dispatcher.call_sync('volumes.get_volumes_root')
@@ -370,10 +370,10 @@ class UserUpdateTask(Task):
                 else:
                     os.makedirs(user['home'])
                     os.chown(user['home'], uid, user['group'])
-                    os.chmod(user['home'], 0755)
+                    os.chmod(user['home'], 0o755)
             elif user['home'] != home_before:
                 os.chown(user['home'], uid, user['group'])
-                os.chmod(user['home'], 0755)
+                os.chmod(user['home'], 0o755)
         elif not user['builtin'] and user['home'] not in (None, '/nonexistent'):
             raise TaskException(
                 errno.ENOENT,
@@ -429,9 +429,9 @@ class GroupCreateTask(Task):
             group.setdefault('sudo', False)
             self.datastore.insert('groups', group, pkey=gid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot add group: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
 
         self.dispatcher.dispatch_event('groups.changed', {
@@ -476,9 +476,9 @@ class GroupUpdateTask(Task):
             group.update(updated_fields)
             self.datastore.update('groups', gid, group)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update group: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot regenerate groups file, etcd service is offline')
 
         self.dispatcher.dispatch_event('groups.changed', {
@@ -514,9 +514,9 @@ class GroupDeleteTask(Task):
 
             self.datastore.delete('groups', gid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete group: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot regenerate config files')
 
         self.dispatcher.dispatch_event('groups.changed', {

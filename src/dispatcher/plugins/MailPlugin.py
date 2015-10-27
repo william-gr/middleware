@@ -76,7 +76,7 @@ class MailProvider(Provider):
         if attachments:
             msg = MIMEMultipart()
             msg.preamble = mailmessage['message']
-            map(lambda attachment: msg.attach(attachment), attachments)
+            list(map(lambda attachment: msg.attach(attachment), attachments))
         else:
             msg = MIMEText(mailmessage['message'], _charset='utf-8')
         if subject:
@@ -97,7 +97,7 @@ class MailProvider(Provider):
 
         if not extra_headers:
             extra_headers = {}
-        for key, val in extra_headers.items():
+        for key, val in list(extra_headers.items()):
             if key in msg:
                 msg.replace_header(key, val)
             else:

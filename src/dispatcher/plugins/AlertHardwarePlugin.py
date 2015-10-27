@@ -58,7 +58,7 @@ def _init(dispatcher, plugin):
             except:
                 continue
 
-        for number, mibs in devs.items():
+        for number, mibs in list(devs.items()):
             firmware_ver = mibs.get('firmware_version')
             driver_ver = mibs.get('driver_version')
             if int(firmware_ver) != int(driver_ver):

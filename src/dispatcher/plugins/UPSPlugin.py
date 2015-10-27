@@ -23,7 +23,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-import cStringIO
+import io
 import csv
 import errno
 import logging
@@ -56,7 +56,7 @@ class UPSProvider(Provider):
         drivers = []
         with open(driver_list, 'rb') as f:
             d = f.read()
-        r = cStringIO.StringIO()
+        r = io.StringIO()
         for line in re.sub(r'[ \t]+', ' ', d, flags=re.M).split('\n'):
             r.write(line.strip() + '\n')
         r.seek(0)
@@ -87,7 +87,7 @@ class UPSProvider(Provider):
         try:
             for i in rc_scripts:
                 system("/usr/sbin/service", i, 'onestart')
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise TaskException(errno.EBUSY, e.err)
 
     @private
@@ -102,7 +102,7 @@ class UPSProvider(Provider):
         try:
             for i in rc_scripts:
                 system("/usr/sbin/service", i, 'onestatus')
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise TaskException(errno.EBUSY, e.err)
 
     @private
@@ -115,7 +115,7 @@ class UPSProvider(Provider):
         try:
             for i in rc_scripts:
                 system("/usr/sbin/service", i, 'onestop')
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise TaskException(errno.EBUSY, e.err)
 
     @private
@@ -133,7 +133,7 @@ class UPSProvider(Provider):
         try:
             for svc, verb in verbs:
                 system("/usr/sbin/service", svc, 'one' + verb)
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise TaskException(errno.EBUSY, e.err)
 
 
@@ -177,7 +177,7 @@ class UPSConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure UPS: {0}'.format(str(e))
             )

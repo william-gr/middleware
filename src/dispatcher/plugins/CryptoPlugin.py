@@ -214,9 +214,9 @@ class CertificateInternalCreateTask(Task):
             self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
 
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create internal cert: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -258,9 +258,9 @@ class CertificateImportTask(Task):
         try:
             pkey = self.datastore.insert('crypto.certificates', certificate)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot import certificate: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -303,9 +303,9 @@ class CSRCreateTask(Task):
 
             pkey = self.datastore.insert('crypto.certificates', certificate)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create CSR: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -337,9 +337,9 @@ class CSRUpdateTask(Task):
 
             pkey = self.datastore.update('crypto.certificates', id, certificate)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update CSR: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -382,9 +382,9 @@ class CAInternalCreateTask(Task):
 
             pkey = self.datastore.insert('crypto.certificates', certificate)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create internal CA: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -436,9 +436,9 @@ class CAIntermediateCreateTask(Task):
             signing_cert['serial'] += 1
             self.datastore.update('crypto.certificates', signing_cert['id'], signing_cert)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create intermediate CA: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -482,9 +482,9 @@ class CAImportTask(Task):
         try:
             pkey = self.datastore.insert('crypto.certificates', certificate)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot import CA: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
         return pkey
@@ -528,7 +528,7 @@ class CAUpdateTask(Task):
         try:
             pass
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 
@@ -548,9 +548,9 @@ class CertificateDeleteTask(Task):
 
             self.datastore.delete('crypto.certificates', id)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'crypto')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete certificate: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 

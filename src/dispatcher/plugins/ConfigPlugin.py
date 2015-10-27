@@ -53,7 +53,7 @@ class UpdateConfigTask(Task):
 
         self.dispatcher.dispatch_event('config.changed', {
             'operation': 'update',
-            'ids': [settings.keys()]
+            'ids': [list(settings.keys())]
         })
 
 
