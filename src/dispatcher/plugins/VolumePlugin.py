@@ -375,7 +375,7 @@ class VolumeCreateTask(ProgressTask):
 
     def run(self, volume):
         name = volume['name']
-        type = volume['type']
+        type = volume.get('type', 'zfs')
         params = volume.get('params') or {}
         mountpoint = params.pop(
             'mountpoint',
