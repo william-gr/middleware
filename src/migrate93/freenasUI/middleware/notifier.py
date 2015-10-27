@@ -1991,4 +1991,4 @@ if __name__ == '__main__':
         if f is None:
             sys.stderr.write("Unknown action: %s\n" % sys.argv[1])
             usage()
-        print f(*sys.argv[2:])
+        print(f(*sys.argv[2:]))
