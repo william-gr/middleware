@@ -18,7 +18,8 @@ BUILD_DEPENDS=
 
 USES=		python
 EXTRACT_ONLY=
-BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
+BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython \
+		${PYTHON_PKGNAMEPREFIX}six>0:${PORTSDIR}/devel/py-six
 
 WRKSRC=		/usr/middleware_src/py-bsd
 
