@@ -360,7 +360,7 @@ class ConfigurationService(RpcService):
             self.logger.info('Configuring interface {0}...'.format(i['id']))
             try:
                 self.configure_interface(i['id'])
-            except BaseException, e:
+            except BaseException as e:
                 self.logger.warning('Cannot configure {0}: {1}'.format(i['id'], str(e)))
 
         # Are there any orphaned interfaces?
@@ -388,7 +388,7 @@ class ConfigurationService(RpcService):
                 self.logger.info('Removing default route')
                 try:
                     rtable.delete(rtable.default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot remove default route: {0}'.format(str(e)))
 
             # Default route was added
@@ -396,7 +396,7 @@ class ConfigurationService(RpcService):
                 self.logger.info('Adding default route via {0}'.format(default_route_ipv4.gateway))
                 try:
                     rtable.add(default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
             # Default route was changed
@@ -407,7 +407,7 @@ class ConfigurationService(RpcService):
 
                 try:
                     rtable.change(default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
         else:
@@ -451,14 +451,14 @@ class ConfigurationService(RpcService):
             self.logger.info('Removing static route to {0}'.format(describe_route(i)))
             try:
                 rtable.delete(i)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot remove static route to {0}: {1}'.format(describe_route(i), str(e)))
 
         for i in new_routes - old_routes:
             self.logger.info('Adding static route to {0}'.format(describe_route(i)))
             try:
                 rtable.add(i)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot add static route to {0}: {1}'.format(describe_route(i), str(e)))
 
     def configure_dns(self):
@@ -513,7 +513,7 @@ class ConfigurationService(RpcService):
                         tag = int(tag)
                         iface.unconfigure()
                         iface.configure(parent, tag)
-                    except Exception, e:
+                    except Exception as e:
                         self.logger.warn('Failed to configure VLAN interface {0}: {1}'.format(name, str(e)))
 
         # Configure protocol and member ports for a LAGG
@@ -668,17 +668,17 @@ class Main:
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
-        except ValueError, err:
+        except ValueError as err:
             self.logger.error('Config file has unreadable format (not valid JSON)')
             sys.exit(1)
 
     def init_datastore(self):
         try:
             self.datastore = get_datastore(self.config['datastore']['driver'], self.config['datastore']['dsn'])
-        except DatastoreException, err:
+        except DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -698,7 +698,7 @@ class Main:
                     self.client.resume_service('networkd.debug')
 
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
