@@ -65,7 +65,7 @@ def run(context):
         else:
             with open(private_key_file, 'w') as fd:
                 fd.write(base64.b64decode(private_key))
-            os.chmod(private_key_file, 0600)
+            os.chmod(private_key_file, 0o600)
 
             with open(public_key_file, 'w') as fd:
                 fd.write(base64.b64decode(public_key))

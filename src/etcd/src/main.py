@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/local/bin/python3
 #+
 # Copyright 2014 iXsystems, Inc.
 # All rights reserved
@@ -104,7 +104,7 @@ class FileGenerationService(RpcService):
 
         try:
             plugin.run(self.context)
-        except Exception, err:
+        except Exception as err:
             self.context.logger.error('Cannot run plugin {0}: {1}'.format(name, str(err)), exc_info=True)
 
     def generate_group(self, name):
@@ -144,7 +144,7 @@ class Main(object):
     def init_datastore(self):
         try:
             self.datastore = datastore.get_datastore(self.config['datastore']['driver'], self.config['datastore']['dsn'])
-        except datastore.DatastoreException, err:
+        except datastore.DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -173,7 +173,7 @@ class Main(object):
                 self.client.resume_service('etcd.management')
                 self.client.resume_service('etcd.debug')
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
@@ -186,10 +186,10 @@ class Main(object):
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
-        except ValueError, err:
+        except ValueError as err:
             self.logger.error('Config file has unreadable format (not valid JSON)')
             sys.exit(1)
 
@@ -226,7 +226,7 @@ class Main(object):
         renderer = self.renderers[ext]
         try:
             return renderer.render_template(template_path)
-        except Exception, e:
+        except Exception as e:
             self.logger.warn('Cannot generate file {0}: {1}'.format(file_path, str(e)))
             return "# FILE GENERATION FAILED: {0}\n".format(str(e))
 
