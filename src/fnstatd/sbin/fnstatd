@@ -1,4 +1,4 @@
 #!/bin/sh
 LIBDIR=/usr/local/lib/fnstatd/src
 export DISPATCHERCLIENT_TYPE=GEVENT
-exec /usr/local/bin/python2.7 $LIBDIR/main.py $*
+exec /usr/local/bin/python3 $LIBDIR/main.py $*

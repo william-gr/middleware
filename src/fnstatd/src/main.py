@@ -304,7 +304,7 @@ class Main(object):
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
         except ValueError:
@@ -314,7 +314,7 @@ class Main(object):
     def init_datastore(self):
         try:
             self.datastore = get_datastore(self.config['datastore']['driver'], self.config['datastore']['dsn'])
-        except DatastoreException, err:
+        except DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -340,7 +340,7 @@ class Main(object):
                 return getattr(self.hdf_group, name)
 
             return self.hdf.create_table(self.hdf_group, name, DataPoint, name)
-        except Exception, e:
+        except Exception as e:
             self.logger.error(str(e))
 
     def get_data_source(self, name):
@@ -366,7 +366,7 @@ class Main(object):
                     self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
 
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
