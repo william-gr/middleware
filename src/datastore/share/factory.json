@@ -1397,6 +1397,7 @@
                     "rc-scripts": "ipfs-go"
                 },
                 "builtin": false,
+                "task": "service.ipfs.configure",
                 "name": "ipfs"
             },
             "FD2C3DCD-6959-4DAB-8750-65F2A0221FE6": {
