@@ -143,13 +143,13 @@ def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
 @accepts(str, str, bool, str)
 @returns(str)
 class SnapshotDatasetTask(Task):
-    def verify(self, pool, dataset, recursive, lifetime, prefix='auto'):
+    def verify(self, pool, dataset, recursive, lifetime, prefix='auto', replicable=False):
         if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', dataset)], {'single': True}):
             raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(dataset))
 
         return ['zfs:{0}'.format(dataset)]
 
-    def run(self, pool, dataset, recursive, lifetime, prefix='auto'):
+    def run(self, pool, dataset, recursive, lifetime, prefix='auto', replicable=False):
         def is_expired(snapshot):
             match = AUTOSNAP_RE.match(snapshot['snapshot_name'])
             if not match:
@@ -164,9 +164,10 @@ class SnapshotDatasetTask(Task):
 
         snapshots = filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset)))
         snapname = '{0}-{1:%Y%m%d.%H%M}-{2}'.format(prefix, datetime.now(), lifetime)
+        params = {'org.freenas:replicate': {'value': 'yes'}} if replicable else None
 
         self.join_subtasks(
-            self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive),
+            self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive, params),
             *map(lambda s: self.run_subtask('zfs.destroy', s['name']), snapshots)
         )
 
