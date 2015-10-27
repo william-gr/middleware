@@ -163,11 +163,14 @@ class ZfsDatasetProvider(Provider):
             raise RpcException(errno.EFAULT, str(err))
 
     @returns(long)
-    def estimate_send_size(self, snapshot_name, anchor_name=None):
+    def estimate_send_size(self, dataset_name, snapshot_name, anchor_name=None):
         try:
             zfs = libzfs.ZFS()
-            ds = zfs.get_object(snapshot_name)
-            return ds.get_send_space(anchor_name)
+            ds = zfs.get_object('{0}@{1}'.format(dataset_name, snapshot_name))
+            if anchor_name:
+                return ds.get_send_space('{0}@{1}'.format(dataset_name, anchor_name))
+
+            return ds.get_send_space()
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
