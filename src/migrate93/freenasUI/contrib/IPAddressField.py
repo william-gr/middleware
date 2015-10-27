@@ -82,7 +82,7 @@ class IPNetworkField(models.Field):
 
         try:
             return IPNetwork(value.encode('latin-1'))
-        except Exception, e:
+        except Exception as e:
             raise ValidationError("Invalid IP address: %s" % e)
 
     def get_prep_lookup(self, lookup_type, value):
@@ -121,7 +121,7 @@ class IPAddressFormFieldBase(forms.CharField):
         else:
             try:
                 return IPAddress(value.encode('latin-1'))
-            except Exception, e:
+            except Exception as e:
                 raise ValidationError("Invalid IP address: %s" % e)
 
 
@@ -143,7 +143,7 @@ class IP4AddressFormField(IPAddressFormFieldBase):
         else:
             try:
                 return IPAddress(value.encode('latin-1'), version=4)
-            except Exception, e:
+            except Exception as e:
                 raise ValidationError("Invalid IPv4 address: %s" % e)
 
     def validate(self, value):
@@ -163,7 +163,7 @@ class IP6AddressFormField(IPAddressFormFieldBase):
         else:
             try:
                 return IPAddress(value.encode('latin-1'), version=6)
-            except Exception, e:
+            except Exception as e:
                 raise ValidationError("Invalid IPv6 address: %s" % e)
 
     def validate(self, value):

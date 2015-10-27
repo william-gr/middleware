@@ -50,13 +50,13 @@ class Migration(DataMigration):
                 kt.save()
 
                 os.rename(ad.ad_keytab, kt.keytab_file)
-                os.chmod(kt.keytab_file, 0400)
+                os.chmod(kt.keytab_file, 0o400)
 
                 ad.ad_kerberos_keytab = kt
                 ad.save()
 
         except Exception as e:
-            print >> sys.stderr, "ERROR: %s" % e
+            print("ERROR: %s" % e, file=sys.stderr)
 
     def backwards(self, orm):
         "Write your backwards methods here."

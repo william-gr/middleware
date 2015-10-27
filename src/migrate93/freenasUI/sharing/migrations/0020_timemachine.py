@@ -8,7 +8,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-	for share in orm.AFP_Share.objects.all():
+        for share in orm.AFP_Share.objects.all():
             if share.afp_discoverymode == "time-machine":
                 share.afp_timemachine = True
                 share.save()
