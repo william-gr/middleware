@@ -11,6 +11,7 @@ MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS data store layer
 
 USES=		python
+USE_PYTHON=	py3kplist
 
 OPTIONS_SINGLE=	USE_POSTGRESQL USE_MONGODB
 
@@ -47,6 +48,6 @@ do-build:
 
 do-install:
 	${MAKE} -C ${WRKSRC} install STAGEDIR=${STAGEDIR} PREFIX=${PREFIX} PYTHON=${PYTHON_CMD}
-	mkdir -p ${STAGEDIR}/data/freenas.db
+	${MKDIR} -p ${STAGEDIR}/data/freenas.db
 
 .include <bsd.port.mk>

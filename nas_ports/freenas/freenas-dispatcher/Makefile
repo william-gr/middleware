@@ -1,14 +1,13 @@
 # $FreeBSD$
-# $Id$
 
-PORTNAME=       freenas-dispatcher
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-dispatcher
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS middleware daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS middleware daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh \
@@ -32,6 +31,7 @@ RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py
 
 USES=		python
+USE_PYTHON=	py3kplist
 
 EXTRACT_ONLY=
 

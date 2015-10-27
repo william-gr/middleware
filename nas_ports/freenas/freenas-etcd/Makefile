@@ -1,23 +1,21 @@
-#
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       freenas-etcd
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-etcd
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
 
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS /etc filesystem daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS /etc filesystem daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}htpasswd>0:${PORTSDIR}/security/py-htpasswd \
 		${PYTHON_PKGNAMEPREFIX}mako>0:${PORTSDIR}/textproc/py-mako
 
 USES=		python
+USE_PYTHON=	py3kplist
 EXTRACT_ONLY=
 
 NO_BUILD=	yes
@@ -26,7 +24,7 @@ ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/etcd
 
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 do-install:
 	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
