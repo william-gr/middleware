@@ -306,7 +306,6 @@ class ReplicateDatasetTask(ProgressTask):
                 pass
 
             snapshots = local_snapshots[:]
-            delete = []
             found = None
 
             if remote_snapshots_full:
@@ -318,10 +317,18 @@ class ReplicateDatasetTask(ProgressTask):
 
                 if found:
                     if followdelete:
+                        delete = []
                         for snap in remote_snapshots:
                             rsnap = snap['snapshot_name']
                             if not first_or_default(lambda s: s['snapshot_name'] == rsnap, local_snapshots):
-                                delete.append(snap)
+                                delete.append(rsnap)
+
+                        actions.append(ReplicationAction(
+                            ReplicationActionType.DELETE_SNAPSHOTS,
+                            localfs,
+                            remotefs,
+                            snapshots=delete
+                        ))
 
                     index = local_snapshots.index(found)
 
