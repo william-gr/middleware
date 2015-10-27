@@ -292,7 +292,18 @@ class UserUpdateTask(Task):
         if not self.datastore.exists('users', ('id', '=', uid)):
             raise VerifyException(errno.ENOENT, 'User does not exists')
 
+        user = self.datastore.get_by_id('users', uid)
         errors = []
+        if user.get('builtin'):
+            if 'home' in updated_fields:
+                errors.append(('home', errno.EPERM, "Cannot change builtin user's home directory"))
+            # Similarly ignore uid changes for builtin users
+            if 'id' in updated_fields:
+                errors.append(('id', errno.EPERM, "Cannot change builtin user's UID"))
+            if 'username' in updated_fields:
+                errors.append(('username', errno.EPERM, "Cannot change builtin user's username"))
+            if 'locked' in updated_fields:
+                errors.append(('locked', errno.EPERM, "Cannot change builtin user's locked flag"))
         if 'groups' in updated_fields and len(updated_fields['groups']) > 64:
             errors.append(
                 ('groups', errno.EINVAL, 'User cannot belong to more than 64 auxiliary groups'))
@@ -308,14 +319,6 @@ class UserUpdateTask(Task):
     def run(self, uid, updated_fields):
         try:
             user = self.datastore.get_by_id('users', uid)
-
-            if user.get('builtin'):
-                # Ignore home changes for builtin users
-                if 'home' in updated_fields:
-                    updated_fields.pop('home')
-                # Similarly ignore uid changes for builtin users
-                if 'id' in updated_fields:
-                    updated_fields.pop('id')
 
             home_before = user.get('home')
             user.update(updated_fields)
