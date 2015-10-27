@@ -162,6 +162,15 @@ class ZfsDatasetProvider(Provider):
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
+    @returns(long)
+    def estimate_send_size(self, snapshot_name, anchor_name=None):
+        try:
+            zfs = libzfs.ZFS()
+            ds = zfs.get_object(snapshot_name)
+            return ds.get_send_space(anchor_name)
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
+
 
 class ZfsSnapshotProvider(Provider):
     @query('zfs-snapshot')
