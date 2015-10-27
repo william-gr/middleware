@@ -282,7 +282,7 @@ class Task(object):
             event['finished_at'] = self.finished_at
             event['result'] = self.result
 
-        self.dispatcher.dispatch_event('task.created' if state == TaskState.CREATED else 'task.updated' , event)
+        self.dispatcher.dispatch_event('task.created' if state == TaskState.CREATED else 'task.updated', event)
         self.dispatcher.datastore.update('tasks', self.id, self)
         self.dispatcher.dispatch_event('task.changed', {
             'operation': 'create' if state == TaskState.CREATED else 'update',
