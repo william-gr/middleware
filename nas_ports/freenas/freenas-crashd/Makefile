@@ -13,6 +13,7 @@ COMMENT=	FreeNAS crash report collecting daemon
 RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}watchdog>0:${PORTSDIR}/devel/py-watchdog
 
 USES=		python
+USE_PYTHON=	py3kplist
 EXTRACT_ONLY=
 
 NO_BUILD=	yes
