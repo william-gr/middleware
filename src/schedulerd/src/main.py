@@ -176,7 +176,7 @@ class Context(object):
     def init_datastore(self):
         try:
             self.datastore = get_datastore(self.config['datastore']['driver'], self.config['datastore']['dsn'])
-        except DatastoreException, err:
+        except DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -248,7 +248,7 @@ class Context(object):
                 self.client.resume_service('scheduler.management')
                 self.client.resume_service('scheduler.debug')
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
@@ -278,7 +278,7 @@ class Context(object):
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
         except ValueError:
