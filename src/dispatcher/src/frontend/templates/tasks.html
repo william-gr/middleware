@@ -55,7 +55,7 @@
         {
             $("#tasklist tbody").empty();
 
-            sock.call("task.query", null, function (tasks) {
+            sock.call("task.query", [[["state", "in", ["CREATED", "WAITING", "EXECUTING"]]]], function (tasks) {
                 $.each(tasks, function(idx, i) {
                     $("<tr/>", {
                         'data-id': i.id,
@@ -114,8 +114,8 @@
             });
 
             sock.on("login", function() {
-                refresh_tasks();
                 sock.subscribe(["task.*"]);
+                refresh_tasks();
                 sock.call("discovery.get_tasks", null, function (tasks) {
                     $.each(tasks, function(key, value) {
                         $("<div/>", {
