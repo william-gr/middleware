@@ -135,9 +135,7 @@ class EventService(RpcService):
         self.__dispatcher = context.dispatcher
 
     def query(self, filter=None, params=None):
-        filter = filter if filter else []
-        params = params if params else {}
-        return list(self.__datastore.query('events', *filter, **params))
+        return self.__datastore.query('events', *(filter or []), **(params or {}))
 
     @pass_sender
     def get_my_subscriptions(self, sender):
