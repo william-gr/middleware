@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/local/bin/python3
 #+
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
@@ -108,7 +108,7 @@ class Main(object):
             if response.status_code != 200:
                 logger.warning('Cannot send report {0}: Server error code: {1}'.format(path, response.status_code))
                 return
-        except BaseException, err:
+        except BaseException as err:
             logger.warning('Cannot send report {0}: {1}'.format(path, str(err)))
             return
 
