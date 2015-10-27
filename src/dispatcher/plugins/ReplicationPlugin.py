@@ -151,8 +151,7 @@ class SnapshotDatasetTask(Task):
 
     def run(self, pool, dataset, recursive, lifetime, prefix='auto'):
         def is_expired(snapshot):
-            _, snapname = snapshot['name'].split('@')
-            match = AUTOSNAP_RE.match(snapname)
+            match = AUTOSNAP_RE.match(snapshot['snapshot_name'])
             if not match:
                 return False
 
@@ -280,15 +279,15 @@ class ReplicateDatasetTask(Task):
             delete = []
             found = None
 
-            def matches(pair):
-                src, tgt = pair
-                _, srcsnap = src['name'].split('@')
-                _, tgtsnap = tgt['name'].split('@')
-
-                if src.get('properties.org\\.freenas:replicate.value') != 'yes':
+            def is_replicated(snapshot):
+                if snapshot.get('properties.org\\.freenas:replicate.value') != 'yes':
                     # Snapshot is not subject to replication
                     return False
 
+            def matches(pair):
+                src, tgt = pair
+                srcsnap = src['snapshot_name']
+                tgtsnap = tgt['snapshot_name']
                 return srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']
 
             if remote_snapshots:
@@ -301,8 +300,8 @@ class ReplicateDatasetTask(Task):
                 if found:
                     if followdelete:
                         for snap in remote_snapshots:
-                            _, rsnap = snap['name'].split('@')
-                            if not first_or_default(lambda s: s['name'].split('@')[-1] == rsnap, local_snapshots):
+                            rsnap = snap['snapshot-name']
+                            if not first_or_default(lambda s: s['snapshot-name'] == rsnap, local_snapshots):
                                 delete.append(snap)
 
                     index = local_snapshots.index(found)
@@ -335,7 +334,7 @@ class ReplicateDatasetTask(Task):
         for action in actions:
             if action.delete:
                 for snap in action.delete:
-                    _, snapname = snap['name'].split('@')
+                    snapname = snap['snapshot_name']
                     logger.info('Will delete {0}:{1}@{2}'.format(
                         remote,
                         action.remotefs,
@@ -353,7 +352,7 @@ class ReplicateDatasetTask(Task):
             start_full = action.create or action.initialize
 
             for idx, snap in enumerate(action.snapshots):
-                _, snapname = snap['name'].split('@')
+                snapname = snap['snapshot_name']
                 full = idx == 0 and start_full
 
                 logger.info('Will {4} replicate {0}@{1} to {2}:{3}@{1}'.format(
@@ -368,8 +367,7 @@ class ReplicateDatasetTask(Task):
                     sendzfs(remote, None, snapname, action.localfs, action.remotefs, '', '')
                 else:
                     prev = action.snapshots[idx - 1] if idx > 0 else action.anchor_snapshot
-                    _, prev_snapname = prev['name'].split('@')
-                    sendzfs(remote, prev_snapname, snapname, action.localfs, action.remotefs, '', '')
+                    sendzfs(remote, prev['snapshot_name'], snapname, action.localfs, action.remotefs, '', '')
 
 
 def _init(dispatcher, plugin):
