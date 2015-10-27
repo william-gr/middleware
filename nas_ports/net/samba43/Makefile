@@ -17,7 +17,7 @@ CONFLICTS?=		*samba3[2-6]-3.* samba4-4.0.* samba41-4.1.* samba42-4.2.*
 
 SAMBA4_BASENAME=	samba
 SAMBA4_PORTNAME=	${SAMBA4_BASENAME}4
-SAMBA4_VERSION=		4.3.0
+SAMBA4_VERSION=		4.3.1
 SAMBA4_DISTNAME=	${SAMBA4_BASENAME}-${SAMBA4_VERSION:S|.p|pre|:S|.r|rc|:S|.t|tp|:S|.a|alpha|}
 
 USE_GITHUB=		yes
@@ -551,6 +551,9 @@ SAMBA_MAN8+=		eventlogadm.8 idmap_ad.8 idmap_autorid.8 idmap_hash.8 idmap_ldap.8
 PORTDOCS=		README.FreeBSD
 
 IGNORE_NONTHREAD_PYTHON=needs port lang/python${PYTHON_SUFFIX} to be build with THREADS support
+
+pre-fetch: clean
+	@${RM} ${DISTDIR}/${DISTFILES}
 
 post-extract:
 			@${RM} -rf ${WRKSRC}/pidl
