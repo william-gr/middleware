@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/local/bin/python3
 #+
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-from __future__ import print_function
+
 import os
 import sys
 import copy
@@ -62,10 +62,10 @@ def init_datastore(filename, alt):
         f = open(filename)
         conf = json.load(f)
         f.close()
-    except IOError, err:
+    except IOError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
-    except ValueError, err:
+    except ValueError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -81,7 +81,7 @@ def init_datastore(filename, alt):
             conf['datastore'].get('database', 'freenas')
         )
 
-    except datastore.DatastoreException, err:
+    except datastore.DatastoreException as err:
         print("Cannot initialize datastore: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -168,7 +168,7 @@ def migrate_collection(dump, directory, force=False):
     if metadata['migration'] == 'keep':
         return
 
-    for key, row in data.items():
+    for key, row in list(data.items()):
         pkey = int(key) if integer else key
         if metadata['migration'] == 'merge-preserve':
             if not ds.exists(name, ('id', '=', pkey)):
@@ -196,10 +196,10 @@ def main():
         fd = open(args.f, 'r') if args.f else sys.stdin
         dump = json.load(fd)
         fd.close()
-    except IOError, err:
+    except IOError as err:
         print("Cannot open input file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
-    except ValueError, err:
+    except ValueError as err:
         print("Cannot parse input file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -207,7 +207,7 @@ def main():
     filename = '/var/tmp/dsmigrate.{0}.log'.format(os.getpid())
     try:
         logfile = open(filename, 'w')
-    except OSError, err:
+    except OSError as err:
         print("Cannot open logfile {0}: {1}".format(filename, str(err)), file=sys.stderr)
         sys.exit(1)
 

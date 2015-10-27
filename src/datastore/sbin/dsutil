@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/local/bin/python3
 #+
 # Copyright 2014 iXsystems, Inc.
 # All rights reserved
@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-from __future__ import print_function
+
 import argh
 import json
 import sys
@@ -60,10 +60,10 @@ def init_datastore(filename):
         f = open(filename)
         conf = json.load(f)
         f.close()
-    except IOError, err:
+    except IOError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
-    except ValueError, err:
+    except ValueError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -73,7 +73,7 @@ def init_datastore(filename):
 
     try:
         ds = datastore.get_datastore(conf['datastore']['driver'], conf['datastore']['dsn'])
-    except datastore.DatastoreException, err:
+    except datastore.DatastoreException as err:
         print("Cannot initialize datastore: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -103,7 +103,7 @@ def json_select(obj, selector=None):
 def create(name, pkey='uuid', type='config'):
     try:
         ds.collection_create(name, pkey_type=pkey, attributes={'type': type})
-    except datastore.DatastoreException, e:
+    except datastore.DatastoreException as e:
         print("Cannot create collection: {0}".format(str(e)), file=sys.stderr)
         sys.exit(1)
 
@@ -111,7 +111,7 @@ def create(name, pkey='uuid', type='config'):
 def destroy(name):
     try:
         ds.collection_create(name, pkey_type=pkey, attributes={'type': type})
-    except datastore.DatastoreException, e:
+    except datastore.DatastoreException as e:
         print("Cannot destroy collection: {0}".format(str(e)), file=sys.stderr)
         sys.exit(1)
 

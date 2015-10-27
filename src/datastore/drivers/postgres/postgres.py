@@ -230,7 +230,7 @@ class PostgresDatastore(object):
                     collection,
                     pkey
                 ), (psycopg2.extras.Json(obj),))
-            except psycopg2.IntegrityError, e:
+            except psycopg2.IntegrityError as e:
                 self.conn.rollback()
                 raise DuplicateKeyException(e)
             else:
