@@ -103,7 +103,7 @@ class NetworkConfigureTask(Task):
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_network')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
 
@@ -125,7 +125,7 @@ class CreateInterfaceTask(Task):
 
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_network')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure network: {0}'.format(str(e)))
 
         return name
@@ -144,7 +144,7 @@ class DeleteInterfaceTask(Task):
         self.datastore.delete('network.interfaces', name)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_network')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure network: {0}'.format(str(e)))
 
 
@@ -197,7 +197,7 @@ class ConfigureInterfaceTask(Task):
 
         try:
             self.dispatcher.call_sync(task, name)
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.interface.changed', {
@@ -218,7 +218,7 @@ class InterfaceUpTask(Task):
     def run(self, name):
         try:
             self.dispatcher.call_sync('networkd.configuration.up_interface', name)
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.interface.changed', {
@@ -239,7 +239,7 @@ class InterfaceDownTask(Task):
     def run(self, name):
         try:
             self.dispatcher.call_sync('networkd.configuration.down_interface', name)
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(err.code, err.message, err.extra)
 
         self.dispatcher.dispatch_event('network.interface.changed', {
@@ -264,7 +264,7 @@ class AddHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(errno.ENXIO, 'Cannot update host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
@@ -289,7 +289,7 @@ class UpdateHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(errno.ENXIO, 'Cannot update host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
@@ -312,7 +312,7 @@ class DeleteHostTask(Task):
 
         try:
             self.dispatcher.call_sync('etcd.generation.generate_group', 'network')
-        except RpcException, err:
+        except RpcException as err:
             raise TaskException(errno.ENXIO, 'Cannot delete host: {0}'.format(str(err)))
 
         self.dispatcher.dispatch_event('network.host.changed', {
@@ -337,7 +337,7 @@ class AddRouteTask(Task):
         self.datastore.insert('network.routes', route)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {
@@ -361,7 +361,7 @@ class UpdateRouteTask(Task):
         self.datastore.update('network.routes', name, route)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {
@@ -383,7 +383,7 @@ class DeleteRouteTask(Task):
         self.datastore.delete('network.routes', name)
         try:
             self.dispatcher.call_sync('networkd.configuration.configure_routes')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure interface: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('network.route.changed', {

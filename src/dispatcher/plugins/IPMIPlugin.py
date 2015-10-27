@@ -74,7 +74,7 @@ class IPMIProvider(Provider):
 
         try:
             out, err = system('/usr/local/bin/ipmitool', 'lan', 'print', str(channel))
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise RpcException(errno.EFAULT, 'Cannot receive IPMI configuration: {0}'.format(e.err.strip()))
 
         raw = {k.strip(): v.strip() for k, v in RE_ATTRS.findall(out)}
@@ -128,7 +128,7 @@ class ConfigureIPMITask(Task):
                 system('/usr/local/bin/ipmitool', 'user', 'set', 'password', '2', updated_params['password'])
                 system('/usr/local/bin/ipmitool', 'user', 'enable', '2')
 
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot configure IPMI channel {0}: {1}'.format(channel, err.err))
 
 
@@ -166,7 +166,7 @@ def _init(dispatcher, plugin):
     # Load ipmi kernel module
     try:
         kld.kldload('/boot/kernel/ipmi.ko')
-    except OSError, err:
+    except OSError as err:
         if err.errno != errno.EEXIST:
             logger.warning('Cannot load IPMI module: %s', str(err))
             logger.warning('IPMI unavailable')

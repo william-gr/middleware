@@ -139,7 +139,7 @@ class DiskProvider(Provider):
         powermgmt = disk.get('apm_mode', 0)
         try:
             system('/usr/local/sbin/ataidle', '-P', str(powermgmt), '-A', str(acc_level), disk['path'])
-        except SubprocessException, err:
+        except SubprocessException as err:
             logger.warning('Cannot configure power management for disk {0}: {1}'.format(id, err.err))
 
         if disk.get('standby_mode'):
@@ -151,7 +151,7 @@ class DiskProvider(Provider):
                         mode,
                         disk['path']
                     )
-                except SubprocessException, err:
+                except SubprocessException as err:
                     logger.warning('Cannot configure standby mode for disk {0}: {1}', id, err.err)
 
             standby_mode = str(disk['standby_mode'])
@@ -198,7 +198,7 @@ class DiskGPTFormatTask(Task):
                 system('/sbin/gpart', 'bootcode', '-b', bootcode, disk)
 
             self.dispatcher.call_sync('disks.update_disk_cache', disk, timeout=120)
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
 
 
@@ -224,7 +224,7 @@ class DiskBootFormatTask(Task):
             system('/sbin/gpart', 'add', '-t', 'bios-boot', '-i', '1', '-s', '512k', disk)
             system('/sbin/gpart', 'add', '-t', 'freebsd-zfs', '-i', '2', '-a', '4k', disk)
             system('/sbin/gpart', 'set', '-a', 'active', disk)
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot format disk: {0}'.format(err.err))
 
 
@@ -242,7 +242,7 @@ class DiskInstallBootloaderTask(Task):
         try:
             disk = os.path.join('/dev', disk)
             system('/usr/local/sbin/grub-install', "--modules='zfs part_gpt'", disk)
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot install GRUB: {0}'.format(err.err))
 
 
@@ -266,7 +266,7 @@ class DiskEraseTask(Task):
             system('/sbin/zpool', 'labelclear', '-f', disk)
             if diskinfo.get('partitions'):
                 system('/sbin/gpart', 'destroy', '-F', disk)
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot erase disk: {0}'.format(err.err))
 
         if not erase_method:
@@ -512,7 +512,7 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
                 lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
                 lambda: system('/sbin/gmultipath', 'create', nodename, path)
             )
-        except SubprocessException, e:
+        except SubprocessException as e:
             logger.warning('Cannot create multipath: {0}'.format(e.err))
             return
 
@@ -530,7 +530,7 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
             # Attach new disk
             try:
                 system('/sbin/gmultipath', 'add', disk['multipath.node'], path)
-            except SubprocessException, e:
+            except SubprocessException as e:
                 logger.warning('Cannot attach {0} to multipath: {0}'.format(path, e.err))
                 return
 
@@ -558,7 +558,7 @@ def attach_to_multipath(dispatcher, disk, ds_disk, path):
                     lambda args: args['path'] == '/dev/multipath/{0}'.format(nodename),
                     lambda: system('/sbin/gmultipath', 'create', nodename, disk['path'], path)
                 )
-            except SubprocessException, e:
+            except SubprocessException as e:
                 logger.warning('Cannot create multipath: {0}'.format(e.err))
                 return
 

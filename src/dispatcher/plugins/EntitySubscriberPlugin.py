@@ -74,7 +74,7 @@ class EntitySubscriberEventSource(EventSource):
     def fetch(self, service, operation, ids):
         try:
             entities = self.dispatcher.call_sync('{0}.query'.format(service), [('id', 'in', ids)])
-        except BaseException, e:
+        except BaseException as e:
             self.logger.warn('Cannot fetch changed entities from service {0}: {1}'.format(service, str(e)))
             return
 

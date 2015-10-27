@@ -186,13 +186,13 @@ class Client(object):
         debug_log('-> {0}', unicode(message))
         try:
             msg = loads(unicode(message))
-        except ValueError, err:
+        except ValueError as err:
             if self.error_callback is not None:
                 self.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
             return
 
-        self.decode(msg) 
-        
+        self.decode(msg)
+
     def __process_event(self, name, args):
         self.event_distribution_lock.acquire()
         if name in self.event_handlers:
@@ -266,7 +266,7 @@ class Client(object):
                 def run_async(msg, args):
                     try:
                         result = self.rpc.dispatch_call(args['method'], args['args'], sender=self)
-                    except rpc.RpcException, err:
+                    except rpc.RpcException as err:
                         self.__send_error(msg['id'], err.code, err.message)
                     else:
                         self.__send_response(msg['id'], result)

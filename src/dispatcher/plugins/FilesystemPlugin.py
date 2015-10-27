@@ -73,7 +73,7 @@ class FilesystemProvider(Provider):
         try:
             st = os.stat(path)
             a = acl.ACL(file=path)
-        except OSError, err:
+        except OSError as err:
             raise RpcException(err.errno, str(err))
 
         try:
@@ -125,7 +125,7 @@ class FilesystemProvider(Provider):
     def download(self, path, sender):
         try:
             f = open(path, 'r')
-        except OSError, e:
+        except OSError as e:
             raise RpcException(e.errno, e.message)
 
         token = self.dispatcher.token_store.issue_token(FileToken(
@@ -143,7 +143,7 @@ class FilesystemProvider(Provider):
     def upload(self, dest_path, size, mode, sender):
         try:
             f = open(dest_path, 'w')
-        except OSError, e:
+        except OSError as e:
             raise RpcException(e.errno, e.message)
 
         token = self.dispatcher.token_store.issue_token(FileToken(
