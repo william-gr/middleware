@@ -109,7 +109,7 @@ class TaskProxyService(RpcService):
 
         try:
             self.context.instance.abort()
-        except BaseException, err:
+        except BaseException as err:
             raise RpcException(errno.EFAULT, 'Cannot abort: {0}'.format(str(err)))
 
     def run(self, task):

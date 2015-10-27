@@ -1,6 +1,5 @@
 __author__ = 'jceel'
 
-import urlparse
 import json
 
 from dispatcher.rpc import RpcException
@@ -25,7 +24,7 @@ class ApiHandler(object):
 
         try:
             return getattr(self, method)(path, start_response, environ, body)
-        except Exception, err:
+        except Exception as err:
             return self.emit_error(start_response, {"err": str(err)})
 
     def emit_error(self, start_response, error):
@@ -34,7 +33,6 @@ class ApiHandler(object):
         ])
 
         return [json.dumps(error)]
-
 
     def call_listen(self, path, environ, body):
         while True:
@@ -50,7 +48,7 @@ class ApiHandler(object):
             ])
 
             return [json.dumps(result)]
-        except ValueError:
+        except ValueError as err:
             return self.emit_error(start_response, {'error': str(err)})
-        except RpcException, err:
+        except RpcException as err:
             return self.emit_error(start_response, {'error': str(err)})

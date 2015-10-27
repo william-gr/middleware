@@ -84,7 +84,7 @@ class TaskExecutor(object):
             st = TaskStatus(0)
             st.__setstate__(self.conn.call_client_sync('taskproxy.get_status'))
             return st
-        except RpcException, err:
+        except RpcException as err:
             self.balancer.logger.error("Cannot obtain status from task #{0}: {1}".format(self.task.id, str(err)))
             self.proc.terminate()
 
@@ -123,7 +123,7 @@ class TaskExecutor(object):
 
         try:
             self.result.get()
-        except BaseException, e:
+        except BaseException as e:
             if not isinstance(e, TaskException):
                 self.balancer.dispatcher.report_error(
                     'Task {0} raised exception other than TaskException'.format(self.task.name),
@@ -151,7 +151,7 @@ class TaskExecutor(object):
         # Try to abort via RPC. If this fails, kill process
         try:
             self.conn.call_client_sync('taskproxy.abort')
-        except RpcException, err:
+        except RpcException as err:
             self.balancer.logger.warning("Failed to abort task #{0} gracefully: {1}".format(self.task.id, str(err)))
             self.balancer.logger.warning("Killing process {0}".format(self.pid))
             self.proc.terminate()
@@ -249,7 +249,7 @@ class Task(object):
         self.set_state(TaskState.EXECUTING)
         try:
             result = self.instance.run(*(copy.deepcopy(self.args)))
-        except TaskAbortException, e:
+        except TaskAbortException as e:
             self.error = serialize_error(e)
 
             self.progress = self.instance.get_status()
@@ -258,7 +258,7 @@ class Task(object):
             self.dispatcher.balancer.task_exited(self)
             self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s aborted by user", self.id, self.name)
             return
-        except BaseException, e:
+        except BaseException as e:
             self.error = serialize_error(e)
 
             self.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
