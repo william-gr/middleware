@@ -610,11 +610,14 @@ class ZfsDatasetCreateTask(Task):
 
 
 class ZfsSnapshotCreateTask(ZfsBaseTask):
-    def run(self, pool_name, path, snapshot_name, recursive=False):
+    def run(self, pool_name, path, snapshot_name, recursive=False, params=None):
+        if params:
+            params = {k: v['value'] for k, v in params.items()}
+
         try:
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(path)
-            ds.snapshot('{0}@{1}'.format(path, snapshot_name), recursive=recursive)
+            ds.snapshot('{0}@{1}'.format(path, snapshot_name), recursive=recursive, fsopts=params)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
