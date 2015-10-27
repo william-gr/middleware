@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+import enum
 import os
 import errno
 import re
@@ -32,7 +33,7 @@ import logging
 import subprocess
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
-from task import Task, VerifyException, TaskException
+from task import Task, ProgressTask, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
@@ -48,17 +49,22 @@ AUTOSNAP_RE = re.compile(
 )
 
 
-class DatasetAction(object):
-    def __init__(self, **kwargs):
-        self.localfs = None
-        self.remotefs = None
-        self.initialize = False
-        self.create = False
-        self.anchor_snapshot = None
-        self.snapshots = []
-        self.delete = []
+class ReplicationActionType(enum.Enum):
+    SEND_STREAM = 1
+    DELETE_SNAPSHOTS = 2
+    DELETE_DATASET = 3
+
+
+class ReplicationAction(object):
+    def __init__(self, type, localfs, remotefs, **kwargs):
+        self.type = type
+        self.localfs = localfs
+        self.remotefs = remotefs
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def __getstate__(self):
+        return self.__dict__
 
 
 #
@@ -188,7 +194,7 @@ class SnapshotDatasetTask(Task):
 #        'recursive',
 #    ),
 #))
-class ReplicateDatasetTask(Task):
+class ReplicateDatasetTask(ProgressTask):
     def verify(self, pool, localds, options, dry_run=False):
         return ['zfs:{0}'.format(localds)]
 
@@ -216,7 +222,8 @@ class ReplicateDatasetTask(Task):
             localds,
             True,
             lifetime,
-            'repl'
+            'repl',
+            True
         ))
 
         datasets = [localds]
@@ -259,6 +266,19 @@ class ReplicateDatasetTask(Task):
         sshcmd = '%s -p %d %s' % (sshcmd, remote_port, remote)
         """
 
+        def is_replicated(snapshot):
+            if snapshot.get('properties.org\\.freenas:replicate.value') != 'yes':
+                # Snapshot is not subject to replication
+                return False
+
+            return True
+
+        def matches(pair):
+            src, tgt = pair
+            srcsnap = src['snapshot_name']
+            tgtsnap = tgt['snapshot_name']
+            return srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']
+
         if recursive:
             datasets = self.dispatcher.call_sync(
                 'zfs.dataset.query',
@@ -269,29 +289,24 @@ class ReplicateDatasetTask(Task):
         for ds in datasets:
             localfs = ds
             remotefs = localfs.replace(localds, remoteds, 1)
-            local_snapshots = wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
+            remote_snapshots = None
+            remote_snapshots_full = None
+            local_snapshots = filter(
+                is_replicated,
+                wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
+            )
 
             try:
-                remote_snapshots = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
+                remote_snapshots_full = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
+                remote_snapshots = filter(is_replicated, remote_snapshots_full)
             except RpcException as err:
-                remote_snapshots = None
+                pass
 
             snapshots = local_snapshots[:]
             delete = []
             found = None
 
-            def is_replicated(snapshot):
-                if snapshot.get('properties.org\\.freenas:replicate.value') != 'yes':
-                    # Snapshot is not subject to replication
-                    return False
-
-            def matches(pair):
-                src, tgt = pair
-                srcsnap = src['snapshot_name']
-                tgtsnap = tgt['snapshot_name']
-                return srcsnap == tgtsnap and src['properties.creation.rawvalue'] == tgt['properties.creation.rawvalue']
-
-            if remote_snapshots:
+            if remote_snapshots_full:
                 # Find out the last common snapshot.
                 pairs = filter(matches, zip(local_snapshots, remote_snapshots))
                 if pairs:
@@ -301,74 +316,89 @@ class ReplicateDatasetTask(Task):
                 if found:
                     if followdelete:
                         for snap in remote_snapshots:
-                            rsnap = snap['snapshot-name']
-                            if not first_or_default(lambda s: s['snapshot-name'] == rsnap, local_snapshots):
+                            rsnap = snap['snapshot_name']
+                            if not first_or_default(lambda s: s['snapshot_name'] == rsnap, local_snapshots):
                                 delete.append(snap)
 
                     index = local_snapshots.index(found)
-                    actions.append(DatasetAction(
-                        localfs=localfs,
-                        remotefs=remotefs,
-                        initialize=False,
-                        anchor_snapshot=local_snapshots[index],
-                        snapshots=local_snapshots[index+1:],
-                        delete=delete
-                    ))
+
+                    for idx in range(index + 1, len(local_snapshots)):
+                        actions.append(ReplicationAction(
+                            ReplicationActionType.SEND_STREAM,
+                            localfs,
+                            remotefs,
+                            incremental=True,
+                            anchor=local_snapshots[idx - 1]['snapshot_name'],
+                            snapshot=local_snapshots[idx]['snapshot_name']
+                        ))
                 else:
-                    actions.append(DatasetAction(
-                        localfs=localfs,
-                        remotefs=remotefs,
-                        delete=remote_snapshots[:],
-                        initialize=True,
-                        snapshots=snapshots
+                    actions.append(ReplicationAction(
+                        ReplicationActionType.DELETE_SNAPSHOTS,
+                        localfs,
+                        remotefs,
+                        snapshots=map(lambda s: s['snapshot_name'], remote_snapshots_full)
                     ))
+
+                    for idx in range(0, len(snapshots)):
+                        actions.append(ReplicationAction(
+                            ReplicationActionType.SEND_STREAM,
+                            localfs,
+                            remotefs,
+                            incremental=idx > 0,
+                            anchor=snapshots[idx - 1]['snapshot_name'] if idx > 0 else None,
+                            snapshot=snapshots[idx]['snapshot_name']
+                        ))
             else:
                 logger.info('New dataset {0} -> {1}:{2}'.format(localfs, remote, remotefs))
-                actions.append(DatasetAction(
-                    localfs=localfs,
-                    remotefs=remotefs,
-                    initialize=True,
-                    create=True,
-                    snapshots=snapshots
-                ))
-
-        for action in actions:
-            if action.delete:
-                for snap in action.delete:
-                    snapname = snap['snapshot_name']
-                    logger.info('Will delete {0}:{1}@{2}'.format(
-                        remote,
-                        action.remotefs,
-                        snapname
+                for idx in range(0, len(snapshots)):
+                    actions.append(ReplicationAction(
+                        ReplicationActionType.SEND_STREAM,
+                        localfs,
+                        remotefs,
+                        incremental=idx > 0,
+                        anchor=snapshots[idx - 1]['snapshot_name'] if idx > 0 else None,
+                        snapshot=snapshots[idx]['snapshot_name']
                     ))
 
+        # 1st pass - estimate send size
+        self.set_progress(0, 'Estimating send size...')
+        for action in actions:
+            if action.type == ReplicationActionType.SEND_STREAM:
+                size = self.dispatcher.call_sync(
+                    'zfs.dataset.estimate_send_size',
+                    action.localfs,
+                    action.snapshot,
+                    getattr(action, 'anchor', None)
+                )
+
+                action.send_size = size
+
+        if dry_run:
+            return actions
+
+        # 2nd pass - actual send
+        for idx, action in enumerate(actions):
+            progress = float(idx) / len(actions) * 100
+
+            if action.type == ReplicationActionType.DELETE_SNAPSHOTS:
+                self.set_progress(progress, 'Removing snapshots on remote dataset {0}'.format(action.remotefs))
                 # Remove snapshots on remote side
                 remote_client.call_task_sync(
                     'zfs.delete_multiple_snapshots',
                     action.remotefs.split('/')[0],
                     action.remotefs,
-                    map(lambda s: s['name'], action.delete)
+                    action.snapshots
                 )
 
-            start_full = action.create or action.initialize
-
-            for idx, snap in enumerate(action.snapshots):
-                snapname = snap['snapshot_name']
-                full = idx == 0 and start_full
-
-                logger.info('Will {4} replicate {0}@{1} to {2}:{3}@{1}'.format(
-                    action.localfs,
-                    snapname,
-                    remote,
-                    action.remotefs,
-                    'fully' if full else 'incrementally'
-                ))
-
-                if full:
-                    sendzfs(remote, None, snapname, action.localfs, action.remotefs, '', '')
+            if action.type == ReplicationActionType.SEND_STREAM:
+                self.set_progress(progress, 'Sending stream of snapshot {0}'.format(action.snapshot))
+                if not action.incremental:
+                    sendzfs(remote, None, action.snapshot, action.localfs, action.remotefs, '', '')
                 else:
-                    prev = action.snapshots[idx - 1] if idx > 0 else action.anchor_snapshot
-                    sendzfs(remote, prev['snapshot_name'], snapname, action.localfs, action.remotefs, '', '')
+                    sendzfs(remote, action.anchor, action.snapshot, action.localfs, action.remotefs, '', '')
+
+            if action.type == ReplicationActionType.DELETE_DATASET:
+                pass
 
 
 def _init(dispatcher, plugin):
