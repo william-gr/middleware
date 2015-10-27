@@ -178,7 +178,7 @@ class SnapshotDatasetTask(Task):
         )
 
 
-@description("Runs an ZFS Replication Task with the specified arguments")
+@description("Runs a replication task with the specified arguments")
 #@accepts(h.all_of(
 #    h.ref('autorepl'),
 #    h.required(
@@ -391,7 +391,12 @@ class ReplicateDatasetTask(ProgressTask):
                 )
 
             if action.type == ReplicationActionType.SEND_STREAM:
-                self.set_progress(progress, 'Sending stream of snapshot {0}'.format(action.snapshot))
+                self.set_progress(progress, 'Sending {0} stream of snapshot {1}/{2}'.format(
+                    'incremental' if action.incremental else 'full',
+                    action.localfs,
+                    action.snapshot
+                ))
+
                 if not action.incremental:
                     sendzfs(remote, None, action.snapshot, action.localfs, action.remotefs, '', '')
                 else:
@@ -399,6 +404,8 @@ class ReplicateDatasetTask(ProgressTask):
 
             if action.type == ReplicationActionType.DELETE_DATASET:
                 pass
+
+        return actions
 
 
 def _init(dispatcher, plugin):
@@ -408,11 +415,11 @@ def _init(dispatcher, plugin):
         'properties': {
             'remote': {'type': 'string'},
             'remote_port': {'type': 'string'},
+            'remote_dataset': {'type': 'string'},
             'cipher': {
                 'type': 'string',
                 'enum': ['NORMAL', 'FAST', 'DISABLED']
             },
-            'remote_dataset': {'type': 'string'},
             'compression': {
                 'type': 'string',
                 'enum': ['none', 'pigz', 'plzip', 'lz4', 'xz']
