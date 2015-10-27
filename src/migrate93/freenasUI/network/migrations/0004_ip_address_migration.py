@@ -8,53 +8,53 @@ from freenasUI.contrib.IPAddressField import *
 class Migration(DataMigration):
 
     def forwards(self, orm):
-	for iface in orm.Interfaces.objects.all():
-		if iface.int_ipv4address:
-			ip = mask = None
-			try:
-				ip, mask = str(iface.int_ipv4address).split('/')
-			except:
-				ip = str(iface.int_ipv4address)
+        for iface in orm.Interfaces.objects.all():
+            if iface.int_ipv4address:
+                ip = mask = None
+                try:
+                    ip, mask = str(iface.int_ipv4address).split('/')
+                except:
+                    ip = str(iface.int_ipv4address)
 
-			if mask:
-				iface.int_v4netmaskbit = mask
-				try:
-					iface.int_ipv4address_temp = IPAddressField(ip).to_python(ip)
-				except ValueError:
-					iface.int_ipv4address_temp = None
-					iface.int_v4netmaskbit = None
-			else:		
-				iface.int_ipv4address_temp = None
-				iface.int_v4netmaskbit = None
+                if mask:
+                    iface.int_v4netmaskbit = mask
+                    try:
+                        iface.int_ipv4address_temp = IPAddressField(ip).to_python(ip)
+                    except ValueError:
+                        iface.int_ipv4address_temp = None
+                        iface.int_v4netmaskbit = None
+                else:
+                    iface.int_ipv4address_temp = None
+                    iface.int_v4netmaskbit = None
 
 
-		if iface.int_ipv6address:
-			ip = mask = None
-			try:
-				ip, mask = str(iface.int_ipv6address).split('/')
-			except:
-				ip = str(iface.int_ipv6address)
+            if iface.int_ipv6address:
+                ip = mask = None
+                try:
+                    ip, mask = str(iface.int_ipv6address).split('/')
+                except:
+                    ip = str(iface.int_ipv6address)
 
-			if mask:
-				iface.int_v6netmaskbit = mask
-				try:
-					iface.int_ipv6address_temp = IPAddressField(ip).to_python(ip)
-				except ValueError:
-					iface.int_ipv6address_temp = None
-					iface.int_v6netmaskbit = None
-			else:
-				iface.int_ipv6address_temp = None
-				iface.int_v6netmaskbit = None
-	
-		if (iface.int_ipv4address_temp == None and iface.int_ipv6address_temp == None):
-			iface.delete()
-		else:
-			iface.save()
+                if mask:
+                    iface.int_v6netmaskbit = mask
+                    try:
+                        iface.int_ipv6address_temp = IPAddressField(ip).to_python(ip)
+                    except ValueError:
+                        iface.int_ipv6address_temp = None
+                        iface.int_v6netmaskbit = None
+                else:
+                    iface.int_ipv6address_temp = None
+                    iface.int_v6netmaskbit = None
+
+            if (iface.int_ipv4address_temp == None and iface.int_ipv6address_temp == None):
+                iface.delete()
+            else:
+                iface.save()
 
 
 
     def backwards(self, orm):
-	raise RuntimeError("No reason to reverse this migration.")
+        raise RuntimeError("No reason to reverse this migration.")
 
     models = {
         'network.globalconfiguration': {
