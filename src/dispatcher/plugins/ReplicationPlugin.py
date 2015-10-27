@@ -44,7 +44,7 @@ from fnutils.query import wrap
 logger = logging.getLogger(__name__)
 SYSTEM_RE = re.compile('^[^/]+/.system.*')
 AUTOSNAP_RE = re.compile(
-    '^auto-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
+    '^(?P<prefix>\w+)-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
     '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])$'
 )
 
@@ -162,6 +162,9 @@ class SnapshotDatasetTask(Task):
                 return False
 
             if snapshot['holds']:
+                return False
+
+            if match.group('prefix') != prefix:
                 return False
 
             delta = to_timedelta(match.group('lifetime'))
@@ -403,7 +406,7 @@ class ReplicateDatasetTask(ProgressTask):
                     sendzfs(remote, action.anchor, action.snapshot, action.localfs, action.remotefs, '', '')
 
             if action.type == ReplicationActionType.DELETE_DATASET:
-                pass
+                self.set_progress(progress, 'Removing snapshots on remote dataset {0}'.format(action.remotefs))
 
         return actions
 
