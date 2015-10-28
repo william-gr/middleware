@@ -735,7 +735,7 @@ class ServerResource(Resource):
 
     def __call__(self, environ, start_response):
         environ = environ
-        current_app = self._app_by_path(environ['PATH_INFO'])
+        current_app = self._app_by_path(environ['PATH_INFO'], 'wsgi.websocket' in environ)
 
         if current_app is None:
             raise Exception("No apps defined")
