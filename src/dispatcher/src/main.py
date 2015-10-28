@@ -814,11 +814,11 @@ class ServerConnection(WebSocketApplication, EventEmitter):
     def on_message(self, message, *args, **kwargs):
         trace_log('{0} -> {1}', self.real_client_address, str(message))
 
-        if not type(message) is str:
+        if not type(message) is bytes:
             return
 
         try:
-            message = loads(message)
+            message = loads(message.decode('utf-8'))
         except ValueError:
             self.emit_rpc_error(None, errno.EINVAL, 'Request is not valid JSON')
             return
