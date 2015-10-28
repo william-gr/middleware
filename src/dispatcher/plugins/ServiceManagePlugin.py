@@ -207,7 +207,7 @@ class ServiceInfoProvider(Provider):
             pass
 
     @private
-    @accepts(str)
+    @accepts(str, bool, bool)
     def apply_state(self, service, restart=False, reload=False):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
         if not svc:
@@ -299,7 +299,6 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-
         if service_def.get('task'):
             self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
         else:
