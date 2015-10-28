@@ -29,7 +29,7 @@
 import errno
 from dispatcher import AsyncResult
 from .jsonenc import loads, dumps
-from rpc import RpcException
+from .rpc import RpcException
 from ws4py.client.threadedclient import WebSocketClient
 
 
