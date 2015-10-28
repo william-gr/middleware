@@ -278,7 +278,7 @@ class ServiceManageTask(Task):
         except SubprocessException, e:
             raise TaskException(errno.EBUSY, e.err)
 
-        self.dispatcher.dispatch_event('service.changed', {
+        self.dispatcher.dispatch_event('services.changed', {
             'operation': 'update',
             'ids': [service['id']]
         })
@@ -333,7 +333,7 @@ class UpdateServiceConfigTask(Task):
                             break
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-        self.dispatcher.dispatch_event('service.changed', {
+        self.dispatcher.dispatch_event('services.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
         })
