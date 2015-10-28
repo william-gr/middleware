@@ -458,4 +458,4 @@ def _init(dispatcher, plugin):
         key = RSA.generate(2048)
         dispatcher.configstore.set('replication.key.private', key.exportKey('PEM'))
         pubkey = key.publickey()
-        dispatcher.configstore.set('replication.key.public', pubkey.exportKey('PEM'))
+        dispatcher.configstore.set('replication.key.public', pubkey.exportKey('OpenSSH'))
