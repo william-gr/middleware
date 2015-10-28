@@ -970,7 +970,9 @@
             "network.dhcp.assign_gateway": true,
             "network.dhcp.assign_dns": true,
             "network.netwait.enabled": false,
-            "network.netwait.addresses": []
+            "network.netwait.addresses": [],
+            "replication.key.public": null,
+            "replication.key.private": null
         },
         "metadata": {
             "attributes": {
