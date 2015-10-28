@@ -729,7 +729,7 @@
             "service.dyndns.force_update_period": null,
             "service.dyndns.auxiliary": null,
             "service.ipfs.enable": false,
-            "service.ipfs.path": null,
+            "service.ipfs.path": "/var/db/system/ipfs",
             "service.ctl.enable": false,
             "service.ctl.pool_space_threshold": null,
             "service.simulator.enable": false,

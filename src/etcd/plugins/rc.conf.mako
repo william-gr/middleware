@@ -108,11 +108,7 @@ inadynmt_enable="YES"
 
 % if config.get("service.ipfs.enable"):
 ipfs_go_enable="YES"
-% if config.get("service.ipfs.path"):
 ipfs_go_path="${config.get("service.ipfs.path")}"
-% else:
-ipfs_go_path="/var/db/system/ipfs"
-% endif
 % endif
 
 ladvd_flags="-a\
