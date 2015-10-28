@@ -79,13 +79,13 @@ class ConfigNode(object):
         return str(self.value)
 
     def __unicode__(self):
-        return unicode(self.value)
+        return str(self.value)
 
     def update(self, obj):
         if not self.has_children:
             self.value = obj
         else:
-            for k, v in obj.items():
+            for k, v in list(obj.items()):
                 self[k].update(v)
 
 
@@ -120,7 +120,7 @@ class ConfigStore(object):
             matched = item['id'][len(root) + 1:]
             key, _, value = matched.partition('.')
 
-            if key not in result.keys():
+            if key not in list(result.keys()):
                 result[key] = {}
 
             result[key][value] = item['value']
