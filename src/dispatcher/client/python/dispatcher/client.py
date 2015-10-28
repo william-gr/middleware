@@ -31,7 +31,7 @@ import enum
 import uuid
 import errno
 import time
-from jsonenc import dumps, loads
+from .jsonenc import dumps, loads
 from dispatcher import rpc
 from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
