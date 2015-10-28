@@ -645,12 +645,12 @@ class ZfsSnapshotDeleteTask(ZfsBaseTask):
 
 
 class ZfsSnapshotDeleteMultipleTask(ZfsBaseTask):
-    def run(self, pool_name, path, snapshot_names):
+    def run(self, pool_name, path, snapshot_names, recursive=False):
         try:
             zfs = libzfs.ZFS()
             for i in snapshot_names:
                 snap = zfs.get_snapshot('{0}@{1}'.format(path, i))
-                snap.delete()
+                snap.delete(recursive)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
