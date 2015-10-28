@@ -129,7 +129,7 @@ class FileGenerationService(RpcService):
         return [g['name'] for g in self.datastore.query('etcd.groups')]
 
 
-class Main:
+class Main(object):
     def __init__(self):
         self.logger = logging.getLogger('etcd')
         self.root = None
