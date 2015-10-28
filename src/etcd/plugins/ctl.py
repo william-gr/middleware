@@ -67,7 +67,7 @@ def generate_luns(context):
 
         result[disk['id']] = extent
 
-    for share in context.datastore.query('shares', ('type', '=', 'iscsi')):
+    for share in context.client.call_sync('shares.query', [('type', '=', 'iscsi')]):
         props = share['properties']
         extent = {
             'path': os.path.join('/dev/zvol', share['dataset_path']),
