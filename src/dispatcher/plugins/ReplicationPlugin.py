@@ -186,7 +186,13 @@ class SnapshotDatasetTask(Task):
 
         self.join_subtasks(
             self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive, params),
-            *map(lambda s: self.run_subtask('zfs.destroy', s['name']), snapshots)
+            self.run_subtask(
+                'zfs.delete_multiple_snapshots',
+                pool,
+                dataset,
+                map(lambda s: s['snapshot_name'], snapshots),
+                True
+            )
         )
 
 
