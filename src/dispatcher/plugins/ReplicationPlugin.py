@@ -31,6 +31,7 @@ import errno
 import re
 import logging
 import subprocess
+from Crypto.PublicKey import RSA
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from task import Task, ProgressTask, VerifyException, TaskException
@@ -144,6 +145,13 @@ def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
     #    replication.repl_lastsnapshot = tosnap
     #    replication.save()
     return msg == "Succeeded"
+
+
+class ReplicationProvider(Provider):
+    def get_replication_key(self):
+        return self.configstore.get('replication.key.public')
+
+
 
 
 @accepts(str, str, bool, str)
@@ -441,5 +449,13 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
+    plugin.register_provider('replication', ReplicationProvider)
     plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_task_handler('replication.replicate_dataset', ReplicateDatasetTask)
+
+    # Generate replication key pair on first run
+    if not dispatcher.configstore.get('replication.key.private'):
+        key = RSA.generate(2048)
+        dispatcher.configstore.set('replication.key.private', key.exportKey('PEM'))
+        pubkey = key.publickey()
+        dispatcher.configstore.set('replication.key.public', pubkey.exportKey('PEM'))
