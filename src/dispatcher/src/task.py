@@ -29,6 +29,7 @@ import errno
 import logging
 from dispatcher.rpc import RpcService, RpcException
 from datastore.config import ConfigStore
+import collections
 
 
 class TaskState(object):
@@ -54,7 +55,7 @@ class Task(object):
         return {
             'description': cls.description if hasattr(cls, 'description') else None,
             'schema': cls.params_schema if hasattr(cls, 'params_schema') else None,
-            'abortable': True if (hasattr(cls, 'abort') and callable(cls.abort)) else False
+            'abortable': True if (hasattr(cls, 'abort') and isinstance(cls.abort, collections.Callable)) else False
         }
 
     def get_status(self):

@@ -45,6 +45,7 @@ from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
+import collections
 
 
 TASKWORKER_PATH = '/usr/local/libexec/taskworker'
@@ -242,7 +243,7 @@ class Task(object):
             "percentage": self.progress.percentage,
             "message": self.progress.message,
             "extra": self.progress.extra,
-            "abortable": True if (hasattr(self.instance, 'abort') and callable(self.instance.abort)) else False
+            "abortable": True if (hasattr(self.instance, 'abort') and isinstance(self.instance.abort, collections.Callable)) else False
         })
 
     def run(self):
@@ -505,7 +506,7 @@ class Balancer(object):
 
         :return:
         """
-        for task in filter(lambda t: t.state == TaskState.WAITING, self.task_list):
+        for task in [t for t in self.task_list if t.state == TaskState.WAITING]:
             if not self.resource_graph.can_acquire(*task.resources):
                 continue
 
@@ -565,17 +566,16 @@ class Balancer(object):
             i.die()
 
     def get_active_tasks(self):
-        return filter(lambda x: x.state in (
+        return [x for x in self.task_list if x.state in (
             TaskState.CREATED,
             TaskState.WAITING,
-            TaskState.EXECUTING),
-            self.task_list)
+            TaskState.EXECUTING)]
 
     def get_tasks(self, type=None):
         if type is None:
             return self.task_list
 
-        return filter(lambda x: x.state == type, self.task_list)
+        return [x for x in self.task_list if x.state == type]
 
     def get_task(self, id):
         self.distribution_lock.acquire()
@@ -612,7 +612,7 @@ def serialize_error(err):
 
 def remove_dots(obj):
     if isinstance(obj, dict):
-        return {k.replace('.', '+'): v for k, v in obj.items()}
+        return {k.replace('.', '+'): v for k, v in list(obj.items())}
 
     if isinstance(obj, (list, tuple)):
         return [remove_dots(x) for x in obj]

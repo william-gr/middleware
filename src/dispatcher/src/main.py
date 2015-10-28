@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-from __future__ import print_function
+
 import os
 import sys
 import fnmatch
@@ -394,7 +394,7 @@ class Dispatcher(object):
 
         while len(toload) > 0:
             found = False
-            for name, plugin in toload.items():
+            for name, plugin in list(toload.items()):
                 if len(plugin.dependencies - loaded) == 0:
                     found = True
                     loadlist.append(plugin)
@@ -414,7 +414,7 @@ class Dispatcher(object):
 
     def reload_plugins(self):
         # Reload existing modules
-        for i in self.plugins.values():
+        for i in list(self.plugins.values()):
             i.reload()
 
         # And look for new ones
@@ -423,7 +423,7 @@ class Dispatcher(object):
     def unload_plugins(self):
         # Generate a list of inverse plugin dependency
         required_by = {}
-        for name, plugin in self.plugins.items():
+        for name, plugin in list(self.plugins.items()):
             if name not in required_by:
                 required_by[name] = set()
             for dep in plugin.dependencies:
@@ -436,7 +436,7 @@ class Dispatcher(object):
         unloadlist = []
         while len(required_by) > 0:
             found = False
-            for name, deps in required_by.items():
+            for name, deps in list(required_by.items()):
                 if len(deps) > 0:
                     continue
 
@@ -801,7 +801,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.close_session()
 
         for mask in self.event_masks:
-            for name, ev in self.dispatcher.event_types.items():
+            for name, ev in list(self.dispatcher.event_types.items()):
                 if fnmatch.fnmatch(name, mask):
                     ev.decref()
 
@@ -812,7 +812,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_message(self, message, *args, **kwargs):
-        trace_log('{0} -> {1}', self.real_client_address, unicode(message))
+        trace_log('{0} -> {1}', self.real_client_address, str(message))
 
         if not type(message) is str:
             return
@@ -864,7 +864,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         with self.event_subscription_lock:
             # Increment reference count for any newly subscribed event
             for mask in set.difference(set(event_masks), self.event_masks):
-                for name, ev in self.dispatcher.event_types.items():
+                for name, ev in list(self.dispatcher.event_types.items()):
                     if fnmatch.fnmatch(name, mask):
                         ev.incref()
 
@@ -890,7 +890,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             # Decrement reference count for any newly unsubscribed event
             intersecting_unsubscribe_events = set.intersection(set(event_masks), self.event_masks)
             for mask in intersecting_unsubscribe_events:
-                for name, ev in self.dispatcher.event_types.items():
+                for name, ev in list(self.dispatcher.event_types.items()):
                     if fnmatch.fnmatch(name, mask):
                         ev.decref()
 
@@ -1039,7 +1039,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_rpc_response(self, id, data):
-        if id not in self.client_pending_calls.keys():
+        if id not in list(self.client_pending_calls.keys()):
             return
 
         call = self.client_pending_calls[id]
@@ -1052,7 +1052,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         del self.client_pending_calls[id]
 
     def on_rpc_error(self, id, data):
-        if id not in self.client_pending_calls.keys():
+        if id not in list(self.client_pending_calls.keys()):
             return
 
         call = self.client_pending_calls[id]

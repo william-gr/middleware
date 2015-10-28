@@ -149,7 +149,7 @@ class TokenStore(object):
         self.tokens = {}
 
     def generate_id(self):
-        return ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(32)])
+        return ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
 
     def issue_token(self, token):
         token_id = self.generate_id()

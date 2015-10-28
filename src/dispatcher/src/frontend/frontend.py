@@ -83,14 +83,14 @@ def apidoc_rpc():
 @app.route('/apidoc/tasks')
 def apidoc_tasks():
     tasks = dispatcher.tasks
-    tree = materialized_paths_to_tree(tasks.keys())
+    tree = materialized_paths_to_tree(list(tasks.keys()))
     return render_template('apidoc/tasks.html', tasks=tasks, tree=tree)
 
 
 @app.route('/apidoc/events')
 def apidoc_events():
     events = dispatcher.event_types
-    tree = materialized_paths_to_tree(events.keys())
+    tree = materialized_paths_to_tree(list(events.keys()))
     return render_template('apidoc/events.html', events=events, tree=tree)
 
 

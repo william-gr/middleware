@@ -25,7 +25,7 @@
 #
 #####################################################################
 
-from freebsd import get_sysctl
+from .freebsd import get_sysctl
 from lxml import etree
 
 

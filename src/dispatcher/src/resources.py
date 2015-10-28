@@ -120,7 +120,7 @@ class ResourceGraph(object):
         self.unlock()
 
     def get_resource(self, name):
-        f = filter(lambda i: i.name == name, self.resources.nodes())
+        f = [i for i in self.resources.nodes() if i.name == name]
         return f[0] if len(f) > 0 else None
 
     def get_resource_dependencies(self, name):
