@@ -94,7 +94,7 @@ def compress_pipecmds(compression):
 #
 def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
     templog = '/tmp/templog'
-    sshcmd = '/usr/bin/ssh -i /data/ssh/replication -o BatchMode=yes' \
+    sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
         ' -o StrictHostKeyChecking=yes' \
         ' -o ConnectTimeout=7 %s ' % remote
 
@@ -151,10 +151,11 @@ class ReplicationProvider(Provider):
     def get_public_key(self):
         return self.configstore.get('replication.key.public')
 
+    def scan_keys_on_host(self, hostname):
+        pass
 
 
-
-@accepts(str, str, bool, str)
+@accepts(str, str, bool, str, str, bool)
 @returns(str)
 class SnapshotDatasetTask(Task):
     def verify(self, pool, dataset, recursive, lifetime, prefix='auto', replicable=False):
