@@ -150,7 +150,8 @@ class GroupProvider(Provider):
     h.any_of(
         h.required('password'),
         h.required('unixhash', 'smbhash'),
-        h.required('password_disabled')),
+        h.required('password_disabled')
+    )
 ))
 class UserCreateTask(Task):
     def describe(self, user):
