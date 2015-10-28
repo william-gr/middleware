@@ -354,7 +354,7 @@ def convert_schema(sch):
         type_mapping[unicode] = 'string'
 
     for typ in six.integer_types:
-        type_mapping[typ] = 'number'
+        type_mapping[typ] = 'integer'
 
     if isinstance(sch, dict):
         return sch
