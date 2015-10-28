@@ -74,6 +74,7 @@ class VolumeProvider(Provider):
                 'name': ds['name'],
                 'type': ds['type'],
                 'mountpoint': ds['mountpoint'],
+                'volsize': ds.get('properties.volsize.rawvalue'),
                 'properties': include(
                     ds['properties'],
                     'used', 'available', 'compression', 'atime', 'dedup',
@@ -986,6 +987,7 @@ def _init(dispatcher, plugin):
                 'type': 'string',
                 'enum': ['FILESYSTEM', 'VOLUME']
             },
+            'volsize': {'type': ['integer', 'null']},
             'properties': {'type': 'object'},
             'share_type': {
                 'type': 'string',
