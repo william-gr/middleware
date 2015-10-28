@@ -28,6 +28,7 @@
 import errno
 import inspect
 import logging
+import six
 import traceback
 from dispatcher import validator
 from jsonschema import RefResolver
@@ -344,13 +345,16 @@ class SchemaHelper(object):
 def convert_schema(sch):
     type_mapping = {
         str: 'string',
-        unicode: 'string',
-        int: 'number',
-        long: 'number',
         float: 'number',
         bool: 'boolean',
         None: 'null'
     }
+
+    if six.PY2:
+        type_mapping[unicode] = 'string'
+
+    for typ in six.integer_types:
+        type_mapping[typ] = 'number'
 
     if isinstance(sch, dict):
         return sch
