@@ -728,6 +728,9 @@ class DatasetCreateTask(Task):
                 'properties': {}
             })
 
+        if 'type' == 'VOLUME':
+            params['properties']['volsize'] = {'value': params['volsize']}
+
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
             pool_name,
