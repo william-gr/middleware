@@ -36,6 +36,7 @@ from dispatcher.rpc import RpcException, description, accepts, private, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
+from fnutils import extend as extend_dict
 
 logger = logging.getLogger('ServiceManagePlugin')
 
@@ -86,6 +87,7 @@ class ServiceInfoProvider(Provider):
                 return greenlet.value
 
         result = group.map(result, jobs)
+        result = map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result)
         return result[0] if single is True else result
 
     @accepts(str)
@@ -250,8 +252,8 @@ class ServiceManageTask(Task):
 
     def run(self, name, action):
         service = self.datastore.get_one('service_definitions', ('name', '=', name))
-
         hook_rpc = service.get('{0}_rpc'.format(action))
+
         if hook_rpc:
             try:
                 return self.dispatcher.call_sync(hook_rpc)
@@ -275,6 +277,11 @@ class ServiceManageTask(Task):
 
         except SubprocessException, e:
             raise TaskException(errno.EBUSY, e.err)
+
+        self.dispatcher.dispatch_event('service.changed', {
+            'operation': 'update',
+            'ids': [service['id']]
+        })
 
 
 @description("Updates configuration for services")
@@ -439,6 +446,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("service.manage", ServiceManageTask)
     plugin.register_task_handler("service.configure", UpdateServiceConfigTask)
     plugin.register_provider("services", ServiceInfoProvider)
+    plugin.register_event_type("services.changed")
 
     for svc in dispatcher.datastore.query('service_definitions'):
         plugin.register_resource(Resource('service:{0}'.format(svc['name'])), parents=['system'])
