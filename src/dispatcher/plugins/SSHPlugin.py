@@ -48,14 +48,6 @@ class SSHConfigureTask(Task):
         return 'Configuring SSH service'
 
     def verify(self, ssh):
-        errors = []
-
-        node = ConfigNode('service.sshd', self.configstore).__getstate__()
-        node.update(ssh)
-
-        if errors:
-            raise ValidationException(errors)
-
         return ['system']
 
     def run(self, ssh):
@@ -79,7 +71,6 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
-
     # Register schemas
     plugin.register_schema_definition('service-ssh', {
         'type': 'object',
