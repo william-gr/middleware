@@ -1182,6 +1182,12 @@
                     "plugin:ctl"
                 ],
                 "name": "ctl"
+            },
+            "384706A4-6501-4455-91FC-1B9A6C6540B8": {
+                "dependencies": [
+                    "plugin:replication/keys"
+                ],
+                "name": "replication"
             }
         },
         "metadata": {

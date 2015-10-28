@@ -34,7 +34,7 @@ import subprocess
 from Crypto.PublicKey import RSA
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
-from task import Task, ProgressTask, VerifyException, TaskException
+from task import Provider, Task, ProgressTask, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
@@ -148,7 +148,7 @@ def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
 
 
 class ReplicationProvider(Provider):
-    def get_replication_key(self):
+    def get_public_key(self):
         return self.configstore.get('replication.key.public')
 
 
