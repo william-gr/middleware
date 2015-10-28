@@ -552,8 +552,6 @@ PORTDOCS=		README.FreeBSD
 
 IGNORE_NONTHREAD_PYTHON=needs port lang/python${PYTHON_SUFFIX} to be build with THREADS support
 
-pre-fetch: clean
-	@${RM} ${DISTDIR}/${DISTFILES}
 
 post-extract:
 			@${RM} -rf ${WRKSRC}/pidl
