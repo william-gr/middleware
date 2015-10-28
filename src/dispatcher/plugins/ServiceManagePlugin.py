@@ -38,6 +38,7 @@ from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
 from fnutils import extend as extend_dict
 
+
 logger = logging.getLogger('ServiceManagePlugin')
 
 
@@ -306,16 +307,19 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
+        node = ConfigNode('service.{0}'.format(service), self.configstore)
+
         if service_def.get('task'):
             self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+
+            if 'enable' in updated_fields:
+                node['enable'] = updated_fields.pop('enable')
+                self.dispatcher.call_sync('services.apply_state', service)
         else:
-            node = ConfigNode('service.{0}'.format(service), self.configstore)
             node.update(updated_fields)
 
             if service_def.get('etcd-group'):
                 self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
-
-            self.dispatcher.call_sync('services.apply_state', service)
 
             if 'enable' in updated_fields:
                 # Propagate to dependent services
