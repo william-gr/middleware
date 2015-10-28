@@ -304,11 +304,11 @@ class ReplicateDatasetTask(ProgressTask):
                 {'select': 'name'}
             )
 
+        self.set_progress(0, 'Reading replication state from remote side...')
+
         for ds in datasets:
             localfs = ds
             remotefs = localfs.replace(localds, remoteds, 1)
-            remote_snapshots = None
-            remote_snapshots_full = None
             local_snapshots = filter(
                 is_replicated,
                 wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
@@ -318,7 +318,7 @@ class ReplicateDatasetTask(ProgressTask):
                 remote_snapshots_full = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
                 remote_snapshots = filter(is_replicated, remote_snapshots_full)
             except RpcException as err:
-                pass
+                raise TaskException(err.code, 'Cannot contact {0}: {1}'.format(remote, err.message))
 
             snapshots = local_snapshots[:]
             found = None
@@ -387,6 +387,9 @@ class ReplicateDatasetTask(ProgressTask):
 
         # 1st pass - estimate send size
         self.set_progress(0, 'Estimating send size...')
+        total_send_size = 0
+        done_send_size = 0
+
         for action in actions:
             if action.type == ReplicationActionType.SEND_STREAM:
                 size = self.dispatcher.call_sync(
@@ -397,6 +400,7 @@ class ReplicateDatasetTask(ProgressTask):
                 )
 
                 action.send_size = size
+                total_send_size += size
 
         if dry_run:
             return actions
@@ -408,12 +412,17 @@ class ReplicateDatasetTask(ProgressTask):
             if action.type == ReplicationActionType.DELETE_SNAPSHOTS:
                 self.set_progress(progress, 'Removing snapshots on remote dataset {0}'.format(action.remotefs))
                 # Remove snapshots on remote side
-                remote_client.call_task_sync(
+                result = remote_client.call_task_sync(
                     'zfs.delete_multiple_snapshots',
                     action.remotefs.split('/')[0],
                     action.remotefs,
                     action.snapshots
                 )
+
+                if result['status'] != 'FINISHED':
+                    raise TaskException(errno.EFAULT, 'Failed to destroy snapshots on remote end: {0}'.format(
+                        result['error']['message']
+                    ))
 
             if action.type == ReplicationActionType.SEND_STREAM:
                 self.set_progress(progress, 'Sending {0} stream of snapshot {1}/{2}'.format(
@@ -428,7 +437,18 @@ class ReplicateDatasetTask(ProgressTask):
                     sendzfs(remote, action.anchor, action.snapshot, action.localfs, action.remotefs, '', '')
 
             if action.type == ReplicationActionType.DELETE_DATASET:
-                self.set_progress(progress, 'Removing snapshots on remote dataset {0}'.format(action.remotefs))
+                self.set_progress(progress, 'Removing remote dataset {0}'.format(action.remotefs))
+                result = remote_client.call_task_sync(
+                    'zfs.destroy',
+                    action.remotefs.split('/')[0],
+                    action.remotefs
+                )
+
+                if result['status'] != 'FINISHED':
+                    raise TaskException(errno.EFAULT, 'Failed to destroy dataset {0} on remote end: {1}'.format(
+                        action.remotefs,
+                        result['error']['message']
+                    ))
 
         return actions
 
@@ -440,6 +460,7 @@ def _init(dispatcher, plugin):
         'properties': {
             'remote': {'type': 'string'},
             'remote_port': {'type': 'string'},
+            'remote_hostkey': {'type': 'string'},
             'remote_dataset': {'type': 'string'},
             'cipher': {
                 'type': 'string',
@@ -449,7 +470,7 @@ def _init(dispatcher, plugin):
                 'type': 'string',
                 'enum': ['none', 'pigz', 'plzip', 'lz4', 'xz']
             },
-            'bandwidth_limit' : {'type': 'string'},
+            'bandwidth_limit': {'type': 'string'},
             'followdelete': {'type': 'boolean'},
             'recursive': {'type': 'boolean'},
         },
