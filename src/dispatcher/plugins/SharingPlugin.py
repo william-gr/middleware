@@ -138,12 +138,12 @@ class CreateShareTask(Task):
                 # Create root dataset for given sharing type
                 self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
 
-            if share_type['method'] == 'file':
+            if share_type['subtype'] == 'file':
                 self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
                     'permissions_type': share_type['perm_type']
                 }))
 
-            if share_type['method'] == 'block':
+            if share_type['subtype'] == 'block':
                 self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'VOLUME', {
                     'volsize': share['properties']['size']
                 }))
