@@ -346,11 +346,12 @@ class Dispatcher(object):
 
         self.register_event_type('server.client_connected')
         self.register_event_type('server.client_disconnected')
-        self.register_event_type('server.client_logged')
+        self.register_event_type('server.client_login')
+        self.register_event_type('server.client_logout')
+        self.register_event_type('server.service_login')
         self.register_event_type('server.plugin.load_error')
         self.register_event_type('server.plugin.loaded')
         self.register_event_type('server.ready')
-        self.register_event_type('server.service_logged')
         self.register_event_type('server.shutdown')
 
     def start(self):
@@ -777,14 +778,17 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.event_subscription_lock = RLock()
 
     def on_open(self):
+        client_addr, client_port = self.ws.handler.client_address[:2]
         trace_log('Client {0} connected', self.ws.handler.client_address)
         self.server.connections.append(self)
         self.dispatcher.dispatch_event('server.client_connected', {
-            'address': self.ws.handler.client_address,
+            'address': client_addr,
+            'port': client_port,
             'description': "Client {0} connected".format(self.ws.handler.client_address)
         })
 
     def on_close(self, reason):
+        client_addr, client_port = self.ws.handler.client_address[:2]
         trace_log('Client {0} disconnected', self.ws.handler.client_address)
         self.server.connections.remove(self)
 
@@ -797,7 +801,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                     ev.decref()
 
         self.dispatcher.dispatch_event('server.client_disconnected', {
-            'address': self.ws.handler.client_address,
+            'address': client_addr,
+            'port': client_port,
             'description': "Client {0} disconnected".format(self.ws.handler.client_address)
         })
 
@@ -917,6 +922,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.dispatcher.dispatch_event(i['name'], i['args'])
 
     def on_rpc_auth_service(self, id, data):
+        client_addr, client_port = self.ws.handler.client_address[:2]
         service_name = data['name']
 
         self.send_json({
@@ -928,8 +934,9 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.user = self.dispatcher.auth.get_service(service_name)
         self.open_session()
-        self.dispatcher.dispatch_event('server.service_logged', {
-            'address': self.ws.handler.client_address,
+        self.dispatcher.dispatch_event('server.service_login', {
+            'address': client_addr,
+            'port': client_port,
             'name': service_name,
             'description': "Service {0} logged in".format(service_name)
         })
@@ -939,7 +946,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         resource = data.get('resource', None)
         lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         token = self.dispatcher.token_store.lookup_token(token)
-        client_addr, client_port = self.ws.handler.client_address
+        client_addr, client_port = self.ws.handler.client_address[:2]
 
         if not token:
             self.emit_rpc_error(id, errno.EACCES, "Incorrect or expired token")
@@ -962,7 +969,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
         self.open_session()
-        self.dispatcher.dispatch_event('server.client_logged', {
+        self.dispatcher.dispatch_event('server.client_loggin', {
             'address': client_addr,
             'port': client_port,
             'username': self.user.name,
@@ -1011,7 +1018,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
         self.open_session()
-        self.dispatcher.dispatch_event('server.client_logged', {
+        self.dispatcher.dispatch_event('server.client_login', {
             'address': client_addr,
             'port': client_port,
             'username': username,
@@ -1103,10 +1110,18 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def close_session(self):
+        client_addr, client_port = self.ws.handler.client_address[:2]
         session = self.dispatcher.datastore.get_by_id('sessions', self.session_id)
         session['active'] = False
         session['ended-at'] = time.time()
         self.dispatcher.datastore.update('sessions', self.session_id, session)
+
+        self.dispatcher.dispatch_event('server.client_logout', {
+            'address': client_addr,
+            'port': client_port,
+            'username': self.user.name,
+            'description': "Client {0} logged out".format(self.user.name)
+        })
 
     def broadcast_event(self, event, args):
         for i in self.server.connections:
