@@ -25,7 +25,9 @@
 #####################################################################
 import errno
 import logging
+import os
 
+from lib.system import SubprocessException, system
 from datastore.config import ConfigNode
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from task import Task, Provider, TaskException, ValidationException
@@ -53,6 +55,14 @@ class IPFSConfigureTask(Task):
         node = ConfigNode('service.ipfs', self.configstore).__getstate__()
         node.update(ipfs)
 
+        if 'path' in ipfs:
+            if ipfs['path'] in [None, ''] or ipfs['path'].isspace():
+                errors.append((
+                    'path',
+                    errno.EINVAL,
+                    "The provided path: '{0}' is not valid".format(ipfs['path'])
+                ))
+
         if errors:
             raise ValidationException(errors)
 
@@ -61,7 +71,23 @@ class IPFSConfigureTask(Task):
     def run(self, ipfs):
         try:
             node = ConfigNode('service.ipfs', self.configstore)
+            old_path = node.path
             node.update(ipfs)
+            if 'path' in ipfs and ipfs['path'] != old_path:
+                if old_path and os.path.exists(old_path):
+                    try:
+                        system('mv', old_path, ipfs['path'])
+                    except SubprocessException as err:
+                        raise TaskException(
+                            errno.EIO,
+                            "Error while migrating ipfs path: {0}".format(err.err)
+                        )
+                else:
+                    if not os.path.exists(ipfs['path']):
+                        os.makedirs(ipfs['path'])
+                    # jkh says that the ipfs path should be owned by root
+                    os.chown(ipfs['path'], 0, 0)
+
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('services.apply_state', 'ipfs', True)
             self.dispatcher.dispatch_event('service.ipfs.changed', {
