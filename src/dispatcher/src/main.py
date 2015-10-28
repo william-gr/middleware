@@ -410,7 +410,7 @@ class Dispatcher(object):
             try:
                 i.load(self)
             except RuntimeError as err:
-                self.logger.exception("Error initializing plugin %s: %s", i.filename, err.message)
+                self.logger.exception("Error initializing plugin %s: %s", i.filename, err.args)
 
     def reload_plugins(self):
         # Reload existing modules
