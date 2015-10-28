@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-from __future__ import print_function
+
 import sys
 import argh
 import json
@@ -57,7 +57,7 @@ def call(method, args, server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT, j=False):
 
     try:
         result = c.call_sync(method, *args)
-    except RpcException, e:
+    except RpcException as e:
         print('ERROR: {0}'.format(str(e)), file=sys.stderr)
         sys.exit(e.code)
 
@@ -167,7 +167,7 @@ def wait_server(server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT):
             c.subscribe_events('server.plugin.initialized')
             c.call_sync('management.wait_ready', timeout=timeout)
             sys.exit(0)
-        except socket.error, err:
+        except socket.error as err:
             time.sleep(1)
             timeout -= 1
             continue
@@ -180,7 +180,7 @@ def create_client(server):
         c = Client()
         c.connect(server)
         c.login_service('dispatcherctl', DEFAULT_TIMEOUT)
-    except socket.error, err:
+    except socket.error as err:
         print("Cannot connect: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
