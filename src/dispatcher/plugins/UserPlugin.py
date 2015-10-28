@@ -144,7 +144,7 @@ class GroupProvider(Provider):
 @description("Create an user in the system")
 @accepts(h.all_of(
     h.ref('user'),
-    h.required('username', 'group'),
+    h.required('username'),
     h.forbidden('builtin'),
     h.object({'password': {'type': 'string'}}),
     h.any_of(
@@ -157,7 +157,6 @@ class UserCreateTask(Task):
         return "Adding user {0}".format(user['username'])
 
     def verify(self, user):
-
         errors = []
 
         for code, message in check_unixname(user['username']):
@@ -193,7 +192,6 @@ class UserCreateTask(Task):
             user['unixhash'] = user.get('unixhash', '*')
             user['full_name'] = user.get('full_name', 'User &')
             user['shell'] = user.get('shell', '/bin/sh')
-            # user['home'] = user.get('home', os.path.join('/home', user['username']))
             user['home'] = user.get('home', '/nonexistent')
             user.setdefault('groups', [])
             user.setdefault('attributes', {})
@@ -201,6 +199,17 @@ class UserCreateTask(Task):
             password = user.pop('password', None)
             if password:
                 user['unixhash'] = crypted_password(password)
+
+            if not user.get('group'):
+                try:
+                    result = self.join_subtasks(self.run_subtask('groups.create', {
+                        'id': uid,
+                        'name': user['username']
+                    }))
+                except RpcException as err:
+                    raise err
+
+                user['group'] = result[0]
 
             self.datastore.insert('users', user, pkey=uid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
@@ -531,7 +540,7 @@ def _init(dispatcher, plugin):
             'locked': {'type': 'boolean'},
             'sudo': {'type': 'boolean'},
             'password_disabled': {'type': 'boolean'},
-            'group': {'type': 'integer'},
+            'group': {'type': ['integer', 'null']},
             'shell': {'type': 'string'},
             'home': {'type': 'string'},
             'password': {'type': ['string', 'null']},
