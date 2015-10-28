@@ -208,7 +208,7 @@ class UpdateISCSITargetTask(Task):
 
         if 'extents' in updated_params:
             for i in updated_params['extents']:
-                if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('id', '=', i['name'])):
+                if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
                     raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
 
         return ['service:ctl']
