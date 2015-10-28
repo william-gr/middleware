@@ -170,9 +170,9 @@ def opts(share):
 
     elif properties.get('maproot_user'):
         if 'maproot_group' in properties:
-            result.append('-maproot={maroot_user}:{maproot_group}'.format(**properties))
+            result.append('-maproot={maproot_user}:{maproot_group}'.format(**properties))
         else:
-            result.append('-maproot={maroot_user}'.format(**properties))
+            result.append('-maproot={maproot_user}'.format(**properties))
 
     for host in properties.get('hosts', []):
         if '/' in host:
