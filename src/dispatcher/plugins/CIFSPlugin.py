@@ -103,13 +103,14 @@ class CIFSConfigureTask(Task):
 
     def run(self, cifs):
         try:
+            action = 'NONE'
             node = ConfigNode('service.cifs', self.configstore)
             node.update(cifs)
             configure_params(node.__getstate__())
 
             # XXX: Is restart to change netbios name/workgroup *really* needed?
             if 'netbiosname' in cifs or 'workgroup' in cifs:
-                self.dispatcher.call_sync('services.restart', 'cifs')
+                action = 'RESTART'
 
             self.dispatcher.dispatch_event('service.cifs.changed', {
                 'operation': 'updated',
@@ -119,6 +120,8 @@ class CIFSConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure CIFS: {0}'.format(str(e))
             )
+
+        return action
 
 
 def yesno(val):

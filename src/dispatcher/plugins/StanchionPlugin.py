@@ -62,7 +62,6 @@ class StanchionConfigureTask(Task):
         try:
             node = ConfigNode('service.stanchion', self.configstore)
             node.update(stanchion)
-            self.dispatcher.call_sync('services.restart', 'stanchion')
             self.dispatcher.dispatch_event('service.stanchion.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -71,6 +70,8 @@ class StanchionConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure Stanchion: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

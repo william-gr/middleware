@@ -71,7 +71,6 @@ class AFPConfigureTask(Task):
             node.update(afp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'afp')
-            self.dispatcher.call_sync('services.reload', 'afp')
             self.dispatcher.dispatch_event('service.afp.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -80,6 +79,8 @@ class AFPConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure AFP: {0}'.format(str(e))
             )
+
+        return 'RELOAD'
 
 
 def _depends():

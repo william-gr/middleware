@@ -75,7 +75,6 @@ class WebDAVConfigureTask(Task):
             node = ConfigNode('service.webdav', self.configstore)
             node.update(webdav)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('services.restart', 'webdav')
             self.dispatcher.dispatch_event('service.webdav.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -85,13 +84,14 @@ class WebDAVConfigureTask(Task):
                 errno.ENXIO, 'Cannot reconfigure WebDAV: {0}'.format(str(e))
             )
 
+        return 'RESTART'
+
 
 def _depends():
     return ['CryptoPlugin', 'ServiceManagePlugin']
 
 
 def _init(dispatcher, plugin):
-
     # Register schemas
     plugin.register_schema_definition('service-webdav', {
         'type': 'object',

@@ -62,7 +62,6 @@ class GlusterdConfigureTask(Task):
         try:
             node = ConfigNode('service.glusterd', self.configstore)
             node.update(glusterd)
-            self.dispatcher.call_sync('services.restart', 'glusterd')
             self.dispatcher.dispatch_event('service.glusterd.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -71,6 +70,8 @@ class GlusterdConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure Glusterd: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

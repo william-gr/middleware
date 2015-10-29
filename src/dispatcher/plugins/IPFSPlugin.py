@@ -92,7 +92,6 @@ class IPFSConfigureTask(Task):
                             "Migrating ipfs path resulted in error: {0}".format(serr))
             node.update(ipfs)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('services.apply_state', 'ipfs', True)
             self.dispatcher.dispatch_event('service.ipfs.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -101,6 +100,8 @@ class IPFSConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure IPFS: {0}'.format(str(e))
             )
+
+        return 'RELOAD'
 
 
 def _depends():
