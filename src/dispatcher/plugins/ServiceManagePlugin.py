@@ -308,13 +308,17 @@ class UpdateServiceConfigTask(Task):
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
         node = ConfigNode('service.{0}'.format(service), self.configstore)
+        restart = False
+        reload = False
 
         if service_def.get('task'):
-            self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+            enable = updated_fields.pop('enable', None)
+            result = self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+            restart = result[0] == 'RESTART'
+            reload = result[0] == 'RELOAD'
 
-            if 'enable' in updated_fields:
+            if enable is not None:
                 node['enable'] = updated_fields.pop('enable')
-                self.dispatcher.call_sync('services.apply_state', service)
         else:
             node.update(updated_fields)
 
@@ -337,6 +341,7 @@ class UpdateServiceConfigTask(Task):
                             break
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+        self.dispatcher.call_sync('services.apply_state', service, reload, restart)
         self.dispatcher.dispatch_event('services.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
