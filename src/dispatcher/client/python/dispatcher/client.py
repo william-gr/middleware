@@ -110,9 +110,9 @@ class Client(object):
                 self.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
-            debug_log('-> {0}', unicode(message))
+            debug_log('-> {0}', message.data.decode('utf-8'))
             try:
-                msg = loads(unicode(message))
+                msg = loads(message.data.decode('utf-8'))
             except ValueError, err:
                 if self.parent.error_callback is not None:
                     self.parent.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
