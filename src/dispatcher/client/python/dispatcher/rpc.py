@@ -29,6 +29,7 @@ import errno
 import inspect
 import logging
 import six
+import sys
 import traceback
 from dispatcher import validator
 from jsonschema import RefResolver
@@ -212,7 +213,10 @@ class RpcException(Exception):
         self.code = code
         self.message = message
         self.extra = extra
-        self.stacktrace = stacktrace or traceback.format_exc()
+        if stacktrace is None and sys.exc_info()[2]:
+            self.stacktrace = traceback.format_exc()
+        else:
+            self.stacktrace = stacktrace
 
     def __str__(self):
         return "{0}: {1} {2}".format(
