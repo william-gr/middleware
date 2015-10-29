@@ -29,6 +29,7 @@
 
 
 import argparse
+import binascii
 import json
 import os
 import crypt
@@ -65,7 +66,7 @@ def init_datastore(filename):
 
 
 def hash_password(plaintext):
-    return crypt.crypt(plaintext, '$6${0}$'.format(os.urandom(16).encode('hex')))
+    return crypt.crypt(plaintext, '$6${0}$'.format(binascii.hexlify(os.urandom(16)).decode('ascii')))
 
 
 def main():
