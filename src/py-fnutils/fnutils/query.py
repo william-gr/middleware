@@ -151,7 +151,7 @@ class QueryList(list):
                 self[idx] = wrap(v)
 
     def __getitem__(self, item):
-        if isinstance(item, basestring):
+        if isinstance(item, string_types):
             if item.isdigit():
                 return super(QueryList, self).__getitem__(int(item))
 
@@ -176,7 +176,7 @@ class QueryList(list):
     def __setitem__(self, key, value):
         value = wrap(value)
 
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             if key.isdigit():
                 index = int(key)
                 if index >= len(self):
@@ -191,7 +191,7 @@ class QueryList(list):
         super(QueryList, self).__setitem__(key, value)
 
     def get(self, key, d=None):
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             key = int(key)
 
         return self[key] if len(self) > key else d
@@ -199,7 +199,7 @@ class QueryList(list):
     def set(self, key, value):
         value = wrap(value)
 
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             if key.isdigit():
                 self[key] = value
                 return
@@ -292,13 +292,13 @@ class QueryDict(dict):
     def __init__(self, *args, **kwargs):
         super(QueryDict, self).__init__(*args, **kwargs)
         for k, v in self.items():
-            if isinstance(k, basestring):
+            if isinstance(k, string_types):
                 k = k.replace('.', r'\.')
 
             self[k] = wrap(v)
 
     def __getitem__(self, item):
-        if not isinstance(item, basestring):
+        if not isinstance(item, string_types):
             return super(QueryDict, self).__getitem__(item)
 
         if super(QueryDict, self).__contains__(item):
@@ -314,7 +314,7 @@ class QueryDict(dict):
     def __setitem__(self, key, value):
         value = wrap(value)
 
-        if not isinstance(key, basestring):
+        if not isinstance(key, string_types):
             return super(QueryDict, self).__setitem__(key, value)
 
         left, right = partition(key)
@@ -328,7 +328,7 @@ class QueryDict(dict):
         return item in self
 
     def __contains__(self, item):
-        if not isinstance(item, basestring):
+        if not isinstance(item, string_types):
             return super(QueryDict, self).__contains__(item)
 
         left, right = partition(item)
@@ -349,7 +349,7 @@ class QueryDict(dict):
     def set(self, key, value):
         value = wrap(value)
 
-        if not isinstance(key, basestring):
+        if not isinstance(key, string_types):
             return super(QueryDict, self).__setitem__(key, value)
 
         left, right = partition(key)
