@@ -69,31 +69,27 @@ Middleware.prototype.call = function ( method, args, callback ) {
 Middleware.prototype.onRpcTimeout = function ( data ) { };
 
 Middleware.prototype.onMessage = function ( msg ) {
-  var reader = new FileReader();
-  reader.onload = function ( evt ) {
-    var data = JSON.parse( reader.result );
-    if ( data.namespace == "events" && data.name == "event" ) {
-      this.emit( "event", data.args );
+  var data = JSON.parse( msg );
+  if ( data.namespace == "events" && data.name == "event" ) {
+    this.emit( "event", data.args );
+  }
+
+  if ( data.namespace == "rpc" ) {
+    if ( data.name == "response" ) {
+      if ( !( data.id in this.pendingCalls ) ) {
+        /* Spurious reply, just ignore it */
+        return;
+      }
+      call = this.pendingCalls[data.id];
+      call.callback( data.args );
+      clearTimeout( call.timeout );
+      delete this.pendingCalls[data.id];
     }
 
-    if ( data.namespace == "rpc" ) {
-      if ( data.name == "response" ) {
-        if ( !( data.id in this.pendingCalls ) ) {
-          /* Spurious reply, just ignore it */
-          return;
-        }
-        call = this.pendingCalls[data.id];
-        call.callback( data.args );
-        clearTimeout( call.timeout );
-        delete this.pendingCalls[data.id];
-      }
-
-      if ( data.name == "error" ) {
-        this.emit( "error", data.args );
-      }
-    };
-  }.bind( this );
-  reader.readAsText( msg );
+    if ( data.name == "error" ) {
+      this.emit( "error", data.args );
+    }
+  };
 };
 
 Middleware.prototype.pack = function ( namespace, name, args, id ) {

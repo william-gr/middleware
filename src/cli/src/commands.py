@@ -303,29 +303,20 @@ class HelpCommand(Command):
                     Goes back to the previous namespace"""))
                 return
             elif arg == "properties":
-            # If the namespace has properties, display a list of the available properties
+                # If the namespace has properties, display a list of the available properties
                 if hasattr(obj, 'property_mappings'):
                     prop_dict_list = []
                     for prop in obj.property_mappings:
-                        values = {
-                                ValueType.STRING:"string", 
-                                ValueType.NUMBER: "number", 
-                                ValueType.HEXNUMBER: "hex",
-                                ValueType.BOOLEAN: "boolean",
-                                ValueType.SIZE: "size",
-                                ValueType.TIME: "time",
-                                ValueType.SET: "set",
-                                }
-                        if hasattr(prop, 'enum') and prop.enum:
+                        if prop.enum:
                             prop_type = "enum [" + ", ".join(prop.enum) + "]"
                         else:
-                            prop_type = values[prop.type]
+                            prop_type = str(prop.type).split('ValueType.')[-1].lower()
                         if not prop.set:
                             prop_type += " (read only)"
                         prop_dict = {
                                 'propname': prop.name,
                                 'propdescr': prop.descr,
-                                'proptype' : prop_type
+                                'proptype': prop_type
                         }
                         prop_dict_list.append(prop_dict)
                 if len(prop_dict_list) > 0:
@@ -336,25 +327,25 @@ class HelpCommand(Command):
 
         if 'Command' in bases and obj.__doc__:
             command_name = obj.__class__.__name__
-            if hasattr(obj, 'parent'):
-                if hasattr(obj.parent, 'localdoc'):
-                    if command_name in obj.parent.localdoc.keys():
-                        output_msg(textwrap.dedent(obj.parent.localdoc[command_name]))
-                    else:
-                        output_msg(inspect.getdoc(obj))
-                else:
-                    output_msg(inspect.getdoc(obj))
+            if (
+                hasattr(obj, 'parent') and
+                hasattr(obj.parent, 'localdoc') and
+                command_name in obj.parent.localdoc.keys()
+               ):
+                output_msg(textwrap.dedent(obj.parent.localdoc[command_name]))
             else:
                 output_msg(inspect.getdoc(obj))
-        
+
         if 'PipeCommand' in bases and obj.__doc__:
             output_msg(inspect.getdoc(obj))
 
         if isinstance(obj, Namespace):
             # First listing the Current Namespace's commands
-            cmd_dict_list = [{"cmd":"/","description":"Go to the root namespace"},
-                                     {"cmd":"..","description":"Go up one namespace"},
-                                     {"cmd":"-","description":"Go back to previous namespace"}] 
+            cmd_dict_list = [
+                {"cmd": "/", "description": "Go to the root namespace"},
+                {"cmd": "..", "description": "Go up one namespace"},
+                {"cmd": "-", "description": "Go back to previous namespace"}
+            ]
             ns_cmds = obj.commands()
             for key, value in ns_cmds.iteritems():
                 cmd_dict = {
