@@ -318,7 +318,7 @@ class UpdateServiceConfigTask(Task):
             reload = result[0] == 'RELOAD'
 
             if enable is not None:
-                node['enable'] = updated_fields.pop('enable')
+                node['enable'] = enable
         else:
             node.update(updated_fields)
 
