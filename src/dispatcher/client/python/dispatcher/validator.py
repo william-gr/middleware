@@ -28,6 +28,8 @@
 
 from jsonschema import Draft4Validator, validators
 
+import six
+
 
 def serialize_errors(errors):
     for i in errors:
@@ -63,7 +65,7 @@ def extend_with_default(validator_class):
         ):
             yield error
 
-        for property, subschema in properties.iteritems():
+        for property, subschema in six.iteritems(properties):
             if "default" in subschema:
                 instance.setdefault(property, subschema["default"])
 
