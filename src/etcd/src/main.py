@@ -79,9 +79,12 @@ class FileGenerationService(RpcService):
 
         text = self.context.generate_file(filename)
         filepath = os.path.join(self.context.root, filename)
-        fd = open(filepath, 'w')
-        fd.write(text)
-        fd.close()
+        try:
+            with open(filepath, 'w') as fd:
+                fd.write(text)
+        except FileNotFoundError as e:
+            self.context.logger.error('Failed to open {0}: {1}'.format(filepath, e), exc_info=True)
+            return
 
         self.context.emit_event('etcd.file_generated', {
             'filename': filepath,
