@@ -856,14 +856,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.event_masks = set.union(self.event_masks, set(event_masks))
 
     def on_events_unsubscribe(self, id, event_masks):
-        # Confirming the event masks is a flat list
-        event_masks_copy = []
-        for i in event_masks:
-            if isinstance(i, list):
-                event_masks_copy.append(*i)
-            else:
-                event_masks_copy.append(i)
-        event_masks = event_masks_copy[:]
+        if not isinstance(event_masks, list):
+            return
 
         if self.user is None:
             return
