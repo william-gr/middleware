@@ -33,7 +33,7 @@ import socket
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.Utils import formatdate
+from email.utils import formatdate
 
 from datastore.config import ConfigNode
 from dispatcher.rpc import (
