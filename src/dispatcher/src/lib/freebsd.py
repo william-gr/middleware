@@ -57,7 +57,7 @@ def sockstat(only_connected=False, ports=None):
 
     out, _ = system(*args)
     for line in out.strip().splitlines()[1:]:
-        items = line.split()
+        items = line.decode('utf8')split()
         yield {
             'user': items[0],
             'command': items[1],
