@@ -921,6 +921,9 @@ menu_install()
         OS=TrueNAS
     fi
 
+    # grub and beadm will need a devfs
+    mkdir /tmp/data/dev
+    mount -t devfs devfs /tmp/data/dev
     # Tell it to look in /.mount for the packages.
     /usr/local/bin/freenas-install -P /.mount/${OS}/Packages -M /.mount/${OS}-MANIFEST /tmp/data
     
@@ -968,8 +971,6 @@ menu_install()
     # XXX: Fixup
     # tar cf - -C /tmp/data/conf/base etc | tar xf - -C /tmp/data/
     
-    # grub and beadm will need a devfs
-    mount -t devfs devfs /tmp/data/dev
     # Create a temporary /var
     mount -t tmpfs tmpfs /tmp/data/var
     chroot /tmp/data /usr/sbin/mtree -deUf /etc/mtree/BSD.var.dist -p /var
