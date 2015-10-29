@@ -288,11 +288,11 @@ class DiscoveryService(RpcService):
 class SchemaHelper(object):
     @staticmethod
     def all_of(*args):
-        return {'allOf': map(convert_schema, args)}
+        return {'allOf': list(map(convert_schema, args))}
 
     @staticmethod
     def any_of(*args):
-        return {'anyOf': map(convert_schema, args)}
+        return {'anyOf': list(map(convert_schema, args))}
 
     @staticmethod
     def no(sch):
@@ -300,7 +300,7 @@ class SchemaHelper(object):
 
     @staticmethod
     def one_of(*args):
-        return {'oneOf': map(convert_schema, args)}
+        return {'oneOf': list(map(convert_schema, args))}
 
     @staticmethod
     def ref(target, **kwargs):
@@ -332,7 +332,7 @@ class SchemaHelper(object):
     def tuple(*args):
         return {
             'type': 'array',
-            'items': map(convert_schema, args)
+            'items': list(map(convert_schema, args))
         }
 
     @staticmethod
@@ -376,7 +376,7 @@ def description(descr):
 
 def accepts(*sch):
     def wrapped(fn):
-        fn.params_schema = map(convert_schema, sch)
+        fn.params_schema = list(map(convert_schema, sch))
         return fn
 
     return wrapped
@@ -384,7 +384,7 @@ def accepts(*sch):
 
 def returns(*sch):
     def wrapped(fn):
-        fn.result_schema = map(convert_schema, sch)
+        fn.result_schema = list(map(convert_schema, sch))
         return fn
 
     return wrapped
