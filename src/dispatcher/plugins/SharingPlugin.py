@@ -120,41 +120,42 @@ class CreateShareTask(Task):
         return ['system']
 
     def run(self, share, skip_dataset=False):
-        pool = share['target']
-        root_ds = os.path.join(pool, share['type'])
-        ds_name = os.path.join(root_ds, share['name'])
-        share_type = self.dispatcher.call_sync('shares.supported_types').get(share['type'])
+        with self.dispatcher.get_lock('sharing'):
+            pool = share['target']
+            root_ds = os.path.join(pool, share['type'])
+            ds_name = os.path.join(root_ds, share['name'])
+            share_type = self.dispatcher.call_sync('shares.supported_types').get(share['type'])
 
-        normalize(share, {
-            'enabled': True,
-            'description': ''
-        })
+            normalize(share, {
+                'enabled': True,
+                'description': ''
+            })
 
-        if not share_type:
-            raise TaskException('Unsupported sharing type {0}'.format(share['type']))
+            if not share_type:
+                raise TaskException('Unsupported sharing type {0}'.format(share['type']))
 
-        if not skip_dataset:
-            if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
-                # Create root dataset for given sharing type
-                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
+            if not skip_dataset:
+                if not self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', root_ds)], {'single': True}):
+                    # Create root dataset for given sharing type
+                    self.join_subtasks(self.run_subtask('volume.dataset.create', pool, root_ds, 'FILESYSTEM'))
 
-            if share_type['subtype'] == 'file':
-                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
-                    'permissions_type': share_type['perm_type']
-                }))
+                if share_type['subtype'] == 'file':
+                    self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
+                        'permissions_type': share_type['perm_type']
+                    }))
 
-            if share_type['subtype'] == 'block':
-                self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'VOLUME', {
-                    'volsize': share['properties']['size']
-                }))
+                if share_type['subtype'] == 'block':
+                    self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'VOLUME', {
+                        'volsize': share['properties']['size']
+                    }))
 
-        ids = self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
-        self.dispatcher.dispatch_event('shares.changed', {
-            'operation': 'create',
-            'ids': ids
-        })
+            ids = self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
+            self.dispatcher.dispatch_event('shares.changed', {
+                'operation': 'create',
+                'ids': ids
+            })
 
-        return ids[0]
+            return ids[0]
 
 
 @description("Updates existing share")
