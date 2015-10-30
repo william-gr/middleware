@@ -248,14 +248,14 @@ class OutputService(RpcService):
         ds.events_enabled = False
 
     def get_data_sources(self):
-        return self.context.data_sources.keys()
+        return list(self.context.data_sources.keys())
 
     def query(self, data_source, params):
         start = parse_datetime(params.pop('start'))
         end = parse_datetime(params.pop('end'))
         frequency = params.pop('frequency')
 
-        if type(data_source) is unicode:
+        if type(data_source) is str:
             if data_source not in self.context.data_sources:
                 raise RpcException(errno.ENOENT, 'Data source {0} not found'.format(data_source))
 
@@ -344,7 +344,7 @@ class Main(object):
             self.logger.error(str(e))
 
     def get_data_source(self, name):
-        if name not in self.data_sources.keys():
+        if name not in list(self.data_sources.keys()):
             config = DataSourceConfig(self.datastore, name)
             ds = DataSource(self, name, config)
             self.data_sources[name] = ds
@@ -362,7 +362,7 @@ class Main(object):
                 self.client.register_service('statd.debug', DebugService(gevent=True))
                 self.client.resume_service('statd.output')
                 self.client.resume_service('statd.debug')
-                for i in self.data_sources.keys():
+                for i in list(self.data_sources.keys()):
                     self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
 
                 return
