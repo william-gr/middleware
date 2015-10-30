@@ -469,27 +469,30 @@ class ConfigurationService(RpcService):
             self.logger.info('Trying to acquire DHCP lease on interface {0}...'.format(name))
             if not self.context.configure_dhcp(name):
                 self.logger.warn('Failed to configure interface {0} using DHCP'.format(name))
-            return
+        else:
+            addresses = set(convert_aliases(entity))
+            existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
 
-        addresses = set(convert_aliases(entity))
-        existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
+            # Remove orphaned addresses
+            for i in existing_addresses - addresses:
+                self.logger.info('Removing address from interface {0}: {1}'.format(name, i))
+                iface.remove_address(i)
 
-        # Remove orphaned addresses
-        for i in existing_addresses - addresses:
-            self.logger.info('Removing address from interface {0}: {1}'.format(name, i))
-            iface.remove_address(i)
-
-        # Add new or changed addresses
-        for i in addresses - existing_addresses:
-            self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
-            iface.add_address(i)
+            # Add new or changed addresses
+            for i in addresses - existing_addresses:
+                self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
+                iface.add_address(i)
 
         # nd6 stuff
         if entity.get('rtadv', False):
-            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.ACCEPT_RTADV
+            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.ACCEPT_RTADV}
+        else:
+            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.ACCEPT_RTADV}
 
         if entity.get('noipv6', False):
-            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.IFDISABLED
+            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.IFDISABLED}
+        else:
+            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.IFDISABLED}
 
         if entity.get('mtu'):
             iface.mtu = entity['mtu']
