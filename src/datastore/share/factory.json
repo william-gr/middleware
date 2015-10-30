@@ -1188,6 +1188,89 @@
                     "plugin:replication/keys"
                 ],
                 "name": "replication"
+            },
+            "FF61A205-7EFA-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:rc.conf"
+                ],
+                "name": "hostname"
+            },
+            "5105E171-7EFB-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:hosts"
+                ],
+                "name": "hosts"
+            },
+            "6C58080B-7EFB-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:krb5.conf",
+                    "file:krb5.keytab"
+                ],
+                "name": "kerberos"
+            },
+            "9A08B24A-7EFB-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:nsswitch.conf"
+                ],
+                "name": "nsswitch"
+            },
+            "AF68CB5C-7EFB-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:local/openldap/ldap.conf"
+                ],
+                "name": "openldap"
+            },
+            "8310C03F-7EFD-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:local/ldap.conf",
+                    "file:local/ldap.secret"
+                ],
+                "name": "nss_ldap"
+            },
+            "21FD35E2-7EFC-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:local/sssd/sssd.conf"
+                ],
+                "name": "sssd"
+            },
+            "48B48D67-7EFC-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "file:pam.d/ftp",
+                    "file:pam.d/ftpd",
+                    "file:pam.d/login",
+                    "file:pam.d/netatalk",
+                    "file:pam.d/samba",
+                    "file:pam.d/sshd",
+                    "file:pam.d/su",
+                    "file:pam.d/sudo"
+                ],
+                "name": "pam"
+            },
+            "7624FF6F-7EFD-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "group:hostname",
+                    "group:hosts",
+                    "group:kerberos",
+                    "group:nsswitch",
+                    "group:openldap",
+                    "group:nssldap",
+                    "group:sssd",
+                    "group:pam"
+                ],
+                "name": "activedirectory"
+            },
+            "8310C03F-7EFD-11E5-BBEC-005056826348": {
+                "dependencies": [
+                    "group:hostname",
+                    "group:hosts",
+                    "group:kerberos",
+                    "group:nsswitch",
+                    "group:openldap",
+                    "group:nssldap",
+                    "group:sssd",
+                    "group:pam"
+                ],
+                "name": "ldap"
             }
         },
         "metadata": {
