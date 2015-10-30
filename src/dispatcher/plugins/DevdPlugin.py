@@ -213,7 +213,7 @@ class DevdEventSource(EventSource):
             try:
                 self.socket = socket.socket(family=socket.AF_UNIX)
                 self.socket.connect("/var/run/devd.pipe")
-                f = self.socket.makefile("r", 0)
+                f = self.socket.makefile("rb", 0)
                 # with self.socket.makefile("r", 0) as f:
                 while True:
                     line = f.readline()
