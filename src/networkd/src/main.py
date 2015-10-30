@@ -240,6 +240,14 @@ class RoutingSocketEventSource(threading.Thread):
                 if entity is None:
                     continue
 
+                # Skip messagess with empty address
+                if not message.address:
+                    continue
+
+                # Skip 0.0.0.0 aliases
+                if message.address == ipaddress.IPv4Address('0.0.0.0'):
+                    continue
+
                 addr = netif.InterfaceAddress()
                 addr.af = netif.AddressFamily.INET
                 addr.address = message.address
