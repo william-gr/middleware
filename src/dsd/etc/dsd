@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# $FreeBSD$
+#
+
+# PROVIDE: dsd
+# REQUIRE: datastore dispatcher
+# BEFORE: FILESYSTEMS
+
+. /etc/rc.subr
+
+name="dsd"
+rcvar="dsd_enable"
+pidfile="/var/run/dsd.pid"
+command="/usr/sbin/daemon"
+start_precmd="prestart"
+
+prestart()
+{
+    rc_flags="-P ${pidfile} -f -r /usr/local/sbin/crash-wrapper /usr/local/sbin/dsd ${rc_flags}"
+}
+
+load_rc_config $name
+run_rc_command $*
