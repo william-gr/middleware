@@ -35,7 +35,7 @@ LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
 
 
 def first_or_default(f, iterable, default=None):
-    i = filter(f, iterable)
+    i = list(filter(f, iterable))
     if i:
         return i[0]
 
@@ -43,11 +43,11 @@ def first_or_default(f, iterable, default=None):
 
 
 def exclude(d, *keys):
-    return {k: v for k, v in d.items() if k not in keys}
+    return {k: v for k, v in list(d.items()) if k not in keys}
 
 
 def include(d, *keys):
-    return {k: v for k, v in d.items() if k in keys}
+    return {k: v for k, v in list(d.items()) if k in keys}
 
 
 def extend(d, d2):
@@ -57,7 +57,7 @@ def extend(d, d2):
 
 
 def normalize(d, d2):
-    for k, v in d2.items():
+    for k, v in list(d2.items()):
         d.setdefault(k, v)
 
 

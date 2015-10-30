@@ -291,7 +291,7 @@ class QueryList(list):
 class QueryDict(dict):
     def __init__(self, *args, **kwargs):
         super(QueryDict, self).__init__(*args, **kwargs)
-        for k, v in self.items():
+        for k, v in list(self.items()):
             if isinstance(k, string_types):
                 k = k.replace('.', r'\.')
 

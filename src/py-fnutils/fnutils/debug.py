@@ -66,7 +66,7 @@ class DebugService(RpcService):
             return dump
         else:
             dump = []
-            for frame in sys._current_frames().values():
+            for frame in list(sys._current_frames().values()):
                 dump.append(''.join(traceback.format_stack(frame)))
 
             return dump
