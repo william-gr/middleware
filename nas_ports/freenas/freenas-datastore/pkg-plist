@@ -6,6 +6,8 @@ lib/datastore/drivers/mongodb/mongodb.py
 lib/datastore/drivers/mongodb/mongod.conf
 lib/datastore/drivers/mongodb/mongodb.json
 share/datastore/factory.json
+share/datastore/migrations/config/0001-ipfs-default-path.py
+share/datastore/migrations/users/0001-riak-users.py
 share/datastore/test/sample/factory.json
 share/datastore/test/sample/middleware.conf
 share/datastore/test/sample/migrations/users/0001-firstname.py
