@@ -344,7 +344,7 @@ class UserUpdateTask(Task):
             if password:
                 system(
                     'smbpasswd', '-D', '0', '-s', '-a', user['username'],
-                    stdin='{0}\n{1}\n'.format(password, password))
+                    stdin='{0}\n{1}\n'.format(password, password).encode('utf8'))
                 user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
 
