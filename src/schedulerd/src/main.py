@@ -97,7 +97,7 @@ class ManagementService(RpcService):
                 'schedule': schedule
             }
 
-        return wrap(map(serialize, self.context.scheduler.get_jobs())).query(*(filter or []), **(params or {}))
+        return wrap(list(map(serialize, self.context.scheduler.get_jobs()))).query(*(filter or []), **(params or {}))
 
     @private
     def add(self, task):
