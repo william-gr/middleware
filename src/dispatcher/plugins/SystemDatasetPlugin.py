@@ -32,8 +32,6 @@ import uuid
 import logging
 import shutil
 import time
-import pwd
-import grp
 import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
@@ -81,9 +79,10 @@ def link_directories(dispatcher):
                 os.symlink(target, d.link)
 
         if hasattr(d, 'owner'):
-            uid = pwd.getpwnam(d.owner).pw_uid
-            gid = grp.getgrnam(d.group).gr_gid
-            os.chown(target, uid, gid)
+            user = dispatcher.call_sync('users.query', [('id', '=', d.owner)], {'single': True})
+            group = dispatcher.call_sync('groups.query', [('id', '=', d.group)], {'single': True})
+            if user and group:
+                os.chown(target, user['id'], group['id'])
 
         for c in d.children:
             try:
@@ -96,9 +95,10 @@ def link_directories(dispatcher):
                     )
 
             if hasattr(c, 'owner'):
-                uid = pwd.getpwnam(c.owner).pw_uid
-                gid = grp.getgrnam(c.group).gr_gid
-                os.chown(os.path.join(target, c.name), uid, gid)
+                user = dispatcher.call_sync('users.query', [('id', '=', c.owner)], {'single': True})
+                group = dispatcher.call_sync('groups.query', [('id', '=', c.group)], {'single': True})
+                if user and group:
+                    os.chown(os.path.join(target, c.name), user['id'], group['id'])
 
 
 def create_system_dataset(dispatcher, dsid, pool):
