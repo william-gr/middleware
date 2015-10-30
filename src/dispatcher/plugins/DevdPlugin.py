@@ -216,7 +216,7 @@ class DevdEventSource(EventSource):
                 f = self.socket.makefile("rb", 0)
                 # with self.socket.makefile("r", 0) as f:
                 while True:
-                    line = f.readline()
+                    line = f.readline().decode('utf8', 'replace')
                     if line is None:
                         # Connection closed - we need to reconnect
                         # return
