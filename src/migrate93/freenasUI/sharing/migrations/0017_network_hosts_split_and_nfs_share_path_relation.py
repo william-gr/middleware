@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import re
-from ipaddr import IPNetwork
+from ipaddress import ip_network
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
@@ -18,7 +18,7 @@ class Migration(DataMigration):
             hosts = []
             for n in net.split(' '):
                 try:
-                    IPNetwork(n.encode('utf-8'))
+                    ip_network(n.encode('utf-8'))
                     if n.find("/") == -1:
                         raise ValueError(n)
                     networks.append(n)

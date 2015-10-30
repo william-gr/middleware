@@ -4,7 +4,7 @@ import re
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
-import ipaddr
+import ipaddress
 
 def validate_listen(value):
     reg = re.search(r'(?P<ip>\S+):(?P<port>\d+)', value)
@@ -17,15 +17,15 @@ def validate_listen(value):
     is_ipv6 = ip.startswith('[') and ip.endswith(']')
     if is_ipv6:
         try:
-            ipaddr.IPv6Address(ip[1:-1])
+            ipaddress.IPv6Address(ip[1:-1])
             return ip[1:-1], port
-        except ipaddr.AddressValueError:
+        except ipaddress.AddressValueError:
             raise ValueError
     else:
         try:
-            ipaddr.IPv4Address(ip)
+            ipaddress.IPv4Address(ip)
             return ip, port
-        except AddressValueError:
+        except ipaddress.AddressValueError:
             raise ValueError
     raise ValueError
 
