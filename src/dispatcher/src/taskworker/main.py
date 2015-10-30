@@ -145,7 +145,7 @@ class Context(object):
             sys.exit(errno.EINVAL)
 
         key = sys.argv[1]
-        logging.basicConfig(file=sys.stdout, level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
 
         self.datastore = get_default_datastore()
         self.conn = Client()
