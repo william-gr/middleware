@@ -490,9 +490,15 @@ class ConfigurationService(RpcService):
             iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.ACCEPT_RTADV}
 
         if entity.get('noipv6', False):
-            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.IFDISABLED}
+            iface.nd6_flags = iface.nd6_flags | {
+                netif.NeighborDiscoveryFlags.IFDISABLED,
+                netif.NeighborDiscoveryFlags.AUTO_LINKLOCAL
+            }
         else:
-            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.IFDISABLED}
+            iface.nd6_flags = iface.nd6_flags - {
+                netif.NeighborDiscoveryFlags.IFDISABLED,
+                netif.NeighborDiscoveryFlags.AUTO_LINKLOCAL
+            }
 
         if entity.get('mtu'):
             iface.mtu = entity['mtu']
