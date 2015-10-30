@@ -173,6 +173,7 @@ class TaskExecutor(object):
                 return
 
             for line in self.proc.stdout:
+                line = line.decode('utf8')
                 self.balancer.logger.debug('Executor output: {0}'.format(line))
                 if self.task:
                     self.task.output += line
