@@ -1,4 +1,4 @@
-from ipaddr import _IPAddrBase, IPAddress, IPNetwork
+import ipaddress
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -17,7 +17,7 @@ add_introspection_rules([],
 
 class IPNetworkWidget(widgets.TextInput):
     def render(self, name, value, attrs=None):
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             value = u'%s' % value
         return super(IPNetworkWidget, self).render(name, value, attrs)
 
@@ -44,15 +44,15 @@ class IPNetworkQuerySet(models.query.QuerySet):
     net = None
 
     def network(self, key, value):
-        if not isinstance(value, _IPAddrBase):
-            value = IPNetwork(value)
+        if not isinstance(value, ipaddress._IPAddressBase):
+            value = ipaddress.ip_network(value)
         self.net = (key, value)
         return self
 
     def iterator(self):
         for obj in super(IPNetworkQuerySet, self).iterator():
             try:
-                net = IPNetwork(getattr(obj, self.net[0]))
+                net = ipaddress.ip_network(getattr(obj, self.net[0]))
             except (ValueError, TypeError):
                 pass
             else:
@@ -77,11 +77,11 @@ class IPNetworkField(models.Field):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         try:
-            return IPNetwork(value.encode('latin-1'))
+            return ipaddress.ip_network(value.encode('utf-8'))
         except Exception as e:
             raise ValidationError("Invalid IP address: %s" % e)
 
@@ -95,7 +95,7 @@ class IPNetworkField(models.Field):
                 % lookup_type)
 
     def get_prep_value(self, value):
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             value = '%s' % value
         return unicode(value)
 
@@ -113,14 +113,14 @@ class IPAddressFormFieldBase(forms.CharField):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
             try:
-                return IPAddress(value.encode('latin-1'))
+                return ipaddress.ip_address(value.encode('utf-8'))
             except Exception as e:
                 raise ValidationError("Invalid IP address: %s" % e)
 
@@ -135,14 +135,14 @@ class IP4AddressFormField(IPAddressFormFieldBase):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
             try:
-                return IPAddress(value.encode('latin-1'), version=4)
+                return ipaddress.ip_address(value.encode('utf-8'), version=4)
             except Exception as e:
                 raise ValidationError("Invalid IPv4 address: %s" % e)
 
@@ -155,14 +155,14 @@ class IP6AddressFormField(IPAddressFormFieldBase):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
             try:
-                return IPAddress(value.encode('latin-1'), version=6)
+                return ipaddress.IPv6Address(value.encode('utf-8'), version=6)
             except Exception as e:
                 raise ValidationError("Invalid IPv6 address: %s" % e)
 
@@ -180,13 +180,13 @@ class IPAddressFieldBase(models.Field):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
-            return IPAddress(value.encode('latin-1'))
+            return ipaddress.ip_address(value.encode('utf-8'))
 
     def get_prep_lookup(self, lookup_type, value):
         if lookup_type == 'exact':
@@ -200,7 +200,7 @@ class IPAddressFieldBase(models.Field):
                 % lookup_type)
 
     def get_prep_value(self, value):
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             value = '%s' % value
         return unicode(value)
 
@@ -225,13 +225,13 @@ class IP4AddressField(IPAddressFieldBase):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
-            return IPAddress(value.encode('latin-1'), version=4)
+            return ipaddress.IPv4Address(value.encode('utf-8'), version=4)
 
     def formfield(self, **kwargs):
         defaults = {
@@ -250,13 +250,13 @@ class IP6AddressField(IPAddressFieldBase):
         if not value:
             return ""
 
-        if isinstance(value, _IPAddrBase):
+        if isinstance(value, ipaddress._IPAddressBase):
             return value
 
         if value == "None":
             return ""
         else:
-            return IPAddress(value.encode('latin-1'), version=6)
+            return ipaddress.IPv6Address(value.encode('utf-8'))
 
     def formfield(self, **kwargs):
         defaults = {
