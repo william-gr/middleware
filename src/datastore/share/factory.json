@@ -1360,6 +1360,7 @@
                 "builtin": false,
                 "etcd-group": "riak",
                 "pidfile": "/var/run/riak/riak.pid",
+                "task": "service.riak.configure",
                 "name": "riak"
             },
             "5E261539-46CB-4453-B94B-1C037F093CCE": {
@@ -1368,6 +1369,7 @@
                 },
                 "builtin": false,
                 "pidfile": "/var/run/stanchion/stanchion.pid",
+                "task": "service.stanchion.configure",
                 "name": "stanchion"
             },
             "0B1057A8-8923-4B57-B138-87563E0AFC9B": {
@@ -1375,16 +1377,17 @@
                     "rc-scripts": "riak-cs"
                 },
                 "builtin": false,
-                "etcd-group": "riak_cs",
                 "pidfile": "/var/run/riak-cs/riak-cs.pid",
+                "task": "servie.riakcs.configure",
                 "name": "riak_cs"
             },
             "A80D48F4-6D89-11E5-A3C7-C3D881054C8B": {
                 "rcng": {
                     "rc-scripts": "swift"
                 },
-                "pidfile": "/var/run/swift/swift.pid",
                 "builtin": false,
+                "pidfile": "/var/run/swift/swift.pid",
+                "task": "service.swift.configure",
                 "name": "swift"
             },
             "670716BC-6D8A-11E5-A3C7-C3D881054C8B": {
@@ -1416,8 +1419,8 @@
                     "rc-scripts": "rsyncd"
                 },
                 "builtin": false,
-                "etcd-group": "rsyncd",
                 "pidfile": "/var/run/rsyncd.pid",
+                "task": "service.rsyncd.configure",
                 "name": "rsyncd"
             },
             "95DEC6AF-48E4-49F0-8D96-9E7ACC8F5E0D": {
@@ -1427,6 +1430,7 @@
                 "builtin": false,
                 "etcd-group": "smartd",
                 "pidfile": "/var/run/smartd.pid",
+                "task": "service.smartd.configure",
                 "name": "smartd"
             },
             "638DDE98-3F61-487E-9DA7-47093A6BEB7A": {
@@ -1435,6 +1439,7 @@
                 },
                 "builtin": false,
                 "pidfile": "/var/run/tftpd.pid",
+                "task": "service.tftp.configure",
                 "name": "tftpd"
             },
             "B9D11E23-ECFB-46C2-A0C9-4A0D94EAAFC1": {
