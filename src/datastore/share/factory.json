@@ -1580,6 +1580,14 @@
                 "pidfile": "/var/run/schedulerd.pid",
                 "name": "schedulerd"
             },
+            "b8bfef63-7f32-11e5-8aaf-005056826348": {
+                "rcng": {
+                    "rc-scripts": "dsd"
+                },
+                "builtin": true,
+                "pidfile": "/var/run/dsd.pid",
+                "name": "dsd"
+            },
             "b3e5e737-bd2e-401e-8d16-2a4cf3d68717": {
                 "rcng": {
                     "rc-scripts": "dispatcher"
