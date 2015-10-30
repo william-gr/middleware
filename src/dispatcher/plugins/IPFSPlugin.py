@@ -82,7 +82,7 @@ class IPFSConfigureTask(Task):
                 # (a careless user might have merged this with his other files)
                 # also this folder could be a dataset in which case a simple move will fail
                 # so lets just move the internal contents of this folder over
-                if os.path.exists(old_path):
+                if old_path is not None and os.path.exists(old_path):
                     try:
                         for item in os.listdir(old_path):
                             shutil.move(old_path + '/' + item, ipfs['path'])
