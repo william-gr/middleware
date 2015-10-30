@@ -700,7 +700,10 @@ def generate_disk_cache(dispatcher, path):
             multipath_info = attach_to_multipath(dispatcher, d, ds_disk, path)
 
     provider = gdisk.provider
-    camdev = CamDevice(gdisk.name)
+    try:
+        camdev = CamDevice(gdisk.name)
+    except RuntimeError:
+        camdev = None
 
     disk = wrap({
         'path': path,
@@ -712,7 +715,7 @@ def generate_disk_cache(dispatcher, path):
         'interface': disk_info['interface'],
         'is_ssd': disk_info['is_ssd'],
         'id': identifier,
-        'controller': camdev.__getstate__(),
+        'controller': camdev.__getstate__() if camdev else None,
     })
 
     if multipath_info:
