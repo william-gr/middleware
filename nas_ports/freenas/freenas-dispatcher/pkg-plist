@@ -3,6 +3,8 @@
 %%PYTHON_SITELIBDIR%%/dispatcherclient.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
+%%PYTHON_SITELIBDIR%%/dispatcher/spawn_thread.py
+%%PYTHON_SITELIBDIR%%/dispatcher/spawn_thread.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/client_transport.py
 %%PYTHON_SITELIBDIR%%/dispatcher/client_transport.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/client.py

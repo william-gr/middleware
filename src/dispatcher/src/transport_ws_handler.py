@@ -27,8 +27,8 @@
 
 from ws4py.client.threadedclient import WebSocketClient
 from ws4py.exc import HandshakeError
-from dispatcher.client import spawn_thread
-from dispatcher.client import ClientType
+from dispatcher.spawn_thread import spawn_thread
+from dispatcher.spawn_thread import ClientType
 from threading import Thread
 from threading import Event
 from threading import RLock

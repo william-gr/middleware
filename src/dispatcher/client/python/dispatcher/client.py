@@ -33,10 +33,22 @@ import errno
 import socket
 from jsonenc import dumps, loads
 from dispatcher import rpc
+from dispatcher.spawn_thread import spawn_thread
+from dispatcher.spawn_thread import ClientType
 from dispatcher.client_transport import ClientTransportBuilder
 from fnutils.query import matches
 from ws4py.compat import urlsplit
 
+if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
+    from gevent.lock import RLock
+    from gevent.event import Event
+    from gevent.greenlet import Greenlet
+    _thread_type = ClientType.GEVENT
+else:
+    from threading import Thread
+    from threading import Event
+    from threading import RLock
+    _thread_type = ClientType.THREADED
 
 class ClientError(enum.Enum):
     INVALID_JSON_RESPONSE = 1
@@ -48,28 +60,7 @@ class ClientError(enum.Enum):
     LOGOUT = 7
     OTHER = 8
 
-
-class ClientType(enum.Enum):
-    THREADED = 1
-    GEVENT = 2
-
-
-if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
-    from ws4py.client.geventclient import WebSocketClient
-    from gevent.lock import RLock
-    from gevent.event import Event
-    from gevent.greenlet import Greenlet
-    _thread_type = ClientType.GEVENT
-else:
-    from ws4py.client.threadedclient import WebSocketClient
-    from threading import Thread
-    from threading import Event
-    from threading import RLock
-    _thread_type = ClientType.THREADED
-
-
 _debug_log_file = None
-
 
 def debug_log(message, *args):
     global _debug_log_file
@@ -84,45 +75,7 @@ def debug_log(message, *args):
         print(message.format(*args), file=_debug_log_file)
         _debug_log_file.flush()
 
-
-def spawn_thread(*args, **kwargs):
-    if _thread_type == ClientType.THREADED:
-        return Thread(*args, **kwargs)
-
-    if _thread_type == ClientType.GEVENT:
-        run = kwargs.pop('target')
-        args = kwargs.pop('args')
-        return Greenlet(run, *args)
-
-
 class Client(object):
-    class WebSocketHandler(WebSocketClient):
-        def __init__(self, url, parent):
-            super(Client.WebSocketHandler, self).__init__(url)
-            self.parent = parent
-
-        def opened(self):
-            debug_log('Connection opened, local address {0}', self.local_address)
-            self.parent.opened.set()
-
-        def closed(self, code, reason=None):
-            debug_log('Connection closed, code {0}', code)
-            self.parent.opened.clear()
-            if self.parent.error_callback is not None:
-                self.parent.error_callback(ClientError.CONNECTION_CLOSED)
-
-        def received_message(self, message):
-            debug_log('-> {0}', unicode(message))
-            try:
-                msg = loads(unicode(message))
-            except ValueError, err:
-                if self.parent.error_callback is not None:
-                    self.parent.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
-
-                return
-
-            self.parent.decode(msg)
-
     class PendingCall(object):
         def __init__(self, id, method, args=None):
             self.id = id
@@ -150,8 +103,6 @@ class Client(object):
         self.pending_calls = {}
         self.event_handlers = {}
         self.rpc = None
-        self.ws = None
-        self.opened = Event()
         self.event_callback = None
         self.error_callback = None
         self.rpc_callback = None
@@ -159,14 +110,9 @@ class Client(object):
         self.token = None
         self.event_distribution_lock = RLock()
         self.default_timeout = 10
-        self.username = None
-        self.hostname = None
-        self.port = None
         self.scheme = None
-        self.scheme_default_port = None
         self.transport = None
         self.parsed_url = None
-        self.buffer_size = None
 
     def __pack(self, namespace, name, args, id=None):
         return dumps({
@@ -218,12 +164,19 @@ class Client(object):
 
     def __send(self, data):
         debug_log('<- {0}', data)
-        try:
-            self.ws.send(data)
-        except OSError, err:
-            if err.errno == errno.EPIPE:
-                self.error_callback(ClientError.CONNECTION_CLOSED)
+        self.transport.send(data)
 
+    def recv(self, message):
+        debug_log('-> {0}', unicode(message))
+        try:
+            msg = loads(unicode(message))
+        except ValueError, err:
+            if self.error_callback is not None:
+                self.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
+            return
+
+        self.decode(msg) 
+        
     def __process_event(self, name, args):
         self.event_distribution_lock.acquire()
         if name in self.event_handlers:
@@ -236,9 +189,6 @@ class Client(object):
         self.event_distribution_lock.release()
 
     def decode(self, msg):
-        if self.transport is not None:
-            self.wait_forever()
-
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
             return
@@ -310,16 +260,6 @@ class Client(object):
     def parse_url(self, url):
         self.parsed_url = urlsplit(url, scheme="http")
         self.scheme = self.parsed_url.scheme
-        self.username = self.parsed_url.username
-        self.port = self.parsed_url.port
-        if self.parsed_url.hostname:
-            self.hostname = self.parsed_url.hostname
-        elif self.parsed_url.netloc:
-            self.hostname = self.parsed_url.netloc
-            if '@' in self.hostname:
-                temp, self.hostname = self.hostname.split('@')
-        elif self.parsed_url.path:
-            self.hostname = self.parsed_url.path
 
     def connect(self, url, **kwargs):
         self.parse_url(url)
@@ -330,42 +270,11 @@ class Client(object):
                 raise ValueError('Connection scheme cannot be delared in both url and arguments.')
         if self.scheme is "http":
             self.scheme = "ws"
-        if self.scheme is "ws":
-            self.scheme_default_port = 5000
 
-        if not self.username:
-                self.username = kwargs.get('username',None)
-        else:
-            if 'username' in kwargs:
-                raise ValueError('Username cannot be delared in both url and arguments.')
-        if self.username and self.scheme is "ws":
-            raise ValueError('Username cannot be delared at this state for ws transport type.')
-
-        if not self.hostname:
-            self.hostname = kwargs.get('hostname',"127.0.0.1")
-        else:
-            if 'hostname' in kwargs:
-                raise ValueError('Host name cannot be delared in both url and arguments.')
-
-        if not self.port:
-            self.port = kwargs.get('port',self.scheme_default_port)
-        else:
-            if 'port' in kwargs:
-                raise ValueError('Port cannot be delared in both url and arguments.')
-
-        self.buffer_size = kwargs.get('buffer_size', 65536)
-
-        if self.scheme is "ws":
-            ws_url = 'ws://{0}:{1}/socket'.format(self.hostname, self.port)
-            self.ws = self.WebSocketHandler(ws_url, self)
-            self.ws.connect()
-            self.opened.wait()
-        else:
-            builder = ClientTransportBuilder()
-            self.transport = builder.create(self.scheme)
-            self.ws, ext_sock = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.transport.connect(self.parsed_url, ext_sock, **kwargs)
-            self.wait_forever()
+        builder = ClientTransportBuilder()
+        self.transport = builder.create(self.scheme)
+        self.transport.connect(self.parsed_url, self, **kwargs)
+        debug_log('Connection opened, local address {0}', self.transport.address)
 
     def login_user(self, username, password, timeout=None):
         call = self.PendingCall(uuid.uuid4(), 'auth')
@@ -406,9 +315,8 @@ class Client(object):
         self.token = call.result[0]
 
     def disconnect(self):
-        if self.transport is not None:
-            self.transport.close()
-        self.ws.close()
+        debug_log('Closing connection, local address {0}', self.transport.address)
+        self.transport.close()
 
     def enable_server(self):
         self.rpc = rpc.RpcContext()
@@ -495,25 +403,6 @@ class Client(object):
     def emit_event(self, name, params):
         self.__send_event(name, params)
 
-    def sock_recv(self):
-        recv_data = None
-        while recv_data is None:
-            recv_data = self.ws.recv(self.buffer_size)
-        self.decode(loads(unicode(recv_data)))
-
-    def wait_forever(self):
-        if self.transport is None:
-            if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
-                import gevent
-                while True:
-                    gevent.sleep(60)
-            else:
-                self.ws.run_forever()
-        else:
-            t = spawn_thread(target = self.sock_recv)
-            t.setDaemon(True)
-            t.start()
-
     def register_event_handler(self, name, handler):
         if name not in self.event_handlers:
             self.event_handlers[name] = []
@@ -566,7 +455,3 @@ class Client(object):
     def get_lock(self, name):
         self.call_sync('lock.init', name)
         return rpc.ServerLockProxy(self, name)
-
-    @property
-    def connected(self):
-        return self.opened.is_set()
