@@ -216,6 +216,8 @@ class ClientTransportSSH(ClientTransportBase):
         self.stdin = None
         self.stdout = None
         self.stderr = None
+        self.host_key = None
+        self.look_for_keys = True
 
     def connect(self, url, parent, **kwargs):
         self.url = url
@@ -262,17 +264,29 @@ class ClientTransportSSH(ClientTransportBase):
         self.key_filename = kwargs.get('key_filename',None)
         if not self.pkey and not self.password and not self.key_filename:
             raise ValueError('No password, key_filename nor pkey for authentication declared.')
+            
+        self.host_key = kwargs.get('host_key', None)
 
         debug_log('Trying to connect to {0}', self.hostname)
 
         try:
             self.ssh = paramiko.SSHClient()
-            self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            if self.host_key:
+                try:
+                    self.ssh.load_host_keys(self.host_key)
+                    self.look_for_keys = False
+                except IOError as err:
+                    debug_log('Cannot read host key file: {0}. SSH transport is closing.', self.host_key)
+                    self.close()
+                    raise
+            else:
+                self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh.connect(self.hostname,
                             port = self.port,
                             username = self.username,
                             password = self.password,
                             pkey = self.pkey,
+                            look_for_keys = self.look_for_keys,
                             key_filename = self.key_filename)
             debug_log('Connected to {0}', self.hostname)
 
@@ -329,3 +343,7 @@ class ClientTransportSSH(ClientTransportBase):
     @property
     def address(self):
         return self.hostname
+        
+    @property
+    def host_keys(self):
+        return self.ssh.get_host_keys()
