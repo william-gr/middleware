@@ -106,7 +106,16 @@ def default_route(gateway):
     if not gateway:
         return None
 
-    r = netif.Route(u'0.0.0.0', u'0.0.0.0', gateway)
+    gw = ipaddress.ip_address(gateway)
+    if gw.version == 4:
+        r = netif.Route(u'0.0.0.0', u'0.0.0.0', gateway)
+
+    elif gw.version == 6:
+        r = netif.Route(u'::', u'::', gateway)
+
+    else:
+        return
+
     r.flags.add(netif.RouteFlags.STATIC)
     r.flags.add(netif.RouteFlags.GATEWAY)
     return r
@@ -404,6 +413,33 @@ class ConfigurationService(RpcService):
 
         # Same thing for IPv6
         default_route_ipv6 = default_route(self.config.get('network.gateway.ipv6'))
+
+        if not default_route_ipv6 and rtable.default_route_ipv6:
+            # Default route was deleted
+            self.logger.info('Removing default route')
+            try:
+                rtable.delete(rtable.default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot remove default route: {0}'.format(str(e)))
+
+        elif not rtable.default_route_ipv6 and default_route_ipv6:
+            # Default route was added
+            self.logger.info('Adding default route via {0}'.format(default_route_ipv6.gateway))
+            try:
+                rtable.add(default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot add default route: {0}'.format(str(e)))
+
+        elif rtable.default_route_ipv6 != default_route_ipv6:
+            # Default route was changed
+            self.logger.info('Changing default route from {0} to {1}'.format(
+                rtable.default_route.gateway,
+                default_route_ipv6.gateway))
+
+            try:
+                rtable.change(default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
         # Now the static routes...
         old_routes = set(static_routes)
