@@ -1611,6 +1611,14 @@
                 "pidfile": "/var/run/ladvd.pid",
                 "name": "lldp"
             },
+            "9137A2BD-C45F-4B6E-AD4E-45D2FD858CAC": {
+                "rcng": {
+                    "rc-scripts": "rtsold"
+                },
+                "builtin": true,
+                "pidfile": "/var/run/rtsold.pid",
+                "name": "rtsold"
+            },
             "793867C5-BF29-4464-B7F1-7B77A9E2B97C": {
                 "rcng": {
                     "rc-scripts": "ctld"
