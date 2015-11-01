@@ -216,6 +216,7 @@ class ClientTransportSSH(ClientTransportBase):
         self.stdin = None
         self.stdout = None
         self.stderr = None
+        self.host_key_file = None
         self.host_key = None
         self.look_for_keys = True
 
@@ -266,19 +267,31 @@ class ClientTransportSSH(ClientTransportBase):
             raise ValueError('No password, key_filename nor pkey for authentication declared.')
             
         self.host_key = kwargs.get('host_key', None)
+        self.host_key_file = kwargs.get('host_key_file', None)
+        if self.host_key and self.host_key_file:
+            raise ValueError('Both host_key and host_key_file parameters cannot be specified simultaneously.')
 
         debug_log('Trying to connect to {0}', self.hostname)
 
         try:
             self.ssh = paramiko.SSHClient()
-            if self.host_key:
+            if self.host_key_file:
                 try:
-                    self.ssh.load_host_keys(self.host_key)
+                    self.ssh.load_host_keys(self.host_key_file)
                     self.look_for_keys = False
                 except IOError as err:
-                    debug_log('Cannot read host key file: {0}. SSH transport is closing.', self.host_key)
+                    debug_log('Cannot read host key file: {0}. SSH transport is closing.', self.host_key_file)
                     self.close()
                     raise
+            elif self.host_key:
+                key_hostname, key_type, key = self.host_key.split(' ')
+                if not key_hostname:
+                    raise ValueError('Hostname field of host key is not specified.')
+                if not key:
+                    raise ValueError('Key field of host key is not specified.')
+                if key_type is not "ssh-rsa" or key_type is not "ssh-dss":
+                    raise ValueError('Key_type field of host key must be either ssh-rsa or ssh-dss.')
+                ssh._host_keys.add(key_hostname, key_type, key)
             else:
                 self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh.connect(self.hostname,
