@@ -26,7 +26,6 @@
 /usr/local/lib/etcd/plugins/ntp.conf.mako
 /usr/local/lib/etcd/plugins/passwd.mako
 /usr/local/lib/etcd/plugins/rc.conf.mako
-/usr/local/lib/etcd/plugins/resolv.conf.mako
 /usr/local/lib/etcd/plugins/ssh/sshd_config.mako
 /usr/local/lib/etcd/plugins/exports.mako
 /usr/local/lib/etcd/plugins/ttys.mako

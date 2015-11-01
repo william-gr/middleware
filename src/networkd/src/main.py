@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-
+from __future__ import print_function
 import os
 import sys
 import argparse
@@ -40,6 +40,7 @@ import socket
 import netif
 import time
 import ipaddress
+import io
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
@@ -371,6 +372,7 @@ class ConfigurationService(RpcService):
                 netif.destroy_interface(name)
 
         self.configure_routes()
+        self.configure_dns()
         self.client.emit_event('network.changed', {
             'operation': 'update'
         })
@@ -458,6 +460,24 @@ class ConfigurationService(RpcService):
                 rtable.add(i)
             except OSError, e:
                 self.logger.error('Cannot add static route to {0}: {1}'.format(describe_route(i), str(e)))
+
+    def configure_dns(self):
+        resolv = io.StringIO()
+        proc = subprocess.Popen(
+            ['/sbin/resolvconf', '-a', 'lo0'],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE
+        )
+
+        for s in self.context.configstore.get('network.dns.search'):
+            print('search {0}'.format(s), file=resolv)
+
+        for n in self.context.configstore.get('network.dns.addresses'):
+            print('nameserver {0}'.format(n), file=resolv)
+
+        proc.communicate(resolv.getvalue())
+        proc.wait()
+        resolv.close()
 
     def configure_interface(self, name):
         entity = self.datastore.get_one('network.interfaces', ('id', '=', name))
