@@ -319,7 +319,7 @@ class ClientTransportSSH(ClientTransportBase):
             debug_log('Socket exception: {0}', err)
             raise
 
-        self.stdin, self.stdout, self.stderr = self.ssh.exec_command("python /usr/local/libexec/dispatcher/ssh_transport_catcher", bufsize = 0)
+        self.stdin, self.stdout, self.stderr = self.ssh.exec_command("sh /usr/local/libexec/dispatcher/ssh_transport_catcher", bufsize = 0)
         self.channel = self.ssh.get_transport().open_session()
 
         recv_t = spawn_thread(target = self.recv)
