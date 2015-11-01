@@ -729,7 +729,7 @@ class DatasetCreateTask(Task):
                 'properties': {}
             })
 
-        if 'type' == 'VOLUME':
+        if type == 'VOLUME':
             params['properties']['volsize'] = {'value': params['volsize']}
 
         self.join_subtasks(self.run_subtask(
