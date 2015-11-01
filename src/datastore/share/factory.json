@@ -1252,7 +1252,7 @@
                     "group:kerberos",
                     "group:nsswitch",
                     "group:openldap",
-                    "group:nssldap",
+                    "group:nss_ldap",
                     "group:sssd",
                     "group:pam"
                 ],
@@ -1265,7 +1265,7 @@
                     "group:kerberos",
                     "group:nsswitch",
                     "group:openldap",
-                    "group:nssldap",
+                    "group:nss_ldap",
                     "group:sssd",
                     "group:pam"
                 ],
