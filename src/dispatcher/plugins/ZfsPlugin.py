@@ -162,7 +162,7 @@ class ZfsDatasetProvider(Provider):
         except libzfs.ZFSException as err:
             raise RpcException(errno.EFAULT, str(err))
 
-    @returns(long)
+    @returns(int)
     def estimate_send_size(self, dataset_name, snapshot_name, anchor_name=None):
         try:
             zfs = libzfs.ZFS()
@@ -795,12 +795,12 @@ def zfsprop_schema_creator(**kwargs):
 
     Usage: zfsprop_schema_creator(propety_name=schema_type_as_str)
     Examples:
-        Call: zfsprop_schema_creator(value='long')
+        Call: zfsprop_schema_creator(value='integer')
         Returns: {
             type: 'object',
             properties: {
                 'source': {'type': 'string'},
-                'value': {'type': 'long'},
+                'value': {'type': 'integer'},
             }
         }
         zfsprop_schema_creator(source='string', value='integer')
@@ -928,11 +928,11 @@ def _init(dispatcher, plugin):
         'properties': {
             'errors': {'type': 'integer'},
             'start_time': {'type': 'string'},
-            'bytes_to_process': {'type': 'long'},
+            'bytes_to_process': {'type': 'integer'},
             'state': {'type': 'string'},
             'end_time': {'type': 'string'},
             'func': {'type': 'integer'},
-            'bytes_processed': {'type': 'long'},
+            'bytes_processed': {'type': 'integer'},
             'percentage': {'type': 'float'},
         }
     })
@@ -1115,7 +1115,7 @@ def _init(dispatcher, plugin):
             'hostname': {'type': 'string'},
             'root_dataset': {'$ref': 'zfs-dataset'},
             'groups': {'$ref': 'zfs-topology'},
-            'guid': {'type': 'long'},
+            'guid': {'type': 'integer'},
             'properties': {'$ref': 'zfs-properties'},
         }
     })
