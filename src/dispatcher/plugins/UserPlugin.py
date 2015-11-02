@@ -201,7 +201,7 @@ class UserCreateTask(Task):
             if password:
                 user['unixhash'] = crypted_password(password)
 
-            if not user.get('group'):
+            if user.get('group') is None:
                 try:
                     result = self.join_subtasks(self.run_subtask('groups.create', {
                         'id': uid,
@@ -230,7 +230,8 @@ class UserCreateTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot add user: {0}'.format(str(e)))
         except RpcException, e:
             raise TaskException(
-                errno.ENXIO, 'Cannot regenerate users file, etcd service is offline'
+                errno.ENXIO,
+                'Cannot regenerate users file, maybe etcd service is offline. Actual Error: {0}'.format(e)
                 )
         volumes_root = self.dispatcher.call_sync('volumes.get_volumes_root')
         if user['home'].startswith(volumes_root):
