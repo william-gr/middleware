@@ -1,6 +1,10 @@
 %%PYTHON_SITELIBDIR%%/dispatcher_client-10.0-py2.7.egg-info
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
+%%PYTHON_SITELIBDIR%%/dispatcher/spawn_thread.py
+%%PYTHON_SITELIBDIR%%/dispatcher/spawn_thread.pyc
+%%PYTHON_SITELIBDIR%%/dispatcher/client_transport.py
+%%PYTHON_SITELIBDIR%%/dispatcher/client_transport.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/client.py
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/__init__.py
@@ -32,6 +36,7 @@ lib/dispatcher/src/frontend/static/jquery.jsonview.js
 lib/dispatcher/src/frontend/static/jquery.jsonview.css
 lib/dispatcher/src/frontend/static/main.css
 libexec/dispatcher/notify-pam
+libexec/dispatcher/ssh_transport_catcher
 etc/rc.d/dispatcher
 sbin/dispatcherd
 sbin/dispatcherctl
