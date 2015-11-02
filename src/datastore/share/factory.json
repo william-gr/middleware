@@ -1460,7 +1460,7 @@
                 },
                 "builtin": false,
                 "pidfile": "/var/run/riak-cs/riak-cs.pid",
-                "task": "service.riakcs.configure",
+                "task": "service.riak_cs.configure",
                 "name": "riak_cs"
             },
             "A80D48F4-6D89-11E5-A3C7-C3D881054C8B": {
