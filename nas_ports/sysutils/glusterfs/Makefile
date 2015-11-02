@@ -16,7 +16,7 @@ LIB_DEPENDS=	libargp.so:${PORTSDIR}/devel/argp-standalone liburcu-bp.so:${PORTSD
 
 USE_GCC=	any
 
-USES=		bison gettext libtool pkgconfig python:build readline 
+USES=		bison gettext libtool pkgconfig python:2,build readline 
 USE_GNOME=	glib20 libxml2
 USE_LDCONFIG=	yes
 USE_OPENSSL=	yes
