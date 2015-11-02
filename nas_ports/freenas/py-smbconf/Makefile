@@ -20,7 +20,7 @@ USES=		python
 EXTRACT_ONLY=
 BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython \
 		talloc>=2.1.2:${PORTSDIR}/devel/talloc \
-		samba41>0:${PORTSDIR}/net/samba41
+		samba43>=0:${PORTSDIR}/net/samba43
 
 WRKSRC=		/usr/middleware_src/py-smbconf
 

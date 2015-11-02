@@ -25,100 +25,140 @@
 #
 #####################################################################
 
-
 import errno
-import psutil
+import pwd
+import datetime
 import smbconf
 from task import Task, TaskStatus, Provider, TaskException
-from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from utils import first_or_default
+from fnutils import first_or_default, normalize
 
 
 @description("Provides info about configured CIFS shares")
 class CIFSSharesProvider(Provider):
     @private
-    def get_connected_clients(self, share_name):
-        pass
+    def get_connected_clients(self, share_name=None):
+        result = []
+        for i in smbconf.get_active_users():
+            try:
+                user = pwd.getpwuid(i.uid).pw_name
+            except KeyError:
+                user = None
+
+            result.append({
+                'host': i.machine,
+                'share': i.service_name,
+                'user': user,
+                'connected_at': datetime.datetime.fromtimestamp(i.start),
+                'extra': {}
+            })
+
+        return result
 
 
 @description("Adds new CIFS share")
 @accepts(h.ref('cifs-share'))
 class CreateCIFSShareTask(Task):
     def describe(self, share):
-        return "Creating CIFS share {0}".format(share['id'])
+        return "Creating CIFS share {0}".format(share['name'])
 
     def verify(self, share):
         return ['service:cifs']
 
     def run(self, share):
-        self.datastore.insert('shares', share)
+        normalize(share['properties'], {
+            'read_only': False,
+            'guest_ok': False,
+            'guest_only': False,
+            'browseable': True,
+            'recyclebin': False,
+            'show_hidden_files': False,
+            'vfs_objects': [],
+            'hosts_allow': None,
+            'hosts_deny': None
+        })
+
+        id = self.datastore.insert('shares', share)
+        path = self.dispatcher.call_sync(
+            'shares.translate_path',
+            share['type'],
+            share['target'],
+            share['name']
+        )
 
         try:
             smb_conf = smbconf.SambaConfig('registry')
             smb_share = smbconf.SambaShare()
-            convert_share(smb_share, share['target'], share['properties'])
-            smb_conf.shares[share['id']] = smb_share
+            convert_share(smb_share, path, share['properties'])
+            smb_conf.shares[share['name']] = smb_share
         except smbconf.SambaConfigException:
             raise TaskException(errno.EFAULT, 'Cannot access samba registry')
 
-        self.dispatcher.call_sync('services.ensure_started', 'cifs')
         self.dispatcher.dispatch_event('shares.cifs.changed', {
             'operation': 'create',
-            'ids': [share['id']]
+            'ids': [id]
         })
+
+        return id
 
 
 @description("Updates existing CIFS share")
 @accepts(str, h.ref('CIFS-share'))
 class UpdateCIFSShareTask(Task):
-    def describe(self, name, updated_fields):
-        return "Updating CIFS share {0}".format(name)
+    def describe(self, id, updated_fields):
+        return "Updating CIFS share {0}".format(id)
 
-    def verify(self, name, updated_fields):
+    def verify(self, id, updated_fields):
         return ['service:cifs']
 
-    def run(self, name, updated_fields):
-        share = self.datastore.get_by_id('shares', name)
+    def run(self, id, updated_fields):
+        share = self.datastore.get_by_id('shares', id)
         share.update(updated_fields)
-        self.datastore.update('shares', name, share)
+        self.datastore.update('shares', id, share)
+        path = self.dispatcher.call_sync(
+            'shares.translate_path',
+            share['type'],
+            share['target'],
+            share['name']
+        )
 
         try:
             smb_conf = smbconf.SambaConfig('registry')
-            smb_share = smb_conf.shares[share['id']]
-            convert_share(smb_share, share['target'], share['properties'])
+            smb_share = smb_conf.shares[share['name']]
+            convert_share(smb_share, path, share['properties'])
             smb_share.save()
         except smbconf.SambaConfigException:
             raise TaskException(errno.EFAULT, 'Cannot access samba registry')
 
         self.dispatcher.dispatch_event('shares.cifs.changed', {
             'operation': 'update',
-            'ids': [name]
+            'ids': [id]
         })
 
 
 @description("Removes CIFS share")
 @accepts(str)
 class DeleteCIFSShareTask(Task):
-    def describe(self, name):
-        return "Deleting CIFS share {0}".format(name)
+    def describe(self, id):
+        return "Deleting CIFS share {0}".format(id)
 
-    def verify(self, name):
+    def verify(self, id):
         return ['service:CIFS']
 
-    def run(self, name):
-        self.datastore.delete('shares', name)
+    def run(self, id):
+        share = self.datastore.get_by_id('shares', id)
+        self.datastore.delete('shares', id)
 
         try:
             smb_conf = smbconf.SambaConfig('registry')
-            del smb_conf.shares[name]
+            del smb_conf.shares[share['name']]
         except smbconf.SambaConfigException:
             raise TaskException(errno.EFAULT, 'Cannot access samba registry')
 
         self.dispatcher.dispatch_event('shares.cifs.changed', {
             'operation': 'delete',
-            'ids': [name]
+            'ids': [id]
         })
 
 
@@ -126,10 +166,10 @@ def yesno(val):
     return 'yes' if val else 'no'
 
 
-def convert_share(ret, target, share):
+def convert_share(ret, path, share):
     vfs_objects = []
     ret.clear()
-    ret['path'] = target
+    ret['path'] = path
     ret['guest ok'] = yesno(share.get('guest_ok', False))
     ret['guest only'] = yesno(share.get('guest_only', False))
     ret['read only'] = yesno(share.get('read_only', False))
@@ -159,12 +199,14 @@ def convert_share(ret, target, share):
 
 
 def _depends():
-    return ['CIFSPlugin']
+    return ['CIFSPlugin', 'SharingPlugin']
 
 
 def _metadata():
     return {
         'type': 'sharing',
+        'subtype': 'file',
+        'perm_type': 'ACL',
         'method': 'cifs'
     }
 
@@ -205,7 +247,7 @@ def _init(dispatcher, plugin):
     smb_conf = smbconf.SambaConfig('registry')
     smb_conf.shares.clear()
 
-    for s in dispatcher.datastore.query('shares', ('type', '=', 'cifs')):
+    for s in dispatcher.call_sync('shares.query', [('type', '=', 'cifs')]):
         smb_share = smbconf.SambaShare()
-        convert_share(smb_share, s['target'], s.get('properties', {}))
-        smb_conf.shares[s['id']] = smb_share
+        convert_share(smb_share, s['filesystem_path'], s.get('properties', {}))
+        smb_conf.shares[s['name']] = smb_share

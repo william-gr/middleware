@@ -33,7 +33,7 @@
         });
 
         sock.on("login", function() {
-            sock.subscribe("*");
+            sock.subscribe(["*"]);
             sock.on("event", function(data) {
                 ctx = {
                     name: data.name,

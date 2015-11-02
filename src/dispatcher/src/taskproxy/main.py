@@ -150,6 +150,13 @@ class Context(object):
             self.conn.rpc.register_service_instance('taskproxy', self.service)
             task = self.conn.call_sync('task.checkin', key)
 
+            if task['debugger']:
+                sys.path.append('/usr/local/lib/dispatcher/pydev')
+
+                import pydevd
+                host, port = task['debugger']
+                pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
+
             module = imp.load_source('plugin', task['filename'])
             setproctitle.setproctitle('task executor (tid {0})'.format(task['id']))
 

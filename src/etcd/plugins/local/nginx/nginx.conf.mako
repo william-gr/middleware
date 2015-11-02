@@ -1,16 +1,6 @@
-<%
-
-    import sys
-    if '/usr/local/www' not in sys.path:
-        sys.path.append('/usr/local/www')
-    from freenasUI import settings
-
-    dojo_version = settings.DOJANGO_DOJO_VERSION
-
-%>\
 user www;
 pid /var/run/nginx.pid;
-error_log /var/log/nginx-error.log debug;
+error_log /var/log/nginx-error.log warn;
 
 events {
     worker_connections 1024;
@@ -60,42 +50,12 @@ http {
         server_name localhost;
 
         location / {
-            include fastcgi_params;
-            fastcgi_pass 127.0.0.1:9042;
-            fastcgi_pass_header Authorization;
-            fastcgi_intercept_errors off;
-            fastcgi_read_timeout 600m;
-            #fastcgi_temp_path /var/tmp/firmware;
-            fastcgi_param HTTPS $https;
-
-            # track uploads in the 'proxied' zone
-            # remember connections for 30s after they finished
-            track_uploads proxied 30s;
-        }
-
-        location /progress {
-            # report uploads tracked in the 'proxied' zone
-            report_uploads proxied;
-        }
-
-        location /dojango {
-            alias /usr/local/www/freenasUI/dojango;
-        }
-
-        location /static {
-            alias /usr/local/www/freenasUI/static;
-        }
-
-        location /reporting/graphs {
-            alias /var/db/graphs;
-        }
-
-        location /dojango/dojo-media/release/${dojo_version} {
-            alias /usr/local/www/dojo;
-        }
-
-        location /docs {
-                alias /usr/local/www/data/docs;
+            proxy_pass http://127.0.0.1:8888;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
         }
 
         location /socket {

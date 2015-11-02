@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_swift_rsyslog.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 # Uncomment the following to have a log containing all logs together
 #local.* /var/log/swift/all.log

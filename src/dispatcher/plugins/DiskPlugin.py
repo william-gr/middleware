@@ -579,6 +579,9 @@ def generate_partitions_list(gpart):
 
     for p in gpart.providers:
         paths = [os.path.join("/dev", p.name)]
+        if not p.config:
+            continue
+
         label = p.config.get('label')
         uuid = p.config.get('rawuuid')
 
@@ -613,11 +616,13 @@ def update_disk_cache(dispatcher, path):
     name = os.path.basename(path)
     gdisk = geom.geom_by_name('DISK', name)
     gpart = geom.geom_by_name('PART', name)
+
     # Handle diskid labels
     if gpart is None:
         glabel = geom.geom_by_name('LABEL', name)
-        if glabel and glabel.provider.name.startswith('diskid/'):
+        if glabel and glabel.provider and glabel.provider.name.startswith('diskid/'):
             gpart = geom.geom_by_name('PART', glabel.provider.name)
+
     gmultipath = geom.geom_by_name('MULTIPATH', path.split('/')[-1])
     disk = get_disk_by_path(path)
     if not disk:
@@ -899,7 +904,6 @@ def _init(dispatcher, plugin):
         'enum': SelfTestType.__members__.keys()
     })
 
-    dispatcher.require_collection('disks', ttl_index='delete_at')
     plugin.register_provider('disks', DiskProvider)
     plugin.register_event_handler('system.device.attached', on_device_attached)
     plugin.register_event_handler('system.device.detached', on_device_detached)

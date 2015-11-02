@@ -88,7 +88,6 @@ class SNMPConfigureTask(Task):
             node = ConfigNode('service.snmp', self.configstore)
             node.update(snmp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'snmpd')
-            self.dispatcher.call_sync('services.restart', 'snmp')
             self.dispatcher.dispatch_event('service.snmp.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -97,6 +96,8 @@ class SNMPConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure SNMP: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

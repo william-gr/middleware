@@ -36,6 +36,8 @@ from dispatcher.rpc import RpcException, description, accepts, private, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
+from fnutils import extend as extend_dict
+
 
 logger = logging.getLogger('ServiceManagePlugin')
 
@@ -86,6 +88,7 @@ class ServiceInfoProvider(Provider):
                 return greenlet.value
 
         result = group.map(result, jobs)
+        result = map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result)
         return result[0] if single is True else result
 
     @accepts(str)
@@ -107,6 +110,9 @@ class ServiceInfoProvider(Provider):
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
 
+        if 'rcng' not in svc:
+            return
+
         rc_scripts = svc['rcng']['rc-scripts']
 
         try:
@@ -126,6 +132,9 @@ class ServiceInfoProvider(Provider):
         svc = self.datastore.get_one('service_definitions', ('name', '=', service))
         if not svc:
             raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
+
+        if 'rcng' not in svc:
+            return
 
         rc_scripts = svc['rcng']['rc-scripts']
 
@@ -200,6 +209,32 @@ class ServiceInfoProvider(Provider):
         except SubprocessException:
             pass
 
+    @private
+    @accepts(str, bool, bool)
+    def apply_state(self, service, restart=False, reload=False):
+        svc = self.datastore.get_one('service_definitions', ('name', '=', service))
+        if not svc:
+            raise RpcException(errno.ENOENT, 'Service {0} not found'.format(service))
+
+        state, pid = get_status(self.dispatcher, svc)
+        node = ConfigNode('service.{0}'.format(service), self.configstore)
+
+        if node['enable'].value and state != 'RUNNING':
+            logger.info('Starting service {0}'.format(service))
+            self.dispatcher.call_sync('services.ensure_started', service)
+
+        elif not node['enable'].value and state != 'STOPPED':
+            logger.info('Stopping service {0}'.format(service))
+            self.dispatcher.call_sync('services.ensure_stopped', service)
+
+        else:
+            if restart:
+                logger.info('Restarting service {0}'.format(service))
+                self.dispatcher.call_sync('services.restart', service)
+            elif reload:
+                logger.info('Reloading service {0}'.format(service))
+                self.dispatcher.call_sync('services.reload', service)
+
 
 @description("Provides functionality to start, stop, restart or reload service")
 @accepts(
@@ -218,8 +253,8 @@ class ServiceManageTask(Task):
 
     def run(self, name, action):
         service = self.datastore.get_one('service_definitions', ('name', '=', name))
-
         hook_rpc = service.get('{0}_rpc'.format(action))
+
         if hook_rpc:
             try:
                 return self.dispatcher.call_sync(hook_rpc)
@@ -244,6 +279,11 @@ class ServiceManageTask(Task):
         except SubprocessException, e:
             raise TaskException(errno.EBUSY, e.err)
 
+        self.dispatcher.dispatch_event('services.changed', {
+            'operation': 'update',
+            'ids': [service['id']]
+        })
+
 
 @description("Updates configuration for services")
 @accepts(str, h.object())
@@ -267,27 +307,42 @@ class UpdateServiceConfigTask(Task):
 
     def run(self, service, updated_fields):
         service_def = self.datastore.get_one('service_definitions', ('name', '=', service))
-        state, pid = get_status(self.dispatcher, service_def)
+        node = ConfigNode('service.{0}'.format(service), self.configstore)
+        restart = False
+        reload = False
 
         if service_def.get('task'):
-            self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+            enable = updated_fields.pop('enable', None)
+            result = self.join_subtasks(self.run_subtask(service_def['task'], updated_fields))
+            restart = result[0] == 'RESTART'
+            reload = result[0] == 'RELOAD'
+
+            if enable is not None:
+                node['enable'] = enable
         else:
-            node = ConfigNode('service.{0}'.format(service), self.configstore)
             node.update(updated_fields)
 
             if service_def.get('etcd-group'):
                 self.dispatcher.call_sync('etcd.generation.generate_group', service_def.get('etcd-group'))
 
-            if node['enable'].value and state != 'RUNNING':
-                logger.info('Starting service {0}'.format(service))
-                self.dispatcher.call_sync('services.ensure_started', service)
+            if 'enable' in updated_fields:
+                # Propagate to dependent services
+                for i in service_def.get('dependencies', []):
+                    self.join_subtasks(self.run_subtask('service.configure', i, {
+                        'enable': updated_fields['enable']
+                    }))
 
-            if not node['enable'].value and state != 'STOPPED':
-                logger.info('Stopping service {0}'.format(service))
-                self.dispatcher.call_sync('services.ensure_stopped', service)
+                if service_def.get('auto_enable'):
+                    # Consult state of services dependent on us
+                    for i in self.datastore.query('service_definitions', ('dependencies', 'in', service)):
+                        enb = self.configstore.get('service.{0}.enable', i['name'])
+                        if enb != updated_fields['enable']:
+                            del updated_fields['enable']
+                            break
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-        self.dispatcher.dispatch_event('service.changed', {
+        self.dispatcher.call_sync('services.apply_state', service, restart, reload)
+        self.dispatcher.dispatch_event('services.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
         })
@@ -301,6 +356,7 @@ def get_status(dispatcher, service):
             dispatcher.call_sync(service['status_rpc'])
         except RpcException:
             state = 'STOPPED'
+
     elif 'pidfile' in service:
         state = 'RUNNING'
         pid = None
@@ -338,6 +394,16 @@ def get_status(dispatcher, service):
                     system("/usr/sbin/service", x, 'onestatus')
         except SubprocessException:
             state = 'STOPPED'
+
+    elif 'dependencies' in service:
+        pid = None
+        state = 'RUNNING'
+
+        for i in service['dependencies']:
+            d_service = dispatcher.datastore.get_one('service_definitions', ('name', '=', i))
+            d_state, d_pid = get_status(dispatcher, d_service)
+            if d_state != 'RUNNING':
+                state = d_state
 
     else:
         pid = None
@@ -389,6 +455,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler("service.manage", ServiceManageTask)
     plugin.register_task_handler("service.configure", UpdateServiceConfigTask)
     plugin.register_provider("services", ServiceInfoProvider)
+    plugin.register_event_type("services.changed")
 
     for svc in dispatcher.datastore.query('service_definitions'):
         plugin.register_resource(Resource('service:{0}'.format(svc['name'])), parents=['system'])

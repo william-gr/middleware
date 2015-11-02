@@ -144,20 +144,20 @@ class GroupProvider(Provider):
 @description("Create an user in the system")
 @accepts(h.all_of(
     h.ref('user'),
-    h.required('username', 'group'),
+    h.required('username'),
     h.forbidden('builtin'),
     h.object({'password': {'type': 'string'}}),
     h.any_of(
         h.required('password'),
         h.required('unixhash', 'smbhash'),
-        h.required('password_disabled')),
+        h.required('password_disabled')
+    )
 ))
 class UserCreateTask(Task):
     def describe(self, user):
         return "Adding user {0}".format(user['username'])
 
     def verify(self, user):
-
         errors = []
 
         for code, message in check_unixname(user['username']):
@@ -193,7 +193,6 @@ class UserCreateTask(Task):
             user['unixhash'] = user.get('unixhash', '*')
             user['full_name'] = user.get('full_name', 'User &')
             user['shell'] = user.get('shell', '/bin/sh')
-            # user['home'] = user.get('home', os.path.join('/home', user['username']))
             user['home'] = user.get('home', '/nonexistent')
             user.setdefault('groups', [])
             user.setdefault('attributes', {})
@@ -201,6 +200,17 @@ class UserCreateTask(Task):
             password = user.pop('password', None)
             if password:
                 user['unixhash'] = crypted_password(password)
+
+            if not user.get('group'):
+                try:
+                    result = self.join_subtasks(self.run_subtask('groups.create', {
+                        'id': uid,
+                        'name': user['username']
+                    }))
+                except RpcException as err:
+                    raise err
+
+                user['group'] = result[0]
 
             self.datastore.insert('users', user, pkey=uid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
@@ -292,7 +302,18 @@ class UserUpdateTask(Task):
         if not self.datastore.exists('users', ('id', '=', uid)):
             raise VerifyException(errno.ENOENT, 'User does not exists')
 
+        user = self.datastore.get_by_id('users', uid)
         errors = []
+        if user.get('builtin'):
+            if 'home' in updated_fields:
+                errors.append(('home', errno.EPERM, "Cannot change builtin user's home directory"))
+            # Similarly ignore uid changes for builtin users
+            if 'id' in updated_fields:
+                errors.append(('id', errno.EPERM, "Cannot change builtin user's UID"))
+            if 'username' in updated_fields:
+                errors.append(('username', errno.EPERM, "Cannot change builtin user's username"))
+            if 'locked' in updated_fields:
+                errors.append(('locked', errno.EPERM, "Cannot change builtin user's locked flag"))
         if 'groups' in updated_fields and len(updated_fields['groups']) > 64:
             errors.append(
                 ('groups', errno.EINVAL, 'User cannot belong to more than 64 auxiliary groups'))
@@ -308,10 +329,6 @@ class UserUpdateTask(Task):
     def run(self, uid, updated_fields):
         try:
             user = self.datastore.get_by_id('users', uid)
-
-            # Ignore home changes for builtin users
-            if 'home' in updated_fields and user.get('builtin'):
-                updated_fields.pop('home')
 
             home_before = user.get('home')
             user.update(updated_fields)
@@ -408,6 +425,7 @@ class GroupCreateTask(Task):
 
         try:
             group['builtin'] = False
+            group.setdefault('sudo', False)
             self.datastore.insert('groups', group, pkey=gid)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'accounts')
         except DatastoreException, e:
@@ -523,7 +541,7 @@ def _init(dispatcher, plugin):
             'locked': {'type': 'boolean'},
             'sudo': {'type': 'boolean'},
             'password_disabled': {'type': 'boolean'},
-            'group': {'type': 'integer'},
+            'group': {'type': ['integer', 'null']},
             'shell': {'type': 'string'},
             'home': {'type': 'string'},
             'password': {'type': ['string', 'null']},

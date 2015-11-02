@@ -94,7 +94,6 @@ class FTPConfigureTask(Task):
             node = ConfigNode('service.ftp', self.configstore)
             node.update(ftp)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ftp')
-            self.dispatcher.call_sync('services.reload', 'ftp')
             self.dispatcher.dispatch_event('service.ftp.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -103,6 +102,8 @@ class FTPConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure FTP: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

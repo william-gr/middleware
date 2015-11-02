@@ -25,12 +25,14 @@
 #
 #####################################################################
 
+import sys
+import gc
+import traceback
 import errno
 import subprocess
 from gevent.event import Event
 from gevent.lock import Semaphore
 from dispatcher.rpc import RpcService, RpcException, pass_sender, private
-from balancer import TaskExecutor
 from auth import ShellToken
 from task import TaskState
 from utils import first_or_default
@@ -44,7 +46,7 @@ class ManagementService(RpcService):
     def status(self):
         return {
             'started-at': self.dispatcher.started_at,
-            'connected-clients': len(self.dispatcher.ws_server.connections)
+            'connected-clients': sum([len(s.connections) for s in self.dispatcher.ws_servers])
         }
 
     def ping(self):
@@ -60,7 +62,11 @@ class ManagementService(RpcService):
         return self.dispatcher.event_sources.keys()
 
     def get_connected_clients(self):
-        return self.dispatcher.ws_server.clients.keys()
+        return [
+            inner
+            for outter in [s.clients.keys() for s in self.dispatcher.ws_servers]
+            for inner in outter
+        ]
 
     def wait_ready(self):
         return self.dispatcher.ready.wait()
@@ -80,16 +86,56 @@ class ManagementService(RpcService):
         self.dispatcher.die()
 
 
+class DebugService(RpcService):
+    def initialize(self, context):
+        self.dispatcher = context.dispatcher
+
+    @private
+    def dump_stacks(self):
+        from greenlet import greenlet
+
+        # If greenlet is present, let's dump each greenlet stack
+        dump = []
+        for ob in gc.get_objects():
+            if not isinstance(ob, greenlet):
+                continue
+            if not ob:
+                continue   # not running anymore or not started
+
+            dump.append(''.join(traceback.format_stack(ob.gr_frame)))
+
+        return dump
+
+    @private
+    def attach(self, host, port):
+        sys.path.append('/usr/local/lib/dispatcher/pydev')
+
+        import pydevd
+        pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
+
+    @private
+    def detach(self):
+        import pydevd
+        pydevd.stoptrace()
+
+    @private
+    def set_tasks_debug(self, host, port, tasks=None):
+        self.dispatcher.balancer.debugger = (host, port)
+        self.dispatcher.balancer.debugged_tasks = tasks or ['*']
+
+    @private
+    def cancel_tasks_debug(self):
+        self.dispatcher.balancer.debugger = None
+        self.dispatcher.balancer.debugged_tasks = None
+
+
 class EventService(RpcService):
     def initialize(self, context):
         self.__datastore = context.dispatcher.datastore
         self.__dispatcher = context.dispatcher
-        pass
 
     def query(self, filter=None, params=None):
-        filter = filter if filter else []
-        params = params if params else {}
-        return list(self.__datastore.query('events', *filter, **params))
+        return self.__datastore.query('events', *(filter or []), **(params or {}))
 
     @pass_sender
     def get_my_subscriptions(self, sender):
@@ -135,10 +181,15 @@ class PluginService(RpcService):
             if args['address'] == conn.real_client_address:
                 self.unregister_schema(name, conn)
 
+        for name, conn in self.event_types.items():
+            if args['address'] == conn.ws.handler.client_address:
+                self.unregister_event_type(name)
+
     def initialize(self, context):
         self.services = {}
         self.schemas = {}
         self.events = {}
+        self.event_types = {}
         self.__dispatcher = context.dispatcher
         self.__dispatcher.register_event_handler(
             'server.client_disconnected',
@@ -202,15 +253,18 @@ class PluginService(RpcService):
             raise RpcException(errno.EPERM, 'Permission denied')
 
         self.__dispatcher.unregister_schema_definition(name)
+        del self.schemas[name]
 
     @pass_sender
     def register_event_type(self, service, event, sender):
-        wrapper = self.RemoteServiceWrapper(sender, service)
+        wrapper = self.services[service]
+        self.event_types[event] = sender
         self.__dispatcher.register_event_type(event, wrapper)
 
     @pass_sender
     def unregister_event_type(self, event):
         self.__dispatcher.unregister_event_type(event)
+        del self.event_types[event]
 
     def wait_for_service(self, name, timeout=None):
         if name in self.services.keys():
@@ -330,7 +384,9 @@ class TaskService(RpcService):
 
         for i in subtasks:
             if i.state != TaskState.FINISHED:
-                raise RpcException(errno.EFAULT, 'Subtask failed: {0}'.format(i.error['message']))
+                raise RpcException(i.error['code'], 'Subtask failed: {0}'.format(i.error['message']))
+
+        return map(lambda t: t.result, subtasks)
 
 
 class LockService(RpcService):

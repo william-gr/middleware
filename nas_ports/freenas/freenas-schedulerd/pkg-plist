@@ -1,3 +1,4 @@
-/usr/local/lib/schedulerd/src/main.py
-/usr/local/etc/rc.d/schedulerd
-/usr/local/sbin/schedulerd
+lib/schedulerd/src/main.py
+lib/schedulerd/src/main.pyc
+etc/rc.d/schedulerd
+sbin/schedulerd

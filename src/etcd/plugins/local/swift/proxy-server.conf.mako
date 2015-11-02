@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_proxy_server.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 [DEFAULT]
 # bind_ip = 0.0.0.0

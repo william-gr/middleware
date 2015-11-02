@@ -40,8 +40,9 @@ from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.rpc import RpcService, RpcException, private
 from dispatcher.client import Client, ClientError
-from fnutils import exclude
+from fnutils import exclude, configure_logging
 from fnutils.query import wrap
+from fnutils.debug import DebugService
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -206,6 +207,7 @@ class Context(object):
                 'args': {'type': 'array'},
                 'description': {'type': 'string'},
                 'enabled': {'type': 'boolean'},
+                'hidden': {'type': 'boolean'},
                 'status': {'$ref': 'calendar-task-status'},
                 'schedule': {
                     'type': 'object',
@@ -242,7 +244,9 @@ class Context(object):
                 self.client.login_service('schedulerd')
                 self.client.enable_server()
                 self.client.register_service('scheduler.management', ManagementService(self))
+                self.client.register_service('scheduler.debug', DebugService())
                 self.client.resume_service('scheduler.management')
+                self.client.resume_service('scheduler.debug')
                 return
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
@@ -254,7 +258,14 @@ class Context(object):
         self.client.call_sync('task.wait', tid, timeout=None)
         result = self.client.call_sync('task.status', tid)
         if result['state'] != 'FINISHED':
-            pass
+            try:
+                self.client.call_sync('alerts.emit', {
+                    'name': 'scheduler.task.failed',
+                    'severity': 'CRITICAL',
+                    'description': 'Task {0} has failed: {1}'.format(kwargs['name'], result['error']['message']),
+                })
+            except RpcException as e:
+                self.logger.error('Failed to emit alert', exc_info=True)
 
         del self.active_tasks[kwargs['id']]
         self.datastore.insert('schedulerd.runs', {
@@ -282,7 +293,7 @@ class Context(object):
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         parser.add_argument('-f', action='store_true', default=False, help='Run in foreground')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/schedulerd.log', 'DEBUG')
         setproctitle.setproctitle('schedulerd')
         self.parse_config(args.c)
         self.init_datastore()

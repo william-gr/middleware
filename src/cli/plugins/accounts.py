@@ -49,13 +49,25 @@ class UsersNamespace(TaskBasedSaveMixin, RpcBasedLoadMixin, EntityNamespace):
         self.update_task = 'users.update'
         self.delete_task = 'users.delete'
         self.save_key_name = 'id'
+        self.required_props = ['username', 'group', ['password','password_disabled']]
 
         self.localdoc['CreateEntityCommand'] = ("""\
-            Usage: create username=<name> group=<group> password=<passwd>...
+            Usage: create username=<name> group=<group> <property>=<value>...
 
             Examples: create username=foo group=foo password=bar home=/tank/foo
+                      create username=bar group=bar password_disabled=true
 
-            Creates a user account.""")
+            Creates a user account. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> [...]
+
+            Examples: set fullname="John Smith"
+                      set group=users
+                      set password_disabled=True
+                      set groups=wheel, ftp, operator
+
+            Sets a user property. For a list of properties, see 'help properties'.""")
+
 
         self.skeleton_entity = {
             'username': None,
@@ -194,6 +206,19 @@ class GroupsNamespace(TaskBasedSaveMixin, RpcBasedLoadMixin, EntityNamespace):
         self.create_task = 'groups.create'
         self.update_task = 'groups.update'
         self.delete_task = 'groups.delete'
+        self.required_props = ['name']
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name>
+
+            Examples: create name=foo
+
+            Creates a group.""")
+        self.entity_localdoc["SetEntityCommand"] = ("""\
+            Usage: set name=<newname>
+
+            Examples: set name=bar
+
+            Allows renaming a group.""")
 
         self.skeleton_entity = {
             'name': None,

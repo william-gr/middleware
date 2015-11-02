@@ -21,6 +21,7 @@ clear_tmpX="NO"
 background_fsck="NO"
 fsck_y_enable="YES"
 synchronous_dhclient="YES"
+zfs_enable="YES"
 
 # middleware10
 dispatcher_enable="YES"
@@ -33,6 +34,7 @@ etcd_flags="-c /usr/local/etc/middleware.conf /etc"
 networkd_enable="YES"
 fnstatd_enable="YES"
 schedulerd_enable="YES"
+crashd_enable="YES"
 syslogd_enable="NO"
 syslog_ng_enable="YES"
 # turbo boost
@@ -56,6 +58,7 @@ early_kld_list="geom_stripe geom_raid3 geom_raid5 geom_gate geom_multipath"
 # A set of kernel modules that can be loaded after mounting local filesystems.
 kld_list="dtraceall ipmi fuse if_cxgbe"
 
+rtsold_enable="YES"
 dbus_enable="YES"
 mdnsd_enable="YES"
 nginx_enable="YES"
@@ -84,8 +87,10 @@ collectd_enable="YES"
 ntpd_enable="YES"
 ntpd_sync_on_start="YES"
 
+ctld_flags="-u"
+
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ftp', 'lldp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ctl', 'ftp', 'lldp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
     % endif
@@ -104,11 +109,7 @@ inadynmt_enable="YES"
 
 % if config.get("service.ipfs.enable"):
 ipfs_go_enable="YES"
-% if config.get("service.ipfs.path"):
 ipfs_go_path="${config.get("service.ipfs.path")}"
-% else:
-ipfs_go_path="/var/db/system/ipfs"
-% endif
 % endif
 
 ladvd_flags="-a\

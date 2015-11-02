@@ -26,9 +26,8 @@
 #####################################################################
 
 
-import copy
-from namespace import Namespace, ConfigNamespace, Command, IndexCommand, description, CommandException
-from output import Table, Object, ValueType, output_dict, output_table
+from namespace import ConfigNamespace, Command, description, RpcBasedLoadMixin, EntityNamespace
+from output import Table, Object, ValueType, output_dict
 from descriptions import events
 from utils import parse_query_args, post_save
 
@@ -75,33 +74,91 @@ class VersionCommand(Command):
         )
 
 
-@description("Prints session history")
-class SessionsCommand(Command):
-    """
-    Usage: sessions [<field> <operator> <value> ...] [limit=<n>] [sort=<field>,-<field2>]
-    """
-    def run(self, context, args, kwargs, opargs):
-        items = context.call_sync('sessions.query', *parse_query_args(args, kwargs))
-        return Table(items, [
-            Table.Column('Session ID', 'id', ValueType.NUMBER),
-            Table.Column('IP address', 'address', ValueType.STRING),
-            Table.Column('User name', 'username', ValueType.STRING),
-            Table.Column('Started at', 'started-at', ValueType.TIME),
-            Table.Column('Ended at', 'ended-at', ValueType.TIME)
-        ])
+@description("View sessions")
+class SessionsNamespace(RpcBasedLoadMixin, EntityNamespace):
+    def __init__(self, name, context):
+        super(SessionsNamespace, self).__init__(name, context)
+
+        self.allow_create = False
+        self.allow_edit = False
+        self.query_call = 'sessions.query'
+
+        self.add_property(
+            descr='Session ID',
+            name='id',
+            get='id',
+            type=ValueType.NUMBER
+        )
+
+        self.add_property(
+            descr='IP Address',
+            name='address',
+            get='address',
+        )
+
+        self.add_property(
+            descr='User name',
+            name='username',
+            get='username',
+        )
+
+        self.add_property(
+            descr='Started at',
+            name='started',
+            get='started-at',
+            type=ValueType.TIME
+        )
+
+        self.add_property(
+            descr='Ended at',
+            name='ended',
+            get='ended-at',
+            type=ValueType.TIME
+        )
+
+        self.primary_key = self.get_mapping('id')
 
 
-@description("Prints event history")
-class EventsCommand(Command):
-    """
-    Usage: events [<field> <operator> <value> ...] [limit=<n>] [sort=<field>,-<field2>]
-    """
-    def run(self, context, args, kwargs, opargs):
-        items = context.call_sync('event.query', *parse_query_args(args, kwargs))
-        return Table(items, [
-            Table.Column('Event name', lambda t: events.translate(context, t['name'], t['args'])),
-            Table.Column('Time', 'timestamp', ValueType.TIME)
-        ])
+@description("View event history")
+class EventsNamespace(RpcBasedLoadMixin, EntityNamespace):
+    def __init__(self, name, context):
+        super(EventsNamespace, self).__init__(name, context)
+        self.allow_create = False
+        self.allow_edit = False
+        self.query_call = 'event.query'
+
+        self.add_property(
+            descr='Event ID',
+            name='id',
+            get='id',
+        )
+
+        self.add_property(
+            descr='Event Name',
+            name='name',
+            get=lambda t: events.translate(context, t['name'], t['args']),
+        )
+
+        self.add_property(
+            descr='Timestamp',
+            name='timestamp',
+            get='timestamp',
+            type=ValueType.TIME
+        )
+
+        self.add_property(
+            descr='Created at',
+            name='created',
+            get='created-at',
+        )
+
+        self.add_property(
+            descr='Updated at',
+            name='updated',
+            get='updated-at',
+        )
+
+        self.primary_key = self.get_mapping('id')
 
 
 @description("Time namespace")
@@ -133,7 +190,164 @@ class TimeNamespace(ConfigNamespace):
         )
 
     def save(self):
-        self.context.submit_task('system.time.configure', self.get_diff(), callback=lambda s: post_save(self, s))
+        self.context.submit_task(
+            'system.time.configure',
+            self.get_diff(),
+            callback=lambda s: post_save(self, s)
+        )
+
+
+@description("Mail configuration")
+class MailNamespace(ConfigNamespace):
+    def __init__(self, name, context):
+        super(MailNamespace, self).__init__(name, context)
+        self.context = context
+        self.config_call = 'mail.get_config'
+
+        self.add_property(
+            descr='Email address',
+            name='email',
+            get='from',
+            set='from',
+        )
+
+        self.add_property(
+            descr='Email server',
+            name='server',
+            get='server',
+        )
+
+        self.add_property(
+            descr='SMTP port',
+            name='port',
+            get='port',
+            type=ValueType.NUMBER,
+        )
+
+        self.add_property(
+            descr='Authentication required',
+            name='auth',
+            get='auth',
+            type=ValueType.BOOLEAN,
+        )
+
+        self.add_property(
+            descr='Encryption type',
+            name='encryption',
+            get='encryption',
+            enum=['PLAIN', 'TLS', 'SSL']
+        )
+
+        self.add_property(
+            descr='Username for Authentication',
+            name='username',
+            get='user',
+            set='user',
+        )
+
+        self.add_property(
+            descr='Password for Authentication',
+            name='password',
+            get=None,
+            set='pass',
+        )
+
+    def save(self):
+        self.context.submit_task(
+            'mail.configure',
+            self.get_diff(),
+            callback=lambda s: post_save(self, s)
+        )
+
+
+@description("Advanced system configuration")
+class AdvancedNamespace(ConfigNamespace):
+    def __init__(self, name, context):
+        super(AdvancedNamespace, self).__init__(name, context)
+        self.context = context
+        self.config_call = 'system.advanced.get_config'
+
+        self.add_property(
+            descr='Enable Console CLI',
+            name='console_cli',
+            get='console_cli',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Enable Console Screensaver',
+            name='console_screensaver',
+            get='console_screensaver',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Enable Serial Console',
+            name='serial_console',
+            get='serial_console',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Serial Console Port',
+            name='serial_port',
+            get='serial_port',
+        )
+
+        self.add_property(
+            descr='Serial Port Speed',
+            name='serial_speed',
+            get='serial_speed',
+            type=ValueType.NUMBER
+        )
+
+        self.add_property(
+            descr='Enable powerd',
+            name='powerd',
+            get='powerd',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Default swap on drives',
+            name='swapondrive',
+            get='swapondrive',
+            type=ValueType.NUMBER
+        )
+
+        self.add_property(
+            descr='Enable Debug Kernel',
+            name='debugkernel',
+            get='debugkernel',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Automatically upload crash dumps to iXsystems',
+            name='uploadcrash',
+            get='uploadcrash',
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='Message of the day',
+            name='motd',
+            get='motd',
+        )
+
+        self.add_property(
+            descr='Periodic Notify User UID',
+            name='periodic_notify_user',
+            get='periodic_notify_user',
+            type=ValueType.NUMBER
+        )
+
+    def save(self):
+        self.context.submit_task(
+            'system.advanced.configure',
+            self.get_diff(),
+            callback=lambda s: post_save(self, s)
+        )
 
 
 @description("System info and configuration")
@@ -141,7 +355,7 @@ class SystemNamespace(ConfigNamespace):
     def __init__(self, name, context):
         super(SystemNamespace, self).__init__(name, context)
         self.context = context
-        self.config_call='system.general.get_config'
+        self.config_call = 'system.general.get_config'
 
         self.add_property(
             descr='Time zone',
@@ -177,16 +391,22 @@ class SystemNamespace(ConfigNamespace):
             'status': StatusCommand(),
             'version': VersionCommand(),
             'info': InfoCommand(),
-            'events': EventsCommand(),
-            'sessions': SessionsCommand()
         }
 
     def save(self):
-        return self.context.submit_task('system.general.configure', self.entity, callback=lambda s: post_save(self, s))
+        return self.context.submit_task(
+            'system.general.configure',
+            self.entity,
+            callback=lambda s: post_save(self, s)
+        )
 
     def namespaces(self):
         return [
-            TimeNamespace('time', self.context)
+            AdvancedNamespace('advanced', self.context),
+            TimeNamespace('time', self.context),
+            MailNamespace('mail', self.context),
+            SessionsNamespace('session', self.context),
+            EventsNamespace('event', self.context),
         ]
 
 

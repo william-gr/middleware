@@ -25,6 +25,9 @@
 #
 #####################################################################
 import errno
+import logging
+import socket
+from datetime import datetime
 
 from datastore import DatastoreException
 from dispatcher.rpc import (
@@ -36,6 +39,7 @@ from dispatcher.rpc import (
 )
 from task import Provider, Task, TaskException, VerifyException, query
 
+logger = logging.getLogger('AlertPlugin')
 registered_alerts = {}
 
 
@@ -66,6 +70,9 @@ class AlertsProvider(Provider):
                 "Alert {0} not registered".format(alert['name'])
             )
 
+        if 'when' not in alert:
+            alert['when'] = datetime.now().isoformat()
+
         # Try to find the first matching namespace
         emitters = None
         dot = alert['name'].split('.')
@@ -88,11 +95,20 @@ class AlertsProvider(Provider):
         if 'UI' in emitters:
             self.datastore.insert('alerts', alert)
 
+        if 'EMAIL' in emitters:
+            try:
+                self.dispatcher.call_sync('mail.send', {
+                    'subject': '{0}: {1}'.format(socket.gethostname(), alertprops['verbose_name']),
+                    'message': '{0} - {1}'.format(alert['severity'], alert['description']),
+                })
+            except RpcException:
+                logger.error('Failed to send email alert', exc_info=True)
+
     @returns(h.array(str))
     def get_registered_alerts(self):
         return registered_alerts
 
-    @accepts(str)
+    @accepts(str, str)
     def register_alert(self, name, verbose_name=None):
         if name not in registered_alerts:
             registered_alerts[name] = {
@@ -189,16 +205,27 @@ class AlertFilterUpdateTask(Task):
         })
 
 
+def _depends():
+    return ['MailPlugin']
+
+
 def _init(dispatcher, plugin):
+
+    plugin.register_schema_definition('alert-severity', {
+        'type': 'string',
+        'enum': ['CRITICAL', 'WARNING', 'INFO'],
+    })
 
     plugin.register_schema_definition('alert', {
         'type': 'object',
         'properties': {
             'name': {'type': 'string'},
             'description': {'type': 'string'},
-            'severity': {'type': 'string'},
+            'severity': {'$ref': 'alert-severity'},
             'when': {'type': 'string'},
-        }
+        },
+        'additionalProperties': False,
+        'required': ['name', 'severity'],
     })
 
     plugin.register_schema_definition('alert-filter', {
@@ -207,7 +234,7 @@ def _init(dispatcher, plugin):
             'name': {'type': 'string'},
             'severity': {
                 'type': 'array',
-                'items': {'type': 'string'},
+                'items': {'$ref': 'alert-severity'},
             },
             'emitters': {
                 'type': 'array',
@@ -216,7 +243,8 @@ def _init(dispatcher, plugin):
                     'enum': ['UI', 'EMAIL'],
                 },
             },
-        }
+        },
+        'additionalProperties': False,
     })
 
     dispatcher.require_collection('alerts')

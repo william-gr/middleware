@@ -19,7 +19,7 @@ dispatcher_env="GEVENT_RESOLVER=ares"
 
 prestart()
 {
-    rc_flags="-P ${pidfile} -r /usr/local/sbin/dispatcherd ${rc_flags}"
+    rc_flags="-P ${pidfile} -r /usr/local/sbin/crash-wrapper /usr/local/sbin/dispatcherd ${rc_flags}"
 }
 
 poststart()

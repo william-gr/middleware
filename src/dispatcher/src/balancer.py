@@ -30,8 +30,8 @@ import logging
 import traceback
 import errno
 import copy
-import threading
 import uuid
+import fnmatch
 import inspect
 import subprocess
 import bsd
@@ -44,7 +44,7 @@ from gevent.event import Event, AsyncResult
 from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
-from task import TaskException, TaskAbortException, TaskStatus, TaskState
+from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
 
 
 TASKPROXY_PATH = '/usr/local/libexec/taskproxy'
@@ -74,7 +74,8 @@ class TaskExecutor(object):
             'id': self.task.id,
             'class': self.task.clazz.__name__,
             'filename': inspect.getsourcefile(self.task.clazz),
-            'args': self.task.args
+            'args': self.task.args,
+            'debugger': self.task.debugger
         }
 
     def get_status(self):
@@ -114,6 +115,12 @@ class TaskExecutor(object):
         try:
             self.result.get()
         except BaseException, e:
+            if not isinstance(e, TaskException):
+                self.balancer.dispatcher.report_error(
+                    'Task {0} raised exception other than TaskException'.format(self.task.name),
+                    e
+                )
+
             self.task.error = serialize_error(e)
             self.task.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
                 "stacktrace": traceback.format_exc()
@@ -184,7 +191,8 @@ class Task(object):
         self.output = None
         self.rusage = None
         self.executor = TaskExecutor(self.dispatcher.balancer, self)
-        self.ended = threading.Event()
+        self.ended = Event()
+        self.debugger = None
 
     def __getstate__(self):
         return {
@@ -201,7 +209,8 @@ class Task(object):
             "state": self.state,
             "output": self.output,
             "rusage": self.rusage,
-            "error": self.error
+            "error": self.error,
+            "debugger": self.debugger
         }
 
     def __emit_progress(self):
@@ -259,6 +268,7 @@ class Task(object):
 
     def set_state(self, state, progress=None, error=None):
         event = {'id': self.id, 'name': self.name, 'state': state}
+        self.state = state
 
         if error:
             self.error = error
@@ -272,9 +282,12 @@ class Task(object):
             event['finished_at'] = self.finished_at
             event['result'] = self.result
 
-        self.state = state
-        self.dispatcher.dispatch_event('task.updated', event)
+        self.dispatcher.dispatch_event('task.created' if state == TaskState.CREATED else 'task.updated', event)
         self.dispatcher.datastore.update('tasks', self.id, self)
+        self.dispatcher.dispatch_event('task.changed', {
+            'operation': 'create' if state == TaskState.CREATED else 'update',
+            'ids': [self.id]
+        })
 
         if progress:
             self.progress = progress
@@ -320,6 +333,10 @@ class Balancer(object):
         self.dispatcher.require_collection('tasks', 'serial', type='log')
         self.create_initial_queues()
         self.distribution_lock = RLock()
+        self.debugger = None
+        self.debugged_tasks = None
+
+        self.dispatcher.register_event_type('task.changed')
 
         # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
         # from the previous dispatcher instance and set their
@@ -372,7 +389,9 @@ class Balancer(object):
         errors = self.verify_schema(self.dispatcher.tasks[name], args)
         if len(errors) > 0:
             errors = list(validator.serialize_errors(errors))
-            self.logger.warning("Cannot submit task %s: schema verification failed", name)
+            self.logger.warning(
+                "Cannot submit task {0}: schema verification failed with errors {1}".format(name, errors)
+            )
             raise RpcException(errno.EINVAL, "Schema verification failed", extra=errors)
 
         task = Task(self.dispatcher, name)
@@ -381,10 +400,15 @@ class Balancer(object):
         task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = copy.deepcopy(args)
-        task.state = TaskState.CREATED
+
+        if self.debugger:
+            for m in self.debugged_tasks:
+                if fnmatch.fnmatch(name, m):
+                    task.debugger = self.debugger
+
         task.id = self.dispatcher.datastore.insert("tasks", task)
+        task.set_state(TaskState.CREATED)
         self.task_queue.put(task)
-        self.dispatcher.dispatch_event('task.created', {'id': task.id, 'name': name, 'state': task.state})
         self.logger.info("Task %d submitted (type: %s, class: %s)", task.id, name, task.clazz)
         return task.id
 
@@ -398,11 +422,17 @@ class Balancer(object):
         task.created_at = datetime.now()
         task.clazz = self.dispatcher.tasks[name]
         task.args = args
-        task.state = TaskState.CREATED
         task.instance = task.clazz(self.dispatcher, self.dispatcher.datastore)
         task.instance.verify(*task.args)
         task.id = self.dispatcher.datastore.insert("tasks", task)
         task.parent = parent
+
+        if self.debugger:
+            for m in self.debugged_tasks:
+                if fnmatch.fnmatch(name, m):
+                    task.debugger = self.debugger
+
+        task.set_state(TaskState.CREATED)
         self.task_list.append(task)
         task.start()
         return task
@@ -469,6 +499,10 @@ class Balancer(object):
                 self.task_list.append(task)
                 task.ended.set()
                 self.distribution_lock.release()
+
+                if not isinstance(Exception, VerifyException):
+                    self.dispatcher.report_error('Task {0} verify() method raised invalid exception', err)
+
                 continue
 
             task.set_state(TaskState.WAITING)

@@ -40,7 +40,7 @@ from dispatcher.rpc import (
     )
 from utils import first_or_default
 from datastore import DuplicateKeyException
-from fnutils import include
+from fnutils import include, exclude, normalize
 from fnutils.query import wrap
 from fnutils.copytree import count_files, copytree
 
@@ -74,6 +74,7 @@ class VolumeProvider(Provider):
                 'name': ds['name'],
                 'type': ds['type'],
                 'mountpoint': ds['mountpoint'],
+                'volsize': ds.get('properties.volsize.rawvalue'),
                 'properties': include(
                     ds['properties'],
                     'used', 'available', 'compression', 'atime', 'dedup',
@@ -109,7 +110,7 @@ class VolumeProvider(Provider):
                     'root_vdev': config['root_vdev'],
                     'status': config['status'],
                     'scan': config['scan'],
-                    'properties': config['properties'],
+                    'properties': config['properties']
                 })
 
                 if config['status'] != 'UNAVAIL':
@@ -375,7 +376,7 @@ class VolumeCreateTask(ProgressTask):
 
     def run(self, volume):
         name = volume['name']
-        type = volume['type']
+        type = volume.get('type', 'zfs')
         params = volume.get('params') or {}
         mountpoint = params.pop(
             'mountpoint',
@@ -434,7 +435,8 @@ class VolumeCreateTask(ProgressTask):
                 'id': str(pool['guid']),
                 'name': name,
                 'type': type,
-                'mountpoint': mountpoint
+                'mountpoint': mountpoint,
+                'attributes': volume.get('attributes', {})
             })
 
         self.set_progress(90)
@@ -722,6 +724,14 @@ class DatasetCreateTask(Task):
         return ['zpool:{0}'.format(pool_name)]
 
     def run(self, pool_name, path, type, params=None):
+        if params:
+            normalize(params, {
+                'properties': {}
+            })
+
+        if type == 'VOLUME':
+            params['properties']['volsize'] = {'value': params['volsize']}
+
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
             pool_name,
@@ -787,11 +797,16 @@ class DatasetConfigureTask(Task):
     def run(self, pool_name, path, updated_params):
         ds = wrap(self.dispatcher.call_sync('zfs.dataset.query', [('name', '=', path)], {'single': True}))
 
+        if 'name' in updated_params:
+            self.join_subtasks(self.run_subtask('zfs.rename', ds['name'], updated_params['name']))
+            ds['name'] = updated_params['name']
+
         if 'properties' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, updated_params['properties']))
+            props = exclude(updated_params['properties'], 'used', 'available', 'dedup', 'casesensitivity')
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], props))
 
         if 'share_type' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, {
+            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], {
                 'org.freenas:share_type': {'value': updated_params['share_type']}
             }))
 
@@ -807,10 +822,10 @@ class DatasetConfigureTask(Task):
                 raise TaskException(errno.EINVAL, 'Cannot use acls with Mac share type')
 
             if oldtyp != 'ACL' and typ == 'ACL':
-                self.switch_to_acl(pool_name, path)
+                self.switch_to_acl(pool_name, ds['name'])
 
             if oldtyp != 'PERMS' and typ == 'PERMS':
-                self.switch_to_chmod(pool_name, path)
+                self.switch_to_chmod(pool_name, ds['name'])
 
 
 class SnapshotCreateTask(Task):
@@ -917,7 +932,8 @@ def _init(dispatcher, plugin):
                         dispatcher.datastore.insert('volumes', {
                             'id': i,
                             'name': pool['name'],
-                            'type': 'zfs'
+                            'type': 'zfs',
+                            'attributes': {}
                         })
                     except DuplicateKeyException:
                         # already inserted by task
@@ -941,7 +957,7 @@ def _init(dispatcher, plugin):
 
     def on_dataset_change(args):
         dispatcher.dispatch_event('volumes.changed', {
-            'operation': 'create',
+            'operation': 'update',
             'ids': [args['guid']]
         })
 
@@ -957,7 +973,8 @@ def _init(dispatcher, plugin):
                 'enum': ['zfs']
             },
             'topology': {'$ref': 'zfs-topology'},
-            'params': {'type': 'object'}
+            'params': {'type': 'object'},
+            'attributes': {'type': 'object'}
         }
     })
 
@@ -970,6 +987,7 @@ def _init(dispatcher, plugin):
                 'type': 'string',
                 'enum': ['FILESYSTEM', 'VOLUME']
             },
+            'volsize': {'type': ['integer', 'null']},
             'properties': {'type': 'object'},
             'share_type': {
                 'type': 'string',
@@ -1007,7 +1025,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('volumes')
     plugin.register_provider('volumes', VolumeProvider)
     plugin.register_provider('volumes.snapshots', SnapshotProvider)
     plugin.register_task_handler('volume.create', VolumeCreateTask)

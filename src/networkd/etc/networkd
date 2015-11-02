@@ -17,7 +17,7 @@ start_precmd="prestart"
 
 prestart()
 {
-    rc_flags="-P ${pidfile} -f -r /usr/local/sbin/networkd ${rc_flags}"
+    rc_flags="-P ${pidfile} -f -r /usr/local/sbin/crash-wrapper /usr/local/sbin/networkd ${rc_flags}"
 }
 
 load_rc_config $name

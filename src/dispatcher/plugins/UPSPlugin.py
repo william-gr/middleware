@@ -173,7 +173,6 @@ class UPSConfigureTask(Task):
             node.update(ups)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
             self.dispatcher.call_sync('etcd.generation.generate_group', 'ups')
-            self.dispatcher.call_sync('services.restart', 'ups')
             self.dispatcher.dispatch_event('service.ups.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -182,6 +181,8 @@ class UPSConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure UPS: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

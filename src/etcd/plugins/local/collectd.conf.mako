@@ -8,13 +8,11 @@ LoadPlugin aggregation
 LoadPlugin cpu
 LoadPlugin df
 LoadPlugin disk
-LoadPlugin geom_stat
 LoadPlugin interface
 LoadPlugin load
 LoadPlugin memory
 LoadPlugin network
 LoadPlugin processes
-LoadPlugin rrdtool
 LoadPlugin swap
 LoadPlugin uptime
 LoadPlugin syslog
@@ -51,17 +49,7 @@ LoadPlugin write_graphite
     IgnoreSelected true
 </Plugin>
 
-<Plugin "rrdtool">
-    DataDir "/var/db/system/rrd"
-    CacheTimeout 120
-    CacheFlush 900
-</Plugin>
-
 <Plugin "zfs_arc">
-</Plugin>
-
-<Plugin "geom_stat">
-        Filter "^([a]?da|ciss|md|mfi|md|xbd|vtbd)[0123456789]+(p[0123456789]+)?(\.eli)?$"
 </Plugin>
 
 <Plugin "df">

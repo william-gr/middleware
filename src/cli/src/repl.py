@@ -68,9 +68,13 @@ if platform.system() == 'Darwin':
 else:
     import readline
 
+DEFAULT_MIDDLEWARE_CONFIGFILE = None
+CLI_LOG_DIR = os.getcwd()
+if os.environ.get('FREENAS_SYSTEM') == 'YES':
+    DEFAULT_MIDDLEWARE_CONFIGFILE = '/usr/local/etc/middleware.conf'
+    CLI_LOG_DIR = '/var/tmp'
 
-DEFAULT_MIDDLEWARE_CONFIGFILE = '/usr/local/etc/middleware.conf'
-DEFAULT_CLI_CONFIGFILE = os.path.expanduser('~/.freenascli.conf')
+DEFAULT_CLI_CONFIGFILE = os.path.join(os.getcwd(), '.freenascli.conf')
 t = icu.Transliterator.createInstance(
     "Any-Accents",
     icu.UTransDirection.FORWARD)
@@ -252,6 +256,14 @@ class Context(object):
             self.connection.call_sync('management.ping')
 
     def read_middleware_config_file(self, file):
+        if file is None:
+            # This can only happen when we are NOT runnig the cli
+            # natively on freenas/truenas
+            # can we generisize/improve this logic?
+            plug_dirs = os.path.dirname(os.path.realpath(__file__))
+            plug_dirs = os.path.join(os.path.split(plug_dirs)[0], 'plugins')
+            self.plug_dirs += [plug_dirs]
+            return
         try:
             f = open(file, 'r')
             data = json.load(f)
@@ -497,7 +509,7 @@ class MainLoop(object):
 
     def greet(self):
         output_msg(
-            _("Welcome to FreeNAS CLI! Type '?' for help at any point."))
+            _("Welcome to the FreeNAS CLI! Type 'help' to get started."))
         output_msg("")
 
     def cd(self, ns):
@@ -596,6 +608,9 @@ class MainLoop(object):
                     yield (i.left, i.op, self.eval(i.right.expr))
 
     def format_output(self, object):
+        if isinstance(object, list):
+            for i in object:
+                self.format_output(i)
         if isinstance(object, Object):
             output_object(object)
 
@@ -724,8 +739,10 @@ class MainLoop(object):
                 'params': filter_params
             })
         else:
-            self.path = oldpath
-            ret = command.run(self.context, args, kwargs, opargs)
+            try:
+                ret = command.run(self.context, args, kwargs, opargs)
+            finally:
+                self.path = oldpath
 
         for i in pipe_stack:
             pipe_cmd = self.find_in_scope(i[0].name)
@@ -777,17 +794,21 @@ class MainLoop(object):
             output_msg(_('Syntax error: {0}'.format(str(e))))
         except CommandException, e:
             output_msg(_('Error: {0}'.format(str(e))))
+            self.context.logger.error(e.stacktrace)
             if self.context.variables.get('debug'):
                 output_msg(e.stacktrace)
         except RpcException, e:
+            self.context.logger.error(str(e))
             output_msg(_('RpcException Error: {0}'.format(str(e))))
         except SystemExit:
             # We do not want to catch a user entered `exit` so...
             raise
         except Exception as e:
             output_msg(_('Unexpected Error: {0}'.format(str(e))))
+            error_trace = traceback.format_exc()
+            self.context.logger.error(error_trace)
             if self.context.variables.get('debug'):
-                output_msg(traceback.format_exc())
+                output_msg(error_trace)
 
     def get_relative_object(self, ns, tokens):
         ptr = ns
@@ -923,18 +944,20 @@ class MainLoop(object):
 
 
 def main():
-    logging.basicConfig(
-        filename='/var/tmp/freenascli.{0}.log'.format(str(os.getpid())),
-        level=logging.DEBUG)
+    current_cli_logfile = os.path.join(CLI_LOG_DIR, 'freenascli.{0}.log'.format(os.getpid()))
+    logging.basicConfig(filename=current_cli_logfile, level=logging.DEBUG)
     # create symlink to latest created cli log
     # but first check if previous exists and nuke it
     try:
-        os.unlink('/var/tmp/freenascli.latest.log')
+        latest_log = os.path.join(CLI_LOG_DIR, 'freenascli.latest.log')
+        if os.path.lexists(latest_log):
+            os.unlink(latest_log)
+        os.symlink(current_cli_logfile, latest_log)
+        # Try to set the permissions on this symlink to be readable, writable by all
+        os.chmod(latest_log, 0777)
     except OSError:
-        # not there no probs move on
+        # not there no probs or cannot make this symlink move on
         pass
-    os.symlink('/var/tmp/freenascli.{0}.log'.format(str(os.getpid())),
-               '/var/tmp/freenascli.latest.log')
     parser = argparse.ArgumentParser()
     parser.add_argument('hostname', metavar='HOSTNAME', nargs='?',
                         default='127.0.0.1')
@@ -974,7 +997,7 @@ def main():
         try:
             f = sys.stdin if args.f == '-' else open(args.f)
             for line in f:
-                ml.process(line)
+                ml.process(line.strip())
 
             f.close()
         except EnvironmentError, e:

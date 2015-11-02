@@ -100,8 +100,7 @@ class ZpoolProvider(Provider):
             },
             'vdev_groups': {
                 'data': {
-                    'allowed_vdevs': ['disk', 'file', 'mirror',
-                                      'raidz1', 'raidz2', 'raidz3', 'spare']
+                    'allowed_vdevs': ['disk', 'file', 'mirror', 'raidz1', 'raidz2', 'raidz3', 'spare']
                 },
                 'log': {
                     'allowed_vdevs': ['disk', 'mirror']
@@ -121,7 +120,6 @@ class ZpoolProvider(Provider):
             return pool.vdev_by_guid(int(guid)).__getstate__()
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
-
 
     @accepts(str)
     @returns()
@@ -152,18 +150,27 @@ class ZfsDatasetProvider(Provider):
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
-    @accepts(str, str)
-    @returns(str)
-    def get_most_recent_snapshot(self, dataset_name):
+    @accepts(str)
+    @returns(h.array(h.ref('zfs-snapshot')))
+    def get_snapshots(self, dataset_name):
         try:
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(dataset_name)
             snaps = list(ds.snapshots)
-            snaps.sort(key=lambda s: s.properties['creation'].value, reverse=True)
-            if snaps:
-                return snaps[0].name
+            snaps.sort(key=lambda s: int(s.properties['creation'].rawvalue))
+            return snaps
+        except libzfs.ZFSException, err:
+            raise RpcException(errno.EFAULT, str(err))
 
-            return None
+    @returns(long)
+    def estimate_send_size(self, dataset_name, snapshot_name, anchor_name=None):
+        try:
+            zfs = libzfs.ZFS()
+            ds = zfs.get_object('{0}@{1}'.format(dataset_name, snapshot_name))
+            if anchor_name:
+                return ds.get_send_space('{0}@{1}'.format(dataset_name, anchor_name))
+
+            return ds.get_send_space()
         except libzfs.ZFSException, err:
             raise RpcException(errno.EFAULT, str(err))
 
@@ -546,11 +553,9 @@ class ZfsBaseTask(Task):
         path = args[0]
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(path)
-            if not dataset:
-                raise VerifyException(errno.ENOENT, 'Dataset {0} not found'.format(path))
+            dataset = zfs.get_object(path)
         except libzfs.ZFSException, err:
-            raise TaskException(errno.EFAULT, str(err))
+            raise TaskException(errno.ENOENT, str(err))
 
         return ['zpool:{0}'.format(dataset.pool.name)]
 
@@ -617,25 +622,35 @@ class ZfsDatasetCreateTask(Task):
 
 
 class ZfsSnapshotCreateTask(ZfsBaseTask):
-    def run(self, pool_name, path, snapshot_name, recursive=False):
+    def run(self, pool_name, path, snapshot_name, recursive=False, params=None):
+        if params:
+            params = {k: v['value'] for k, v in params.items()}
+
         try:
             zfs = libzfs.ZFS()
             ds = zfs.get_dataset(path)
-            ds.snapshot('{0}@{1}'.format(path, snapshot_name), {})
-
-            if recursive:
-                for child_ds in ds.children_recursive:
-                    child_ds.snapshot(snapshot_name, {})
+            ds.snapshot('{0}@{1}'.format(path, snapshot_name), recursive=recursive, fsopts=params)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
 
 class ZfsSnapshotDeleteTask(ZfsBaseTask):
-    def run(self, pool_name, path, snapshot_name):
+    def run(self, pool_name, path, snapshot_name, recursive=False):
         try:
             zfs = libzfs.ZFS()
             snap = zfs.get_snapshot('{0}@{1}'.format(path, snapshot_name))
-            snap.delete()
+            snap.delete(recursive)
+        except libzfs.ZFSException, err:
+            raise TaskException(errno.EFAULT, str(err))
+
+
+class ZfsSnapshotDeleteMultipleTask(ZfsBaseTask):
+    def run(self, pool_name, path, snapshot_names, recursive=False):
+        try:
+            zfs = libzfs.ZFS()
+            for i in snapshot_names:
+                snap = zfs.get_snapshot('{0}@{1}'.format(path, i))
+                snap.delete(recursive)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
 
@@ -662,7 +677,7 @@ class ZfsDestroyTask(ZfsBaseTask):
     def run(self, name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(name)
+            dataset = zfs.get_object(name)
             dataset.delete()
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
@@ -672,7 +687,7 @@ class ZfsRenameTask(ZfsBaseTask):
     def run(self, name, new_name):
         try:
             zfs = libzfs.ZFS()
-            dataset = zfs.get_dataset(name)
+            dataset = zfs.get_object(name)
             dataset.rename(new_name)
         except libzfs.ZFSException, err:
             raise TaskException(errno.EFAULT, str(err))
@@ -840,7 +855,7 @@ def _init(dispatcher, plugin):
             Resource('zfs:{0}'.format(args['ds'])),
             parents=['zpool:{0}'.format(args['pool'])])
         dispatcher.dispatch_event('zfs.pool.changed', {
-            'operation': 'create',
+            'operation': 'update',
             'ids': [guid]
         })
 
@@ -1140,6 +1155,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('zfs.create_dataset', ZfsDatasetCreateTask)
     plugin.register_task_handler('zfs.create_snapshot', ZfsSnapshotCreateTask)
     plugin.register_task_handler('zfs.delete_snapshot', ZfsSnapshotDeleteTask)
+    plugin.register_task_handler('zfs.delete_multiple_snapshots', ZfsSnapshotDeleteMultipleTask)
     plugin.register_task_handler('zfs.configure', ZfsConfigureTask)
     plugin.register_task_handler('zfs.destroy', ZfsDestroyTask)
     plugin.register_task_handler('zfs.rename', ZfsRenameTask)

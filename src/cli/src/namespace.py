@@ -50,7 +50,12 @@ def description(descr):
 class Namespace(object):
     def __init__(self, name):
         self.name = name
+        self.extra_commands = None
         self.nslist = []
+        self.property_mappings = []
+        self.localdoc = {}
+        self.required_props = None
+        self.extra_required_props = None
 
     def help(self):
         pass
@@ -189,29 +194,52 @@ class PropertyMapping(object):
         obj.set(self.set, value)
 
     def do_append(self, obj, value):
-        if self.type != ValueType.ARRAY:
-            raise ValueError('Property is not an array')
+        if self.type != ValueType.SET:
+            raise ValueError('Property is not a set')
 
         value = read_value(value, self.type)
-        self.set(obj, self.get(obj).append(value))
+        oldvalues = obj.get(self.set)
+        if oldvalues is not None:
+            newvalues = oldvalues + value
+        else:
+            newvalues = value
+
+        if callable(self.set):
+            self.set(obj, newvalues)
+            return
+
+        obj.set(self.set, newvalues)
 
     def do_remove(self, obj, value):
-        if self.type != ValueType.ARRAY:
-            raise ValueError('Property is not an array')
+        if self.type != ValueType.SET:
+            raise ValueError('Property is not a set')
 
         value = read_value(value, self.type)
+        oldvalues = obj.get(self.set)
+        newvalues = oldvalues
+        for v in value:
+            if v in newvalues:
+                newvalues.remove(v)
+            else:
+                raise CommandException(_('{0} is not a value in {1}'.format(v, self.set)))
+
+        if callable(self.set):
+            self.set(obj, newvalues)
+            return
+
+        obj.set(self.set, newvalues)
 
 
 class ItemNamespace(Namespace):
     @description("Shows single item")
-    class ShowEntityCommand(Command):
+    class ShowEntityCommand(FilteringCommand):
         """
         Usage: show
         """
         def __init__(self, parent):
             self.parent = parent
 
-        def run(self, context, args, kwargs, opargs):
+        def run(self, context, args, kwargs, opargs, filtering=None):
             if len(args) != 0:
                 raise CommandException('Wrong arguments count')
 
@@ -232,7 +260,13 @@ class ItemNamespace(Namespace):
                     mapping.do_get(entity),
                     mapping.type
                 ))
-
+            if self.parent.leaf_entity:
+                leaf_res = ListCommand(self.parent).run(context, args, kwargs, opargs, filtering)
+                return [
+                    values,
+                    "-- {0} --".format(self.parent.leaf_ns.description),
+                    leaf_res
+                ]
             return values
 
     @description("Prints single item value")
@@ -261,7 +295,9 @@ class ItemNamespace(Namespace):
     @description("Sets single item property")
     class SetEntityCommand(Command):
         """
-        Usage: set <field>=<value> [...]
+        Usage: set <property>=<value> [...]
+
+        For a list of properties for the current namespace, see 'help properties'.
         """
         def __init__(self, parent):
             self.parent = parent
@@ -291,16 +327,16 @@ class ItemNamespace(Namespace):
                 prop.do_set(entity, v)
 
             for k, op, v in opargs:
-                if op not in ('+=', '-='):
+                if op not in ('=+', '=-'):
                     raise CommandException(
                         "Syntax error, invalid operator used")
 
                 prop = self.parent.get_mapping(k)
 
-                if op == '+=':
+                if op == '=+':
                     prop.do_append(entity, v)
 
-                if op == '-=':
+                if op == '=-':
                     prop.do_remove(entity, v)
 
             self.parent.modified = True
@@ -312,12 +348,13 @@ class ItemNamespace(Namespace):
     def __init__(self, name):
         super(ItemNamespace, self).__init__(name)
         self.name = name
-        self.description = name
+        if not hasattr(self, 'description'):
+            self.description = name
         self.entity = None
+        self.leaf_entity = False
         self.orig_entity = None
         self.allow_edit = True
         self.modified = False
-        self.property_mappings = []
         self.subcommands = {}
         self.nslist = []
 
@@ -388,12 +425,9 @@ class ConfigNamespace(ItemNamespace):
     def __init__(self, name, context):
         super(ConfigNamespace, self).__init__(name)
         self.context = context
-        self.property_mappings = []
-        self.extra_commands = None
         self.saved = name is not None
         self.config_call = None
         self.config_extra_params = None
-        self.localdoc = {}
 
     def get_name(self):
         name = self.name
@@ -422,172 +456,248 @@ class ConfigNamespace(ItemNamespace):
         self.modified = False
 
 
-class EntityNamespace(Namespace):
-    class SingleItemNamespace(ItemNamespace):
-        def __init__(self, name, parent):
-            super(EntityNamespace.SingleItemNamespace, self).__init__(name)
-            self.parent = parent
-            self.saved = name is not None
-            self.property_mappings = parent.property_mappings
-            self.localdoc = parent.entity_localdoc
+class SingleItemNamespace(ItemNamespace):
+    def __init__(self, name, parent, **kwargs):
+        super(SingleItemNamespace, self).__init__(name)
+        self.parent = parent
+        self.saved = name is not None
+        self.property_mappings = parent.property_mappings
+        self.localdoc = parent.entity_localdoc
+        self.leaf_harborer = False
+        self.leaf_entity = kwargs.get('leaf_entity', False)
+        self.leaf_entity_namespace = self.parent.leaf_entity_namespace
+        self.leaf_ns = None
 
-            if parent.entity_commands:
-                self.subcommands = parent.entity_commands(self)
+        if parent.entity_commands:
+            self.subcommands = parent.entity_commands(self)
 
-            if parent.entity_namespaces:
-                self.nslist = parent.entity_namespaces(self)
+        if parent.entity_namespaces:
+            self.nslist = parent.entity_namespaces(self)
 
-            if hasattr(parent, 'allow_edit'):
-                self.allow_edit = parent.allow_edit
-
-        @property
-        def primary_key(self):
-            return self.parent.primary_key.do_get(self.entity)
-
-        def get_name(self):
-            name = self.primary_key if self.entity else self.name
-            if not name and name != 0:
-                name = 'unnamed'
-
-            return name if self.saved and not self.modified else '[{0}]'.format(name)
-
-        def load(self):
-            if self.saved:
-                self.entity = self.parent.get_one(self.get_name())
-                self.orig_entity = copy.deepcopy(self.entity)
+        if parent.leaf_entity_namespace:
+            self.leaf_ns = parent.leaf_entity_namespace(self)
+            if self.nslist:
+                self.nslist.append(self.leaf_ns)
             else:
-                # This is in case the task failed!
-                self.entity = copy.deepcopy(self.orig_entity)
-            self.modified = False
+                self.nslist = [self.leaf_ns]
 
-        def save(self):
-            self.parent.save(self, not self.saved)
+        if hasattr(parent, 'allow_edit'):
+            self.allow_edit = parent.allow_edit
+
+    @property
+    def primary_key(self):
+        return self.parent.primary_key.do_get(self.entity)
+
+    def get_name(self):
+        name = self.primary_key if self.entity else self.name
+        if not name and name != 0:
+            name = 'unnamed'
+
+        return name if self.saved and not self.modified else '[{0}]'.format(name)
+
+    def load(self):
+        if self.saved:
+            self.entity = self.parent.get_one(self.get_name())
+            self.orig_entity = copy.deepcopy(self.entity)
+        else:
+            # This is in case the task failed!
+            self.entity = copy.deepcopy(self.orig_entity)
+        self.modified = False
+
+    def save(self):
+        self.parent.save(self, not self.saved)
+
+    def commands(self):
+        command_set = super(SingleItemNamespace, self).commands()
+        if self.parent.leaf_harborer:
+            if self.leaf_ns.allow_create:
+                command_set.update({
+                    'create': CreateEntityCommand(self),
+                    'delete': DeleteEntityCommand(self),
+                })
+        return command_set
+
+    def namespaces(self):
+        if not self.leaf_entity:
+            return super(SingleItemNamespace, self).namespaces()
+        if self.leaf_ns.primary_key is None:
+            return
+
+        # for some reason yield does not work below
+        nslst = []
+        for i in self.leaf_ns.query([], {}):
+            name = self.leaf_ns.primary_key.do_get(i)
+            nslst.append(SingleItemNamespace(name, self.leaf_ns, leaf_entity=self.leaf_harborer))
+        return nslst
+
+
+@description("Lists items")
+class ListCommand(FilteringCommand):
+    """
+    Usage: show [<field> <operator> <value> ...] [limit=<n>] [sort=<field>,-<field2>]
+
+    Lists items in current namespace, optinally doing filtering and sorting.
+
+    Examples:
+        show
+        show username=root
+        show uid>1000
+        show fullname~="John" sort=fullname
+    """
+    def __init__(self, parent):
+        if hasattr(parent, 'leaf_entity') and parent.leaf_entity:
+            self.parent = parent.leaf_ns
+        else:
+            self.parent = parent
+
+    def __map_filter_properties(self, expr):
+        for i in expr:
+            if len(i) == 2:
+                op, l = i
+                yield op, list(self.__map_filter_properties(l))
+
+            if len(i) == 3:
+                k, op, v = i
+                if op == '==': op = '='
+                if op == '~=': op = '~'
+
+                prop = self.parent.get_mapping(k)
+                yield k if callable(prop.get) else prop.get, op, v
+
+    def run(self, context, args, kwargs, opargs, filtering=None):
+        cols = []
+        params = []
+        options = {}
+
+        if filtering:
+            for k, v in filtering['params'].items():
+                if k == 'limit':
+                    options['limit'] = int(v)
+                    continue
+
+                if k == 'sort':
+                    for sortkey in v:
+                        prop = self.parent.get_mapping(sortkey)
+                        options.setdefault('sort', []).append(prop.get)
+                    continue
+
+                if not self.parent.has_property(k):
+                    raise CommandException('Unknown field {0}'.format(k))
+
+            params = list(self.__map_filter_properties(filtering['filter']))
+
+        for col in filter(lambda x: x.list, self.parent.property_mappings):
+            cols.append(Table.Column(col.descr, col.get, col.type))
+
+        return Table(self.parent.query(params, options), cols)
+
+
+@description("Creates new item")
+class CreateEntityCommand(Command):
+    """
+    Usage: create [<property>=<value> ...]
+
+    For a list of properties for the current namespace, see 'help properties'.
+    """
+    def __init__(self, parent):
+        if hasattr(parent, 'leaf_entity') and parent.leaf_entity:
+            self.parent = parent.leaf_ns
+        else:
+            self.parent = parent
+
+    def run(self, context, args, kwargs, opargs):
+        ns = SingleItemNamespace(None, self.parent)
+        ns.orig_entity = wrap(copy.deepcopy(self.parent.skeleton_entity))
+        ns.entity = wrap(copy.deepcopy(self.parent.skeleton_entity))
+
+        if len(args) > 0:
+            prop = self.parent.primary_key
+            prop.do_set(ns.entity, args.pop(0))
+
+        for k, v in kwargs.items():
+            if not self.parent.has_property(k):
+                output_msg('Property {0} not found'.format(k))
+                return
+            if self.parent.get_mapping(k).set is None:
+                output_msg('Property {0} is not writable'.format(k))
+                return
+
+        if self.parent.required_props:
+            missing_args = []
+            for prop in self.parent.required_props:
+                if isinstance(prop, list):
+                    has_arg = False
+                    for p in prop:
+                        if p in kwargs.keys():
+                            has_arg = True
+                    if not has_arg:
+                        missing_args.append("{0}".format(' or '.join(prop)))
+                else:
+                    if prop not in kwargs.keys():
+                        missing_args.append(prop)
+            if self.parent.extra_required_props:
+                for prop_set in self.parent.extra_required_props:
+                    found_one = False
+                    missing = False
+                    for prop in prop_set:
+                        if prop in kwargs.keys():
+                            found_one = True
+                        else:
+                            if found_one:
+                                missing = True
+                    if found_one and missing:
+                        missing_args.append(' and '.join(prop_set))
+            if len(missing_args) > 0:
+                output_msg('Required properties not met, still missing: {0}'.format(', '.join(missing_args)))
+                return
+        else:
+            if not args and not kwargs:
+                return
+
+        for k, v in kwargs.items():
+            prop = self.parent.get_mapping(k)
+            prop.do_set(ns.entity, v)
+
+        self.parent.save(ns, new=True)
+
+    def complete(self, context, tokens):
+        return [x.name + '=' for x in self.parent.property_mappings if x.set]
+
+
+@description("Removes item")
+class DeleteEntityCommand(Command):
+    """
+    Usage: delete <primary-key>
+
+    Examples:
+        delete john
+    """
+    def __init__(self, parent):
+        if hasattr(parent, 'leaf_entity') and parent.leaf_entity:
+            self.parent = parent.leaf_ns
+        else:
+            self.parent = parent
+
+    def run(self, context, args, kwargs, opargs):
+        if len(args) == 0:
+            raise CommandException(_("Please specify item to delete."))
+        self.parent.delete(args[0])
+
+
+class EntityNamespace(Namespace):
 
     def __init__(self, name, context):
         super(EntityNamespace, self).__init__(name)
         self.context = context
-        self.property_mappings = []
         self.primary_key = None
-        self.extra_commands = None
         self.entity_commands = None
         self.entity_namespaces = None
         self.allow_edit = True
         self.allow_create = True
         self.skeleton_entity = {}
-        self.create_command = self.CreateEntityCommand
-        self.delete_command = self.DeleteEntityCommand
-        self.localdoc = {}
         self.entity_localdoc = {}
-
-    @description("Lists items")
-    class ListCommand(FilteringCommand):
-        """
-        Usage: show [<field> <operator> <value> ...] [limit=<n>] [sort=<field>,-<field2>]
-
-        Lists items in current namespace, optinally doing filtering and sorting.
-
-        Examples:
-            show
-            show username=root
-            show uid>1000
-            show fullname~="John" sort=fullname
-        """
-        def __init__(self, parent):
-            self.parent = parent
-
-        def __map_filter_properties(self, expr):
-            for i in expr:
-                if len(i) == 2:
-                    op, l = i
-                    yield op, list(self.__map_filter_properties(l))
-
-                if len(i) == 3:
-                    k, op, v = i
-                    if op == '==': op = '='
-                    if op == '~=': op = '~'
-
-                    prop = self.parent.get_mapping(k)
-                    yield k if callable(prop.get) else prop.get, op, v
-
-        def run(self, context, args, kwargs, opargs, filtering=None):
-            cols = []
-            params = []
-            options = {}
-
-            if filtering:
-                for k, v in filtering['params'].items():
-                    if k == 'limit':
-                        options['limit'] = int(v)
-                        continue
-
-                    if k == 'sort':
-                        for sortkey in v:
-                            prop = self.parent.get_mapping(sortkey)
-                            options.setdefault('sort', []).append(prop.get)
-                        continue
-
-                    if not self.parent.has_property(k):
-                        raise CommandException('Unknown field {0}'.format(k))
-
-                params = list(self.__map_filter_properties(filtering['filter']))
-
-            for col in filter(lambda x: x.list, self.parent.property_mappings):
-                cols.append(Table.Column(col.descr, col.get, col.type))
-
-            return Table(self.parent.query(params, options), cols)
-
-    @description("Creates new item")
-    class CreateEntityCommand(Command):
-        """
-        Usage: create [<field>=<value> ...]
-        """
-        def __init__(self, parent):
-            self.parent = parent
-
-        def run(self, context, args, kwargs, opargs):
-            ns = EntityNamespace.SingleItemNamespace(None, self.parent)
-            ns.orig_entity = wrap(copy.deepcopy(self.parent.skeleton_entity))
-            ns.entity = wrap(copy.deepcopy(self.parent.skeleton_entity))
-
-            if not args and not kwargs:
-                return
-
-            if len(args) > 0:
-                prop = self.parent.primary_key
-                prop.do_set(ns.entity, args.pop(0))
-
-            for k, v in kwargs.items():
-                if not self.parent.has_property(k):
-                    output_msg('Property {0} not found'.format(k))
-                    return
-                if self.parent.get_mapping(k).set is None:
-                    output_msg('Property {0} is not writable'.format(k))
-                    return
-
-            for k, v in kwargs.items():
-                prop = self.parent.get_mapping(k)
-                prop.do_set(ns.entity, v)
-
-            self.parent.save(ns, new=True)
-
-        def complete(self, context, tokens):
-            return [x.name + '=' for x in self.parent.property_mappings if x.set]
-
-    @description("Removes item")
-    class DeleteEntityCommand(Command):
-        """
-        Usage: delete <primary-key>
-
-        Examples:
-            delete john
-        """
-        def __init__(self, parent):
-            self.parent = parent
-
-        def run(self, context, args, kwargs, opargs):
-            if len(args) == 0:
-                raise CommandException(_("Please specify item to delete."))
-            self.parent.delete(args[0])
+        self.leaf_harborer = False
+        self.leaf_entity_namespace = None
 
     def has_property(self, prop):
         return any(filter(lambda x: x.name == prop, self.property_mappings))
@@ -614,7 +724,7 @@ class EntityNamespace(Namespace):
     def commands(self):
         base = {
             '?': IndexCommand(self),
-            'show': self.ListCommand(self)
+            'show': ListCommand(self)
         }
 
         if self.extra_commands:
@@ -622,8 +732,8 @@ class EntityNamespace(Namespace):
 
         if self.allow_create:
             base.update({
-                'create': self.create_command(self),
-                'delete': self.delete_command(self)
+                'create': CreateEntityCommand(self),
+                'delete': DeleteEntityCommand(self)
             })
 
         return base
@@ -634,7 +744,7 @@ class EntityNamespace(Namespace):
 
         for i in self.query([], {}):
             name = self.primary_key.do_get(i)
-            yield self.SingleItemNamespace(name, self)
+            yield SingleItemNamespace(name, self, leaf_entity=self.leaf_harborer)
 
 
 class RpcBasedLoadMixin(object):
@@ -649,10 +759,10 @@ class RpcBasedLoadMixin(object):
             self.extra_query_params + params, options))
 
     def get_one(self, name):
-        return wrap(self.context.connection.call_sync(
+        return self.context.call_sync(
             self.query_call,
             self.extra_query_params + [(self.primary_key_name, '=', name)],
-            {'single': True}))
+            {'single': True})
 
 
 class TaskBasedSaveMixin(object):

@@ -26,7 +26,7 @@
 #
 #####################################################################
 
-
+from __future__ import print_function
 import os
 import sys
 import argparse
@@ -40,11 +40,14 @@ import socket
 import netif
 import time
 import ipaddress
+import io
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from fnutils.query import wrap
+from fnutils.debug import DebugService
+from fnutils import configure_logging
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -104,7 +107,16 @@ def default_route(gateway):
     if not gateway:
         return None
 
-    r = netif.Route(u'0.0.0.0', u'0.0.0.0', gateway)
+    gw = ipaddress.ip_address(gateway)
+    if gw.version == 4:
+        r = netif.Route(u'0.0.0.0', u'0.0.0.0', gateway)
+
+    elif gw.version == 6:
+        r = netif.Route(u'::', u'::', gateway)
+
+    else:
+        return
+
     r.flags.add(netif.RouteFlags.STATIC)
     r.flags.add(netif.RouteFlags.GATEWAY)
     return r
@@ -238,6 +250,14 @@ class RoutingSocketEventSource(threading.Thread):
                 if entity is None:
                     continue
 
+                # Skip messagess with empty address
+                if not message.address:
+                    continue
+
+                # Skip 0.0.0.0 aliases
+                if message.address == ipaddress.IPv4Address('0.0.0.0'):
+                    continue
+
                 addr = netif.InterfaceAddress()
                 addr.af = netif.AddressFamily.INET
                 addr.address = message.address
@@ -352,6 +372,7 @@ class ConfigurationService(RpcService):
                 netif.destroy_interface(name)
 
         self.configure_routes()
+        self.configure_dns()
         self.client.emit_event('network.changed', {
             'operation': 'update'
         })
@@ -395,6 +416,33 @@ class ConfigurationService(RpcService):
         # Same thing for IPv6
         default_route_ipv6 = default_route(self.config.get('network.gateway.ipv6'))
 
+        if not default_route_ipv6 and rtable.default_route_ipv6:
+            # Default route was deleted
+            self.logger.info('Removing default route')
+            try:
+                rtable.delete(rtable.default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot remove default route: {0}'.format(str(e)))
+
+        elif not rtable.default_route_ipv6 and default_route_ipv6:
+            # Default route was added
+            self.logger.info('Adding default route via {0}'.format(default_route_ipv6.gateway))
+            try:
+                rtable.add(default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot add default route: {0}'.format(str(e)))
+
+        elif rtable.default_route_ipv6 != default_route_ipv6:
+            # Default route was changed
+            self.logger.info('Changing default route from {0} to {1}'.format(
+                rtable.default_route.gateway,
+                default_route_ipv6.gateway))
+
+            try:
+                rtable.change(default_route_ipv6)
+            except OSError, e:
+                self.logger.error('Cannot add default route: {0}'.format(str(e)))
+
         # Now the static routes...
         old_routes = set(static_routes)
         new_routes = set([convert_route(e) for e in self.datastore.query('network.routes')])
@@ -412,6 +460,24 @@ class ConfigurationService(RpcService):
                 rtable.add(i)
             except OSError, e:
                 self.logger.error('Cannot add static route to {0}: {1}'.format(describe_route(i), str(e)))
+
+    def configure_dns(self):
+        resolv = io.StringIO()
+        proc = subprocess.Popen(
+            ['/sbin/resolvconf', '-a', 'lo0'],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE
+        )
+
+        for s in self.context.configstore.get('network.dns.search'):
+            print('search {0}'.format(s), file=resolv)
+
+        for n in self.context.configstore.get('network.dns.addresses'):
+            print('nameserver {0}'.format(n), file=resolv)
+
+        proc.communicate(resolv.getvalue())
+        proc.wait()
+        resolv.close()
 
     def configure_interface(self, name):
         entity = self.datastore.get_one('network.interfaces', ('id', '=', name))
@@ -459,27 +525,32 @@ class ConfigurationService(RpcService):
             self.logger.info('Trying to acquire DHCP lease on interface {0}...'.format(name))
             if not self.context.configure_dhcp(name):
                 self.logger.warn('Failed to configure interface {0} using DHCP'.format(name))
-            return
+        else:
+            addresses = set(convert_aliases(entity))
+            existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
 
-        addresses = set(convert_aliases(entity))
-        existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
+            # Remove orphaned addresses
+            for i in existing_addresses - addresses:
+                self.logger.info('Removing address from interface {0}: {1}'.format(name, i))
+                iface.remove_address(i)
 
-        # Remove orphaned addresses
-        for i in existing_addresses - addresses:
-            self.logger.info('Removing address from interface {0}: {1}'.format(name, i))
-            iface.remove_address(i)
-
-        # Add new or changed addresses
-        for i in addresses - existing_addresses:
-            self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
-            iface.add_address(i)
+            # Add new or changed addresses
+            for i in addresses - existing_addresses:
+                self.logger.info('Adding new address to interface {0}: {1}'.format(name, i))
+                iface.add_address(i)
 
         # nd6 stuff
         if entity.get('rtadv', False):
-            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.ACCEPT_RTADV
+            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.ACCEPT_RTADV}
+        else:
+            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.ACCEPT_RTADV}
 
         if entity.get('noipv6', False):
-            iface.nd6_flags = iface.nd6_flags | netif.NeighborDiscoveryFlags.IFDISABLED
+            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.IFDISABLED}
+            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.AUTO_LINKLOCAL}
+        else:
+            iface.nd6_flags = iface.nd6_flags - {netif.NeighborDiscoveryFlags.IFDISABLED}
+            iface.nd6_flags = iface.nd6_flags | {netif.NeighborDiscoveryFlags.AUTO_LINKLOCAL}
 
         if entity.get('mtu'):
             iface.mtu = entity['mtu']
@@ -617,8 +688,10 @@ class Main:
                 self.client.enable_server()
                 self.register_schemas()
                 self.client.register_service('networkd.configuration', ConfigurationService(self))
+                self.client.register_service('networkd.debug', DebugService())
                 if resume:
                     self.client.resume_service('networkd.configuration')
+                    self.client.resume_service('networkd.debug')
 
                 return
             except socket.error, err:
@@ -703,7 +776,7 @@ class Main:
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/networkd.log', 'DEBUG')
         setproctitle.setproctitle('networkd')
         self.parse_config(args.c)
         self.init_datastore()

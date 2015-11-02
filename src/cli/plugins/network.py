@@ -26,9 +26,12 @@
 #####################################################################
 
 
-import copy
-import icu 
-from namespace import Namespace, EntityNamespace, ConfigNamespace, Command, RpcBasedLoadMixin, TaskBasedSaveMixin, description
+import re
+import icu
+from namespace import (
+    Namespace, EntityNamespace, ConfigNamespace, Command,
+    RpcBasedLoadMixin, TaskBasedSaveMixin, description, CommandException
+)
 from output import ValueType
 from utils import post_save
 from fnutils.query import wrap
@@ -37,6 +40,19 @@ from fnutils.query import wrap
 t = icu.Transliterator.createInstance("Any-Accents", icu.UTransDirection.FORWARD)
 _ = t.transliterate
 
+def set_netmask(entity, netmask):
+    nm = None
+    if re.match("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", netmask):
+        nm = 0
+        for octet in netmask.split('.'):
+            nm += bin(int(octet)).count("1")
+    elif netmask.isdigit():
+        nm = int(netmask)
+
+    if nm is None:
+        raise CommandException(_("Invalid netmask: {0}").format(netmask))
+    
+    entity['netmask'] = nm
 
 class InterfaceCreateCommand(Command):
     def run(self, context, args, kwargs, opargs):
@@ -63,13 +79,17 @@ class InterfaceManageCommand(Command):
 
     def run(self, context, args, kwargs, opargs):
         if self.up:
-            context.submit_task('network.interface.up',
-                                self.parent.primary_key,
-                                callback=lambda s: post_save(self.parent, s))
+            context.submit_task(
+                'network.interface.up',
+                self.parent.primary_key,
+                callback=lambda s: post_save(self.parent, s)
+            )
         else:
-             context.submit_task('network.interface.down',
-                                 self.parent.primary_key,
-                                 callback=lambda s: post_save(self.parent, s))
+            context.submit_task(
+                'network.interface.down',
+                self.parent.primary_key,
+                callback=lambda s: post_save(self.parent, s)
+            )
 
 
 @description("Network interfaces configuration")
@@ -80,6 +100,7 @@ class InterfacesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
         self.query_call = 'network.interfaces.query'
         self.create_task = 'network.interface.create'
         self.update_task = 'network.interface.configure'
+        self.required_props = ['name']
 
         self.link_states = {
             'LINK_STATE_UP': _("up"),
@@ -134,7 +155,7 @@ class InterfacesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
         self.add_property(
             descr='Disable IPv6',
             name='ipv6_disable',
-            get='rtadv',
+            get='noipv6',
             type=ValueType.BOOLEAN,
             list=False
         )
@@ -213,9 +234,8 @@ class InterfacesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
             'down': InterfaceManageCommand(this, False),
         }
 
-        self.entity_namespaces = lambda this: [
-            AliasesNamespace('aliases', self.context, this)
-        ]
+        self.leaf_entity_namespace = lambda this: AliasesNamespace('aliases', self.context, this)
+        self.leaf_harborer = True
 
     def get_link_state(self, entity):
         return self.link_states[entity['status.link_state']]
@@ -256,6 +276,7 @@ class AliasesNamespace(EntityNamespace):
         super(AliasesNamespace, self).__init__(name, context)
         self.parent = parent
         self.allow_edit = False
+        self.required_props = ['address', 'netmask']
 
         self.add_property(
             descr='Address family',
@@ -276,8 +297,8 @@ class AliasesNamespace(EntityNamespace):
             descr='Netmask',
             name='netmask',
             get='netmask',
-            list=True,
-            type=ValueType.NUMBER
+            set=set_netmask,
+            list=True
         )
 
         self.add_property(
@@ -342,6 +363,7 @@ class HostsNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
         self.create_task = 'network.hosts.create'
         self.update_task = 'network.hosts.update'
         self.delete_task = 'network.hosts.delete'
+        self.required_props = ['name', 'address']
 
         self.add_property(
             descr='IP address',
@@ -412,12 +434,16 @@ class GlobalConfigNamespace(ConfigNamespace):
             type=ValueType.BOOLEAN
         )
 
-    #def load(self):
+    # def load(self):
     #    self.entity = self.context.call_sync('')
     #    self.orig_entity = copy.deepcopy(self.entity)
 
     def save(self):
-        return self.context.submit_task('network.configure', self.get_diff(), callback=lambda s: post_save(self, s))
+        return self.context.submit_task(
+            'network.configure',
+            self.get_diff(),
+            callback=lambda s: post_save(self, s)
+        )
 
 
 @description("Routing configuration")
@@ -430,6 +456,23 @@ class RoutesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
         self.create_task = 'network.routes.create'
         self.update_task = 'network.routes.update'
         self.delete_task = 'network.routes.delete'
+        self.required_props = ['name', 'gateway', 'network', 'netmask']
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> gateway=<gateway> network=<network> netmask=<netmask>
+
+            Examples: create name=default gateway=10.0.0.1 network=10.0.0.0 netmask=255.255.255.0
+                      create name=foo gateway=192.168.0.1 network=192.168.0.0 netmask=16 
+                      create name=ipvsix gateway=fda8:06c3:ce53:a890:0000:0000:0000:0001 network=fda8:06c3:ce53:a890:0000:0000:0000:0000 netmask=64 type=INET6
+
+            Creates a network route. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> [...]
+
+            Examples: set name=newname
+                      set gateway=172.16.0.1
+                      set netmask=16
+
+            Sets a network route property. For a list of properties, see 'help properties'.""")
 
         self.skeleton_entity = {
             'type': 'INET'
@@ -460,20 +503,18 @@ class RoutesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
         self.add_property(
             descr='Network',
             name='network',
-            get=self.get_network,
-            set=self.set_network,
+            get='network',
             list=True
         )
 
+        self.add_property(
+            descr='Subnet prefix',
+            name='netmask',
+            get='netmask',
+            set=set_netmask,
+        )
+
         self.primary_key = self.get_mapping('name')
-
-    def get_network(self, entity):
-        return '{0}/{1}'.format(entity['network'], entity['netmask'])
-
-    def set_network(self, entity, value):
-        network, netmask = value.split('/')
-        entity['network'] = network
-        entity['netmask'] = int(netmask)
 
 
 class IPMINamespace(EntityNamespace):
@@ -508,6 +549,7 @@ class IPMINamespace(EntityNamespace):
             descr='Netmask',
             name='netmask',
             get='netmask',
+            set=set_netmask,
             list=True
         )
 

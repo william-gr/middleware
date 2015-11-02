@@ -105,7 +105,7 @@ class SystemInfoProvider(Provider):
     @accepts()
     @returns(h.ref('system-time'))
     def time(self):
-        boot_time = datetime.fromtimestamp(psutil.BOOT_TIME, tz=tz.tzlocal())
+        boot_time = datetime.fromtimestamp(psutil.boot_time(), tz=tz.tzlocal())
         return {
             'system_time': datetime.now(tz=tz.tzlocal()).isoformat(),
             'boot_time': boot_time.isoformat(),
@@ -324,10 +324,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'powerd' in props:
                 cs.set('service.powerd.enable', props['powerd'])
-                if props['powerd']:
-                    self.dispatcher.call_sync('services.ensure_started', 'powerd')
-                else:
-                    self.dispatcher.call_sync('services.ensure_stopped', 'powerd')
+                self.dispatcher.call_sync('services.apply_state', 'powerd')
                 rc = True
 
             if 'swapondrive' in props:
@@ -335,7 +332,7 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'autotune' in props:
                 cs.set('system.autotune', props['autotune'])
-                self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
+                #self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
                 loader = True
 
             if 'debugkernel' in props:
@@ -385,11 +382,11 @@ class SystemUIConfigureTask(Task):
     def run(self, props):
         self.configstore.set(
             'service.nginx.http.enable',
-            True if 'HTTP' in props.get('webui_protocol') else False,
+            True if 'HTTP' in props.get('webui_protocol', []) else False,
         )
         self.configstore.set(
             'service.nginx.https.enable',
-            True if 'HTTPS' in props.get('webui_protocol') else False,
+            True if 'HTTPS' in props.get('webui_protocol', []) else False,
         )
         self.configstore.set('service.nginx.listen', props.get('webui_listen'))
         self.configstore.set('service.nginx.http.port', props.get('webui_http_port'))

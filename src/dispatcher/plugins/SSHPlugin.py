@@ -48,14 +48,6 @@ class SSHConfigureTask(Task):
         return 'Configuring SSH service'
 
     def verify(self, ssh):
-        errors = []
-
-        node = ConfigNode('service.sshd', self.configstore).__getstate__()
-        node.update(ssh)
-
-        if errors:
-            raise ValidationException(errors)
-
         return ['system']
 
     def run(self, ssh):
@@ -63,7 +55,6 @@ class SSHConfigureTask(Task):
             node = ConfigNode('service.sshd', self.configstore)
             node.update(ssh)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'sshd')
-            self.dispatcher.call_sync('services.reload', 'sshd')
             self.dispatcher.dispatch_event('service.ssh.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -73,13 +64,14 @@ class SSHConfigureTask(Task):
                 errno.ENXIO, 'Cannot reconfigure SSH: {0}'.format(str(e))
             )
 
+        return 'RELOAD'
+
 
 def _depends():
     return ['ServiceManagePlugin']
 
 
 def _init(dispatcher, plugin):
-
     # Register schemas
     plugin.register_schema_definition('service-ssh', {
         'type': 'object',

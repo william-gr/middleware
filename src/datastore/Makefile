@@ -13,6 +13,7 @@ install:
 	install sbin/dsinit ${STAGEDIR}${PREFIX}/sbin/
 	install etc/datastore ${STAGEDIR}${PREFIX}/etc/rc.d/
 	install share/factory.json ${STAGEDIR}${PREFIX}/share/datastore/
+	cp -R share/migrations ${STAGEDIR}${PREFIX}/share/datastore/
 	cp -R test ${STAGEDIR}${PREFIX}/share/datastore/
 	cp -R drivers/ ${STAGEDIR}${PREFIX}/lib/datastore/drivers/
 	${PYTHON} setup.py install --root=${STAGEDIR} --prefix=${PREFIX}

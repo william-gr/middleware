@@ -34,6 +34,7 @@ import glob
 import imp
 import json
 import fcntl
+import datetime
 import logging
 import logging.config
 import logging.handlers
@@ -43,6 +44,8 @@ import time
 import uuid
 import errno
 import setproctitle
+import traceback
+import tempfile
 import pty
 import termios
 
@@ -63,11 +66,12 @@ from datastore.config import ConfigStore
 from dispatcher.jsonenc import loads, dumps
 from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
 from resources import ResourceGraph
-from services import ManagementService, EventService, TaskService, PluginService, ShellService, LockService
+from services import ManagementService, DebugService, EventService, TaskService, PluginService, ShellService, LockService
 from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
 from auth import PasswordAuthenticator, TokenStore, Token, TokenException
+from fnutils import FaultTolerantLogHandler
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
@@ -87,14 +91,6 @@ def trace_log(message, *args):
 
         print(message.format(*args), file=trace_log_file)
         trace_log_file.flush()
-
-
-class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):
-    def emit(self, record):
-        try:
-            logging.handlers.WatchedFileHandler.emit(self, record)
-        except IOError:
-            pass
 
 
 class Plugin(object):
@@ -149,6 +145,7 @@ class Plugin(object):
             self.dispatcher.dispatch_event('server.plugin.initialized', {"name": os.path.basename(self.filename)})
         except Exception, err:
             self.dispatcher.logger.exception('Plugin %s exception', self.filename)
+            self.dispatcher.report_error('Cannot initalize plugin {0}'.format(self.filename), err)
             raise RuntimeError('Cannot load plugin {0}: {1}'.format(self.filename, str(err)))
 
     def register_event_handler(self, name, handler):
@@ -250,6 +247,10 @@ class Plugin(object):
 
         self.state = self.UNLOADED
 
+    def reload(self):
+        self.unload()
+        self.load(self.dispatcher)
+
 
 class EventType(object):
     def __init__(self, name, source=None, schema=None):
@@ -336,6 +337,7 @@ class Dispatcher(object):
         register_general_purpose_schemas(self)
 
         self.rpc.register_service('management', ManagementService)
+        self.rpc.register_service('debug', DebugService)
         self.rpc.register_service('event', EventService)
         self.rpc.register_service('task', TaskService)
         self.rpc.register_service('plugin', PluginService)
@@ -345,11 +347,12 @@ class Dispatcher(object):
         self.register_event_type('server.client_connected')
         self.register_event_type('server.client_transport_connected')
         self.register_event_type('server.client_disconnected')
-        self.register_event_type('server.client_logged')
+        self.register_event_type('server.client_login')
+        self.register_event_type('server.client_logout')
+        self.register_event_type('server.service_login')
         self.register_event_type('server.plugin.load_error')
         self.register_event_type('server.plugin.loaded')
         self.register_event_type('server.ready')
-        self.register_event_type('server.service_logged')
         self.register_event_type('server.shutdown')
 
     def start(self):
@@ -369,16 +372,6 @@ class Dispatcher(object):
             f.close()
         except (IOError, ValueError):
             raise
-
-        #if data['dispatcher']['logging'] == 'syslog':
-        #    try:
-        #        self.__init_syslog()
-        #    except IOError:
-        #        # syslog is not yet available
-        #        self.logger.info('Initialization of syslog logger deferred')
-        #        self.register_event_handler('service.started', self.__on_service_started)
-        #    else:
-        #        self.logger.info('Initialized syslog logger')
 
         self.config = data
         self.plugin_dirs = data['dispatcher']['plugin-dirs']
@@ -490,6 +483,7 @@ class Dispatcher(object):
             self.plugins[name] = plugin
         except Exception, err:
             self.logger.exception("Cannot load plugin from %s", path)
+            self.report_error('Cannot load plugin from {0}'.format(path), err)
             self.dispatch_event("server.plugin.load_error", {"name": os.path.basename(path)})
             return
 
@@ -521,7 +515,8 @@ class Dispatcher(object):
                 for h in self.event_handlers[name]:
                     try:
                         gevent.spawn(h, args)
-                    except:
+                    except BaseException, err:
+                        self.report_error('Event handler for event {0} failed'.format(name), err)
                         self.logger.exception('Event handler for event %s failed', name)
 
             if 'nolog' in args and args['nolog']:
@@ -633,7 +628,8 @@ class Dispatcher(object):
             try:
                 if not h(args):
                     return False
-            except:
+            except BaseException, err:
+                self.report_error('Hook for {0} with args {1} failed'.format(name, args), err)
                 return False
 
         return True
@@ -680,6 +676,30 @@ class Dispatcher(object):
         self.call_sync('lock.init', name)
         return ServerLockProxy(self, name)
 
+    def report_error(self, message, exception):
+        if not os.path.isdir('/var/tmp/crash'):
+            try:
+                os.mkdir('/var/tmp/crash')
+            except:
+                # at least we tried
+                return
+
+        report = {
+            'timestamp': str(datetime.datetime.now()),
+            'type': 'exception',
+            'application': 'dispatcher',
+            'message': message,
+            'exception': str(exception),
+            'traceback': traceback.format_exc()
+        }
+
+        try:
+            with tempfile.NamedTemporaryFile(dir='/var/tmp/crash', suffix='.json', prefix='report-', delete=False) as f:
+                json.dump(report, f, indent=4)
+        except:
+            # at least we tried
+            pass
+
     def die(self):
         self.logger.warning('Exiting from "die" command')
 
@@ -717,7 +737,7 @@ class ServerResource(Resource):
 
     def __call__(self, environ, start_response):
         environ = environ
-        current_app = self._app_by_path(environ['PATH_INFO'])
+        current_app = self._app_by_path(environ['PATH_INFO'], 'wsgi.websocket' in environ)
 
         if current_app is None:
             raise Exception("No apps defined")
@@ -762,14 +782,17 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
     def on_open(self):
         self.real_client_address = self.ws.handler.client_address
+        client_addr, client_port = self.real_client_address[:2]
         trace_log('Client {0} connected', self.real_client_address)
         self.server.connections.append(self)
         self.dispatcher.dispatch_event('server.client_connected', {
-            'address': self.real_client_address,
+            'address': client_addr,
+            'port': client_port,
             'description': "Client {0} connected".format(self.real_client_address)
         })
 
     def on_close(self, reason):
+        client_addr, client_port = self.real_client_address[:2]
         trace_log('Client {0} disconnected', self.real_client_address)
         self.server.connections.remove(self)
 
@@ -782,7 +805,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                     ev.decref()
 
         self.dispatcher.dispatch_event('server.client_disconnected', {
-            'address': self.real_client_address,
+            'address': client_addr,
+            'port': client_port,
             'description': "Client {0} disconnected".format(self.real_client_address)
         })
 
@@ -826,14 +850,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         self.real_client_address = client_address
 
     def on_events_subscribe(self, id, event_masks):
-        # Confirming the event masks is a flat list
-        event_masks_copy = []
-        for i in event_masks:
-            if isinstance(i, list):
-                event_masks_copy.append(*i)
-            else:
-                event_masks_copy.append(i)
-        event_masks = event_masks_copy[:]
+        if not isinstance(event_masks, list):
+            return
 
         if self.user is None:
             return
@@ -857,14 +875,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.event_masks = set.union(self.event_masks, set(event_masks))
 
     def on_events_unsubscribe(self, id, event_masks):
-        # Confirming the event masks is a flat list
-        event_masks_copy = []
-        for i in event_masks:
-            if isinstance(i, list):
-                event_masks_copy.append(*i)
-            else:
-                event_masks_copy.append(i)
-        event_masks = event_masks_copy[:]
+        if not isinstance(event_masks, list):
+            return
 
         if self.user is None:
             return
@@ -903,7 +915,27 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.dispatcher.dispatch_event(data['name'], data['args'])
 
+    def on_events_event_burst(self, id, data):
+        if self.user is None:
+            return
+
+        # Keep session alive
+        if self.token:
+            try:
+                self.dispatcher.token_store.keepalive_token(self.token)
+            except TokenException:
+                # Token expired, logout user
+                self.logout('Logged out due to inactivity period')
+                return
+
+        if 'events' not in data:
+            return
+
+        for i in data['events']:
+            self.dispatcher.dispatch_event(i['name'], i['args'])
+
     def on_rpc_auth_service(self, id, data):
+        client_addr, client_port = self.real_client_address[:2]
         service_name = data['name']
 
         self.send_json({
@@ -915,8 +947,9 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.user = self.dispatcher.auth.get_service(service_name)
         self.open_session()
-        self.dispatcher.dispatch_event('server.service_logged', {
-            'address': self.real_client_address,
+        self.dispatcher.dispatch_event('server.service_login', {
+            'address': client_addr,
+            'port': client_port,
             'name': service_name,
             'description': "Service {0} logged in".format(service_name)
         })
@@ -926,7 +959,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         resource = data.get('resource', None)
         lifetime = self.dispatcher.configstore.get("middleware.token_lifetime")
         token = self.dispatcher.token_store.lookup_token(token)
-        client_addr, client_port = self.real_client_address
+        client_addr, client_port = self.real_client_address[:2]
 
         if not token:
             self.emit_rpc_error(id, errno.EACCES, "Incorrect or expired token")
@@ -934,7 +967,8 @@ class ServerConnection(WebSocketApplication, EventEmitter):
 
         self.user = token.user
         self.token = self.dispatcher.token_store.issue_token(
-            Token(user=self.user,
+            Token(
+                user=self.user,
                 lifetime=lifetime,
                 revocation_function=self.logout
             )
@@ -948,7 +982,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
         self.open_session()
-        self.dispatcher.dispatch_event('server.client_logged', {
+        self.dispatcher.dispatch_event('server.client_loggin', {
             'address': client_addr,
             'port': client_port,
             'username': self.user.name,
@@ -1001,7 +1035,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
         self.open_session()
-        self.dispatcher.dispatch_event('server.client_logged', {
+        self.dispatcher.dispatch_event('server.client_login', {
             'address': client_addr,
             'port': client_port,
             'username': username,
@@ -1093,10 +1127,18 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def close_session(self):
+        client_addr, client_port = self.real_client_address[:2]
         session = self.dispatcher.datastore.get_by_id('sessions', self.session_id)
         session['active'] = False
         session['ended-at'] = time.time()
         self.dispatcher.datastore.update('sessions', self.session_id, session)
+
+        self.dispatcher.dispatch_event('server.client_logout', {
+            'address': client_addr,
+            'port': client_port,
+            'username': self.user.name,
+            'description': "Client {0} logged out".format(self.user.name)
+        })
 
     def broadcast_event(self, event, args):
         for i in self.server.connections:
@@ -1373,12 +1415,13 @@ class FileConnection(WebSocketApplication, EventEmitter):
 
 def run(d, args):
     setproctitle.setproctitle('dispatcher')
-    monkey.patch_all()
+    monkey.patch_all(thread=False)
 
     # Signal handlers
     gevent.signal(signal.SIGQUIT, d.die)
     gevent.signal(signal.SIGTERM, d.die)
     gevent.signal(signal.SIGINT, d.die)
+    gevent.signal(signal.SIGHUP, d.reload_plugins)
 
     # WebSockets server
     kwargs = {}

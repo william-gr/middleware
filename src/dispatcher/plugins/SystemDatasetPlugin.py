@@ -32,8 +32,6 @@ import uuid
 import logging
 import shutil
 import time
-import pwd
-import grp
 import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
@@ -59,6 +57,7 @@ SKELETON_DIRS = [
         Directory('riak-cs', owner='riakcs', group='riak'),
         Directory('stanchion', owner='stanchion', group='riak'),
         Directory('swift', owner='swift', group='swift'),
+        Directory('samba4')
     ]),
     Directory('samba', link='/var/db/samba4', children=[
         Directory('private')
@@ -80,9 +79,10 @@ def link_directories(dispatcher):
                 os.symlink(target, d.link)
 
         if hasattr(d, 'owner'):
-            uid = pwd.getpwnam(d.owner).pw_uid
-            gid = grp.getgrnam(d.group).gr_gid
-            os.chown(target, uid, gid)
+            user = dispatcher.call_sync('users.query', [('id', '=', d.owner)], {'single': True})
+            group = dispatcher.call_sync('groups.query', [('id', '=', d.group)], {'single': True})
+            if user and group:
+                os.chown(target, user['id'], group['id'])
 
         for c in d.children:
             try:
@@ -95,9 +95,10 @@ def link_directories(dispatcher):
                     )
 
             if hasattr(c, 'owner'):
-                uid = pwd.getpwnam(c.owner).pw_uid
-                gid = grp.getgrnam(c.group).gr_gid
-                os.chown(os.path.join(target, c.name), uid, gid)
+                user = dispatcher.call_sync('users.query', [('id', '=', c.owner)], {'single': True})
+                group = dispatcher.call_sync('groups.query', [('id', '=', c.group)], {'single': True})
+                if user and group:
+                    os.chown(os.path.join(target, c.name), user['id'], group['id'])
 
 
 def create_system_dataset(dispatcher, dsid, pool):
@@ -108,14 +109,17 @@ def create_system_dataset(dispatcher, dsid, pool):
     try:
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
     except libzfs.ZFSException:
-        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {'mountpoint': 'none'})
+        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {
+            'mountpoint': 'none',
+            'sharenfs': 'off'
+        })
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
 
     try:
         ds.properties['canmount'].value = 'noauto'
         ds.properties['mountpoint'].value = SYSTEM_DIR
     except libzfs.ZFSException, err:
-        logger.warning('Cannot set properties on .system dataset: {0}', str(err))
+        logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
 
 
 def remove_system_dataset(dispatcher, dsid, pool):
@@ -158,11 +162,14 @@ def umount_system_dataset(dispatcher, dsid, pool):
         logger.error('Cannot unmount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
 
 
-def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
+def move_system_dataset(dispatcher, dsid, services, src_pool, dst_pool):
     logger.warning('Migrating system dataset from pool {0} to {1}'.format(src_pool, dst_pool))
     tmpath = os.tempnam('/tmp')
     create_system_dataset(dispatcher, dsid, dst_pool)
     mount_system_dataset(dispatcher, dsid, dst_pool, tmpath)
+
+    for s in services:
+        dispatcher.call_sync('services.ensure_stopped', s)
 
     try:
         copytree(SYSTEM_DIR, tmpath)
@@ -175,6 +182,9 @@ def move_system_dataset(dispatcher, dsid, src_pool, dst_pool):
     umount_system_dataset(dispatcher, dsid, src_pool)
     mount_system_dataset(dispatcher, dsid, dst_pool, SYSTEM_DIR)
     remove_system_dataset(dispatcher, dsid, src_pool)
+
+    for s in services:
+        dispatcher.call_sync('services.ensure_started', s, timeout=20)
 
 
 class SystemDatasetProvider(Provider):
@@ -221,8 +231,22 @@ class SystemDatasetConfigure(Task):
 
     def run(self, pool):
         status = self.dispatcher.call_sync('system_dataset.status')
+        services = self.configstore.get('system.dataset.services')
+        restart = filter(
+            lambda s: self.configstore.get('service.{0}.enable'.format(s)),
+            services
+        )
+
+        logger.warning('Services to be restarted: {0}'.format(', '.join(restart)))
+
         if status['pool'] != pool:
-            move_system_dataset(self.dispatcher, self.configstore.get('system.dataset.id'), status['pool'], pool)
+            move_system_dataset(
+                self.dispatcher,
+                self.configstore.get('system.dataset.id'),
+                restart,
+                status['pool'],
+                pool
+            )
 
         self.configstore.set('system.dataset.pool', pool)
 

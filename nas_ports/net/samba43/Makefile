@@ -17,7 +17,7 @@ CONFLICTS?=		*samba3[2-6]-3.* samba4-4.0.* samba41-4.1.* samba42-4.2.*
 
 SAMBA4_BASENAME=	samba
 SAMBA4_PORTNAME=	${SAMBA4_BASENAME}4
-SAMBA4_VERSION=		4.3.0
+SAMBA4_VERSION=		4.3.1
 SAMBA4_DISTNAME=	${SAMBA4_BASENAME}-${SAMBA4_VERSION:S|.p|pre|:S|.r|rc|:S|.t|tp|:S|.a|alpha|}
 
 USE_GITHUB=		yes
@@ -111,32 +111,37 @@ RUN_DEPENDS+=		${PYTHON_PKGNAMEPREFIX}dnspython>=1.9.4:${PORTSDIR}/dns/py-dnspyt
 # Using the bundled versions. Will make this conditional later.
 
 # talloc
-#BUILD_DEPENDS+=		talloc>=2.1.3_1:${PORTSDIR}/devel/talloc
-#RUN_DEPENDS+=		talloc>=2.1.3_1:${PORTSDIR}/devel/talloc
-#SAMBA4_BUNDLED_LIBS+=	!talloc
+BUILD_DEPENDS+=		talloc>=2.1.3_1:${PORTSDIR}/devel/talloc
+RUN_DEPENDS+=		talloc>=2.1.3_1:${PORTSDIR}/devel/talloc
+SAMBA4_BUNDLED_LIBS+=	!talloc
+
 # tevent
-#BUILD_DEPENDS+=		tevent>=0.9.25:${PORTSDIR}/devel/tevent
-#RUN_DEPENDS+=		tevent>=0.9.25:${PORTSDIR}/devel/tevent
-#SAMBA4_BUNDLED_LIBS+=	!tevent
+BUILD_DEPENDS+=		tevent>=0.9.25:${PORTSDIR}/devel/tevent
+RUN_DEPENDS+=		tevent>=0.9.25:${PORTSDIR}/devel/tevent
+SAMBA4_BUNDLED_LIBS+=	!tevent
+
 # tdb
-#BUILD_DEPENDS+=		tdb>=1.3.7_1:${PORTSDIR}/databases/tdb
-#RUN_DEPENDS+=		tdb>=1.3.7_1:${PORTSDIR}/databases/tdb
-#SAMBA4_BUNDLED_LIBS+=	!tdb
+BUILD_DEPENDS+=		tdb>=1.3.7_1:${PORTSDIR}/databases/tdb
+RUN_DEPENDS+=		tdb>=1.3.7_1:${PORTSDIR}/databases/tdb
+SAMBA4_BUNDLED_LIBS+=	!tdb
+
 # ntdb
-#BUILD_DEPENDS+=		ntdb>=1.0:${PORTSDIR}/databases/ntdb
-#RUN_DEPENDS+=		ntdb>=1.0:${PORTSDIR}/databases/ntdb
-#SAMBA4_BUNDLED_LIBS+=	!ntdb
+BUILD_DEPENDS+=		ntdb>=1.0:${PORTSDIR}/databases/ntdb
+RUN_DEPENDS+=		ntdb>=1.0:${PORTSDIR}/databases/ntdb
+SAMBA4_BUNDLED_LIBS+=	!ntdb
+
 # ldb
-#BUILD_DEPENDS+=		ldb>=1.1.21_1:${PORTSDIR}/databases/ldb
-#RUN_DEPENDS+=		ldb>=1.1.21_1:${PORTSDIR}/databases/ldb
-#SAMBA4_BUNDLED_LIBS+=	!ldb
+BUILD_DEPENDS+=		ldb>=1.1.21_1:${PORTSDIR}/databases/ldb
+RUN_DEPENDS+=		ldb>=1.1.21_1:${PORTSDIR}/databases/ldb
+SAMBA4_BUNDLED_LIBS+=	!ldb
+
 # Don't use external libcom_err
 #SAMBA4_BUNDLED_LIBS+=	com_err
 
 PLIST_SUB+=		PY_DNSPYTHON="@comment "
 
 SAMBA4_BUNDLED_LIBS+=	!libarchive
-SAMBA4_BUNDLED_LIBS+=	ALL
+#SAMBA4_BUNDLED_LIBS+=	ALL
 ##############################################################################
 # Options
 OPTIONS_DEFINE=		ACL_SUPPORT AD_DC ADS AIO_SUPPORT CUPS DEBUG \
@@ -531,14 +536,14 @@ SAMBA_MAN8+=		eventlogadm.8 idmap_ad.8 idmap_autorid.8 idmap_hash.8 idmap_ldap.8
 			idmap_nss.8 idmap_rfc2307.8 idmap_rid.8 idmap_script.8 idmap_tdb.8 \
 			idmap_tdb2.8 net.8 nmbd.8 pam_winbind.8 pdbedit.8 samba-regedit.8 \
 			samba-tool.8 samba.8 smbd.8 smbpasswd.8 smbspool.8 smbta-util.8 \
-			tdbbackup.8 tdbdump.8 tdbrestore.8 tdbtool.8 vfs_acl_tdb.8 vfs_acl_xattr.8 \
-			vfs_aio_fork.8 vfs_aio_linux.8 vfs_aio_pthread.8 vfs_audit.8 vfs_btrfs.8 \
-			vfs_cacheprime.8 vfs_cap.8 vfs_catia.8 vfs_ceph.8 vfs_commit.8 \
-			vfs_crossrename.8 vfs_default_quota.8 vfs_dirsort.8 vfs_extd_audit.8 \
-			vfs_fake_perms.8 vfs_fileid.8 vfs_fruit.8 vfs_full_audit.8 vfs_glusterfs.8 \
-			vfs_gpfs.8 vfs_linux_xfs_sgid.8 vfs_media_harmony.8 vfs_netatalk.8 \
-			vfs_prealloc.8 vfs_preopen.8 vfs_readahead.8 vfs_readonly.8 vfs_recycle.8 \
-			vfs_scannedonly.8 vfs_shadow_copy.8 vfs_shadow_copy2.8 vfs_shell_snap.8 \
+			vfs_acl_tdb.8 vfs_acl_xattr.8 vfs_aio_fork.8 vfs_aio_linux.8 \
+			vfs_aio_pthread.8 vfs_audit.8 vfs_btrfs.8 vfs_cacheprime.8 vfs_cap.8 \
+			vfs_catia.8 vfs_ceph.8 vfs_commit.8 vfs_crossrename.8 vfs_default_quota.8 \
+			vfs_dirsort.8 vfs_extd_audit.8 vfs_fake_perms.8 vfs_fileid.8 vfs_fruit.8 \
+			vfs_full_audit.8 vfs_glusterfs.8 vfs_gpfs.8 vfs_linux_xfs_sgid.8 \
+			vfs_media_harmony.8 vfs_netatalk.8 vfs_prealloc.8 vfs_preopen.8 \
+			vfs_readahead.8 vfs_readonly.8 vfs_recycle.8 vfs_scannedonly.8 \
+			vfs_shadow_copy.8 vfs_shadow_copy2.8 vfs_shell_snap.8 \
 			vfs_smb_traffic_analyzer.8 vfs_snapper.8 vfs_streams_depot.8 \
 			vfs_streams_xattr.8 vfs_syncops.8 vfs_time_audit.8 vfs_tsmsm.8 \
 			vfs_unityed_media.8 vfs_worm.8 vfs_xattr_tdb.8 vfs_zfsacl.8 winbindd.8
@@ -546,6 +551,7 @@ SAMBA_MAN8+=		eventlogadm.8 idmap_ad.8 idmap_autorid.8 idmap_hash.8 idmap_ldap.8
 PORTDOCS=		README.FreeBSD
 
 IGNORE_NONTHREAD_PYTHON=needs port lang/python${PYTHON_SUFFIX} to be build with THREADS support
+
 
 post-extract:
 			@${RM} -rf ${WRKSRC}/pidl

@@ -32,7 +32,10 @@ import ply.yacc as yacc
 
 class Symbol(object):
     def __init__(self, name):
-        self.name = name
+        if name == "none":
+            self.name = None
+        else:
+            self.name = name
 
     def __str__(self):
         return "<Symbol '{0}'>".format(self.name)
@@ -59,7 +62,7 @@ class BinaryExpr(object):
         self.right = right
 
     def __str__(self):
-        return "<BinaryExpr left '{0}' op '{1}' right '{2}>".format(self.left, self.op, self.right)
+        return "<BinaryExpr left '{0}' op '{1}' right '{2}'>".format(self.left, self.op, self.right)
 
     def __repr__(self):
         return str(self)
@@ -103,7 +106,7 @@ class CommandExpansion(object):
 tokens = [
     'ATOM', 'NUMBER', 'HEXNUMBER', 'BINNUMBER', 'OCTNUMBER', 'STRING',
     'ASSIGN', 'EOPEN', 'ECLOSE', 'EQ', 'NE', 'GT', 'GE', 'LT', 'LE',
-    'REGEX', 'UP', 'PIPE', 'LIST', 'COMMA'
+    'REGEX', 'UP', 'PIPE', 'LIST', 'COMMA', 'INC', 'DEC'
 ]
 
 
@@ -142,6 +145,8 @@ t_PIPE = r'\|'
 t_EOPEN = r'\$\('
 t_ECLOSE = r'\)'
 t_ASSIGN = r'='
+t_INC = r'=\+'
+t_DEC = r'=-'
 t_EQ = r'=='
 t_NE = r'\!='
 t_GT = r'>'
@@ -152,7 +157,7 @@ t_REGEX = r'~='
 t_COMMA = r'\,'
 t_UP = r'\.\.'
 t_LIST = r'\?'
-t_ATOM = r'[0-9a-zA-Z_\$\/-][0-9a-zA-Z_\_\-\.\/#]*'
+t_ATOM = r'[0-9a-zA-Z_\$\/-\/][0-9a-zA-Z_\_\-\.\/#@\:]*'
 
 
 def t_error(t):
@@ -223,6 +228,8 @@ def p_binary(p):
     binary : ATOM LT expr
     binary : ATOM LE expr
     binary : ATOM REGEX expr
+    binary : ATOM INC expr
+    binary : ATOM DEC expr
     """
     p[0] = BinaryExpr(p[1], p[2], p[3])
 

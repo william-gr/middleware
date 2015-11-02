@@ -28,9 +28,11 @@
 import icu
 from namespace import (
     Namespace, EntityNamespace, Command, IndexCommand,
-    RpcBasedLoadMixin, TaskBasedSaveMixin, description
+    RpcBasedLoadMixin, TaskBasedSaveMixin, description,
+    CommandException
     )
-from output import ValueType, output_list
+from output import ValueType, Table
+from fnutils import first_or_default
 
 
 t = icu.Transliterator.createInstance("Any-Accents", icu.UTransDirection.FORWARD)
@@ -44,7 +46,11 @@ class ConnectedUsersCommand(Command):
 
     def run(self, context, args, kwargs, opargs):
         result = context.call_sync('shares.get_connected_clients', self.parent.entity['id'])
-        output_list(result, _("IP address"))
+        return Table(result, [
+            Table.Column(_("IP address"), 'host', ValueType.STRING),
+            Table.Column(_("User"), 'user', ValueType.STRING),
+            Table.Column(_("Connected at"), 'connected_at', ValueType.STRING)
+        ])
 
 
 @description("Configure and manage shares")
@@ -62,11 +68,12 @@ class SharesNamespace(Namespace):
         return [
             NFSSharesNamespace('nfs', self.context),
             AFPSharesNamespace('afp', self.context),
-            CIFSSharesNamespace('cifs', self.context)
+            CIFSSharesNamespace('cifs', self.context),
+            ISCSISharesNamespace('iscsi', self.context)
         ]
 
 
-class BaseSharesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
+class BaseSharesNamespace(TaskBasedSaveMixin, RpcBasedLoadMixin, EntityNamespace):
     def __init__(self, name, type_name, context):
         super(BaseSharesNamespace, self).__init__(name, context)
 
@@ -75,6 +82,7 @@ class BaseSharesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
         self.create_task = 'share.create'
         self.update_task = 'share.update'
         self.delete_task = 'share.delete'
+        self.required_props = ['name', 'target']
 
         self.skeleton_entity = {
             'type': type_name,
@@ -84,8 +92,15 @@ class BaseSharesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
         self.add_property(
             descr='Share name',
             name='name',
-            get='id',
+            get='name',
             list=True
+        )
+
+        self.add_property(
+            descr='Share type',
+            name='type',
+            get='type',
+            list=False
         )
 
         self.add_property(
@@ -97,6 +112,8 @@ class BaseSharesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
         )
 
         self.primary_key = self.get_mapping('name')
+        self.primary_key_name = 'name'
+        self.save_key_name = 'id'
         self.entity_commands = lambda this: {
             'clients': ConnectedUsersCommand(this)
         }
@@ -110,6 +127,23 @@ class BaseSharesNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace
 class NFSSharesNamespace(BaseSharesNamespace):
     def __init__(self, name, context):
         super(NFSSharesNamespace, self).__init__(name, 'nfs', context)
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> target=<target> <property>=<value> ...
+
+            Examples:
+                create name=foo target=tank
+                create name=foo target=tank read_only=true
+
+            Creates an NFS share. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set alldirs=true
+                      set read_only=true
+                      set root_user=tom
+                      set hosts=192.168.1.1, foobar.local
+
+            Sets an NFS share property. For a list of properties, see 'help properties'.""")
 
         self.add_property(
             descr='All directories',
@@ -176,6 +210,23 @@ class NFSSharesNamespace(BaseSharesNamespace):
 class AFPSharesNamespace(BaseSharesNamespace):
     def __init__(self, name, context):
         super(AFPSharesNamespace, self).__init__(name, 'afp', context)
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> target=<target> <property>=<value> ...
+
+            Examples:
+                create name=foo target=tank
+                create name=foo target=tank read_only=true
+
+            Creates an AFP share. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set time_machine=true
+                      set read_only=true
+                      set users_allow=tom, frank
+                      set hosts_allow=192.168.1.1, foobar.local
+
+            Sets an AFP share property. For a list of properties, see 'help properties'.""")
 
         self.add_property(
             descr='Allowed hosts/networks',
@@ -226,6 +277,23 @@ class AFPSharesNamespace(BaseSharesNamespace):
 class CIFSSharesNamespace(BaseSharesNamespace):
     def __init__(self, name, context):
         super(CIFSSharesNamespace, self).__init__(name, 'cifs', context)
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> target=<target> <property>=<value> ...
+
+            Examples:
+                create name=foo target=tank
+                create name=foo target=tank read_only=true
+
+            Creates a CIFS share. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set guest_ok=false
+                      set read_only=true
+                      set browseable=true
+                      set hosts_allow=192.168.1.1, foobar.local
+
+            Sets a CIFS share property. For a list of properties, see 'help properties'.""")
 
         self.add_property(
             descr='Allowed hosts',
@@ -280,6 +348,338 @@ class CIFSSharesNamespace(BaseSharesNamespace):
             list=False,
             type=ValueType.BOOLEAN
         )
+
+
+@description("iSCSI portals")
+class ISCSIPortalsNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
+    def __init__(self, name, context):
+        super(ISCSIPortalsNamespace, self).__init__(name, context)
+        self.query_call = 'shares.iscsi.portal.query'
+        self.create_task = 'share.iscsi.portal.create'
+        self.update_task = 'share.iscsi.portal.update'
+        self.delete_task = 'share.iscsi.portal.delete'
+        self.required_props = ['name', 'listen']
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> listen=<hostname>:<port>,<hostname>:<port> <property>=<value> ...
+
+            Examples:
+                create name=foo listen=192.168.1.10
+                create name=bar listen=127.0.0.1,foobar.local:8888 
+
+            Creates an iSCSI portal. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set discovery_auth_group=somegroup
+                      set discovery_auth_method=CHAP
+                      set listen=hostname,127.0.0.1,192.168.1.10:8888
+
+            Sets a iSCSI portal property. For a list of properties, see 'help properties'.""")
+
+        self.add_property(
+            descr='Group name',
+            name='name',
+            get='id'
+        )
+
+        self.add_property(
+            descr='Discovery auth group',
+            name='discovery_auth_group',
+            get='discovery_auth_group',
+            type=ValueType.STRING,
+        )
+
+        self.add_property(
+            descr='Discovery auth method',
+            name='discovery_auth_method',
+            get='discovery_auth_method',
+            type=ValueType.STRING,
+            enum=['NONE', 'CHAP', 'CHAP_MUTUAL']
+        )
+
+        self.add_property(
+            descr='Listen addresses and ports',
+            name='listen',
+            get=self.get_portals,
+            set=self.set_portals,
+            type=ValueType.SET
+        )
+
+        self.primary_key = self.get_mapping('name')
+
+    def get_portals(self, obj):
+        return map(lambda i: '{address}:{port}'.format(**i), obj['portals'])
+
+    def set_portals(self, obj, value):
+        def pack(item):
+            ret = item.split(':', 2)
+            if not ret[1].isdigit():
+                raise CommandException(_("Invalid port number: {0}").format(ret[1]))
+            return {
+                'address': ret[0],
+                'port': int(ret[1]) if len(ret) == 2 else 3260
+            }
+
+        obj['portals'] = map(pack, value)
+
+
+@description("iSCSI authentication groups")
+class ISCSIAuthGroupsNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
+    def __init__(self, name, context):
+        super(ISCSIAuthGroupsNamespace, self).__init__(name, context)
+        self.query_call = 'shares.iscsi.auth.query'
+        self.create_task = 'share.iscsi.auth.create'
+        self.update_task = 'share.iscsi.auth.update'
+        self.delete_task = 'share.iscsi.auth.delete'
+        self.required_props = ['name', 'policy']
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> policy=<policy>
+
+            Examples:
+                create name=foo policy=NONE
+                create name=bar policy=DENY 
+
+            Creates an iSCSI auth group. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set name=newname
+                      set policy=CHAP
+
+            Sets a iSCSI auth group property. For a list of properties, see 'help properties'.""")
+        
+        self.add_property(
+            descr='Portal name',
+            name='name',
+            get='id'
+        )
+
+        self.add_property(
+            descr='Group policy',
+            name='policy',
+            get='type',
+            type=ValueType.STRING,
+            enum=['NONE', 'DENY', 'CHAP', 'CHAP_MUTUAL']
+        )
+
+        self.primary_key = self.get_mapping('name')
+        self.entity_namespaces = lambda this: [
+            ISCSIUsersNamespace('users', self.context, this)
+        ]
+
+
+@description("iSCSI auth users")
+class ISCSIUsersNamespace(EntityNamespace):
+    def __init__(self, name, context, parent):
+        super(ISCSIUsersNamespace, self).__init__(name, context)
+        self.parent = parent
+        self.required_props = ['name', 'secret']
+        self.extra_required_props = [['peer_name', 'peer_secret']]
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> secret=<secret>
+                   create name=<name> secret=<secret> peer_name<name> peer_secret=<secret>
+
+            Examples:
+                create name=foo secret=abcdefghijkl
+                create name=bar secret=mnopqrstuvwx peer_name=foo peer_secret=abcdefghijkl
+
+            Creates an iSCSI auth user. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set name=newname
+                      set secret=yzabcdefghij
+                      set peer_name=bob
+                      set peer_secret=klmnopqrstuv
+
+            Sets a iSCSI auth user property. For a list of properties, see 'help properties'.""")
+
+        self.add_property(
+            descr='User name',
+            name='name',
+            get='name'
+        )
+
+        self.add_property(
+            descr='User secret',
+            name='secret',
+            get='secret'
+        )
+
+        self.add_property(
+            descr='Peer user name',
+            name='peer_name',
+            get='peer_name'
+        )
+
+        self.add_property(
+            descr='Peer secret',
+            name='peer_secret',
+            get='peer_secret'
+        )
+
+        self.primary_key = self.get_mapping('name')
+
+    def get_one(self, name):
+        return first_or_default(lambda a: a['name'] == name, self.parent.entity.get('users', []))
+
+    def query(self, params, options):
+        return self.parent.entity['users'] or []
+
+    def save(self, this, new=False):
+        if new:
+            if self.parent.entity['users'] is None:
+                 self.parent.entity['users'] = []
+            self.parent.entity['users'].append(this.entity)
+        else:
+            entity = first_or_default(lambda a: a['name'] == this.entity['name'], self.parent.entity['users'])
+            entity.update(this.entity)
+
+        self.parent.save()
+
+    def delete(self, name):
+        self.parent.entity['users'] = filter(lambda a: a['name'] == name, self.parent.entity['users'])
+        self.parent.save()
+
+
+@description("iSCSI targets")
+class ISCSITargetsNamespace(RpcBasedLoadMixin, TaskBasedSaveMixin, EntityNamespace):
+    def __init__(self, name, context):
+        super(ISCSITargetsNamespace, self).__init__(name, context)
+        self.query_call = 'shares.iscsi.target.query'
+        self.create_task = 'share.iscsi.target.create'
+        self.update_task = 'share.iscsi.target.update'
+        self.delete_task = 'share.iscsi.target.delete'
+        self.required_props = ['name']
+        self.localdoc['CreateEntityCommand'] = ("""\
+            Usage: create name=<name> <property>=<value> ...
+
+            Examples:
+                create name=foo
+                create name=bar description="some share" auth_group=somegroup
+
+            Creates an iSCSI target. For a list of properties, see 'help properties'.""")
+        self.entity_localdoc['SetEntityCommand'] = ("""\
+            Usage: set <property>=<value> ...
+
+            Examples: set name=newname
+                      set description="describe me"
+                      set auth_group=group
+
+            Sets a iSCSI target property. For a list of properties, see 'help properties'.""")
+
+        self.add_property(
+            descr='Target name',
+            name='name',
+            get='id'
+        )
+
+        self.add_property(
+            descr='Target description',
+            name='description',
+            get='description'
+        )
+
+        self.add_property(
+            descr='Auth group',
+            name='auth_group',
+            get='auth_group'
+        )
+
+        self.primary_key = self.get_mapping('name')
+        self.entity_namespaces = lambda this: [
+            ISCSITargetMapingNamespace('luns', self.context, this)
+        ]
+
+
+@description("iSCSI luns")
+class ISCSITargetMapingNamespace(EntityNamespace):
+    def __init__(self, name, context, parent):
+        super(ISCSITargetMapingNamespace, self).__init__(name, context)
+        self.parent = parent
+
+        self.add_property(
+            descr='LUN number',
+            name='number',
+            get='number',
+            type=ValueType.NUMBER
+        )
+
+        self.add_property(
+            descr='Share name',
+            name='name',
+            get='name'
+        )
+
+        self.primary_key = self.get_mapping('name')
+
+    def get_one(self, name):
+        return first_or_default(lambda a: a['name'] == name, self.parent.entity['extents'])
+
+    def query(self, params, options):
+        return self.parent.entity.get('extents', [])
+
+    def save(self, this, new=False):
+        if new:
+            self.parent.entity['extents'].append(this.entity)
+        else:
+            entity = first_or_default(lambda a: a['name'] == this.entity['name'], self.parent.entity['extents'])
+            entity.update(this.entity)
+            
+        self.parent.save()
+
+    def delete(self, name):
+        self.parent.entity['extents'] = filter(lambda a: a['name'] == name, self.parent.entity['extents'])
+        self.parent.save()
+
+
+@description("iSCSI shares")
+class ISCSISharesNamespace(BaseSharesNamespace):
+    def __init__(self, name, context):
+        super(ISCSISharesNamespace, self).__init__(name, 'iscsi', context)
+
+        self.add_property(
+            descr='Serial number',
+            name='serial',
+            get='properties.serial',
+            list=True
+        )
+
+        self.add_property(
+            descr='Size',
+            name='size',
+            get='properties.size',
+            list=True
+        )
+
+        self.add_property(
+            descr='Block size',
+            name='block_size',
+            get='properties.block_size'
+        )
+
+        self.add_property(
+            descr='Physical block size reporting',
+            name='physical_block_size',
+            get='properties.physical_block_size',
+            list=False,
+            type=ValueType.BOOLEAN
+        )
+
+        self.add_property(
+            descr='RPM',
+            name='rpm',
+            get='properties.rpm',
+            list=False,
+            enum=['UNKNOWN', 'SSD', '5400', '7200', '10000', '15000']
+        )
+
+    def namespaces(self):
+        return list(super(ISCSISharesNamespace, self).namespaces()) + [
+            ISCSIPortalsNamespace('portals', self.context),
+            ISCSITargetsNamespace('targets', self.context),
+            ISCSIAuthGroupsNamespace('auth', self.context)
+        ]
 
 
 def _init(context):

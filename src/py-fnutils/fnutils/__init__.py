@@ -25,8 +25,13 @@
 #
 #####################################################################
 
-
+from datetime import timedelta
+import logging
+import logging.handlers
 import copy
+
+
+LOGGING_FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s'
 
 
 def first_or_default(f, iterable, default=None):
@@ -49,6 +54,11 @@ def extend(d, d2):
     ret = copy.copy(d)
     ret.update(d2)
     return ret
+
+
+def normalize(d, d2):
+    for k, v in d2.items():
+        d.setdefault(k, v)
 
 
 def force_none(v):
@@ -78,3 +88,43 @@ def materialized_paths_to_tree(lst, separator='.'):
         add(result, path)
 
     return result
+
+
+def to_timedelta(time_val):
+    num = int(time_val[:-1])
+
+    if time_val.endswith('s'):
+        return timedelta(seconds=num)
+
+    elif time_val.endswith('m'):
+        return timedelta(minutes=num)
+
+    elif time_val.endswith('h'):
+        return timedelta(hours=num)
+
+    elif time_val.endswith('d'):
+        return timedelta(days=num)
+
+    elif time_val.endswith('y'):
+        return timedelta(days=(365 * num))
+
+
+def configure_logging(path, level):
+    logging.basicConfig(
+        level=logging.getLevelName(level),
+        format=LOGGING_FORMAT,
+    )
+
+    if path:
+        handler = FaultTolerantLogHandler(path)
+        handler.setFormatter(logging.Formatter(LOGGING_FORMAT))
+        logging.root.removeHandler(logging.root.handlers[0])
+        logging.root.addHandler(handler)
+
+
+class FaultTolerantLogHandler(logging.handlers.WatchedFileHandler):
+    def emit(self, record):
+        try:
+            logging.handlers.WatchedFileHandler.emit(self, record)
+        except IOError:
+            pass

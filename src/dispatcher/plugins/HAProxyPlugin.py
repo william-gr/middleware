@@ -1,3 +1,4 @@
+#
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
@@ -62,7 +63,6 @@ class HAProxyConfigureTask(Task):
         try:
             node = ConfigNode('service.haproxy', self.configstore)
             node.update(haproxy)
-            self.dispatcher.call_sync('services.restart', 'haproxy')
             self.dispatcher.dispatch_event('service.haproxy.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -71,6 +71,8 @@ class HAProxyConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure HAProxy: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():
@@ -83,6 +85,8 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('service-haproxy', {
         'type': 'object',
         'properties': {
+            'global_maxconn': {'type': ['integer', 'null']},
+            'defaults_maxconn': {'type': ['integer', 'null']},
             'http_ip': {'type': ['string', 'null']},
             'http_port': {'type': ['integer', 'null']},
             'https_ip': {'type': ['string', 'null']},

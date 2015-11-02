@@ -24,9 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-from datetime import datetime
 import logging
-
 
 logger = logging.getLogger('AlertVolume')
 
@@ -37,27 +35,45 @@ def _depends():
 
 def _init(dispatcher, plugin):
 
-    def volumes_status():
+    def volumes_status(args):
+        if args:
+            # Make sure event is for root pool vdev
+            if args['guid'] != args['extra']['vdev_guid']:
+                return
+            qargs = [('name', '=', args.get('pool'))]
+        else:
+            qargs = []
+
+        for volume in dispatcher.rpc.call_sync('volumes.query', qargs):
+            if volume['status'] == 'ONLINE':
+                continue
+            dispatcher.rpc.call_sync('alerts.emit', {
+                'name': 'volumes.status',
+                'description': 'The volume {0} state is {1}'.format(
+                    volume['name'],
+                    volume['status'],
+                ),
+                'severity': 'CRITICAL',
+            })
+
+    def volume_upgraded():
         for volume in dispatcher.rpc.call_sync('volumes.query'):
+            if volume['status'] == 'UNAVAIL':
+                continue
 
-            continue  # FIXME: pool status not implemented
-            status = dispatcher.call_task_sync(
-                'zfs.pool.status', volume['name']
-            )
-            if status['status'] != 'ONLINE':
+            if volume.get('upgraded') is not False:
+                continue
 
-                dispatcher.rpc.call_sync('alerts.emit', {
-                    'name': 'volumes.status',
-                    'description': 'The volume {0} state is {1}'.format(
-                        volume['name'],
-                        status['status'],
-                    ),
-                    'severity': 'CRITICAL',
-                    'when': str(datetime.now()),
-                })
+            dispatcher.rpc.call_sync('alerts.emit', {
+                'name': 'volumes.version',
+                'description': 'New feature flags are available for volume {0}'.format(volume['name']),
+                'severity': 'WARNING',
+            })
 
-    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status')
+    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.status', 'Volume Status')
+    dispatcher.rpc.call_sync('alerts.register_alert', 'volumes.version', 'Volume Version')
 
-    # TODO: register event handler
+    plugin.register_event_handler('fs.zfs.pool.changed', volumes_status)
 
-    volumes_status()
+    volumes_status(None)
+    volume_upgraded()

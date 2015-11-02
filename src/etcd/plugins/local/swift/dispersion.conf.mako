@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_dispersion.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 [dispersion]
 # Please create a new account solely for using dispersion tools, which is

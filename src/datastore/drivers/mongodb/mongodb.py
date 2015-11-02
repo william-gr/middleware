@@ -127,6 +127,7 @@ class MongodbDatastore(object):
     def collection_create(self, name, pkey_type='uuid', attributes=None):
         attributes = attributes or {}
         ttl_index = attributes.get('ttl_index')
+        unique_indexes = attributes.get('unique_indexes', [])
 
         if not self.db['collections'].find_one(name):
             self.db['collections'].insert({
@@ -138,6 +139,12 @@ class MongodbDatastore(object):
 
         if ttl_index:
             self.db[name].create_index(ttl_index, expireAfterSeconds=0)
+
+        for idx in unique_indexes:
+            if isinstance(idx, basestring):
+                idx = [idx]
+
+            self.db[name].create_index([(i, pymongo.ASCENDING) for i in idx], unique_indexes=True)
 
         self.db[name].create_index([('$**', pymongo.TEXT)])
 
@@ -180,6 +187,15 @@ class MongodbDatastore(object):
     def collection_get_pkey_type(self, name):
         item = self.db['collections'].find_one({"_id": name})
         return item['pkey-type']
+
+    def collection_get_next_pkey(self, name, prefix):
+        counter = 0
+        while True:
+            pkey = prefix + str(counter)
+            if not self.exists(name, ('id', '=', pkey)):
+                return pkey
+
+            counter += 1
 
     def query(self, collection, *args, **kwargs):
         sort = kwargs.pop('sort', None)

@@ -67,7 +67,6 @@ class LLDPConfigureTask(Task):
         try:
             node = ConfigNode('service.lldp', self.configstore)
             node.update(lldp)
-            self.dispatcher.call_sync('services.restart', 'lldp')
             self.dispatcher.dispatch_event('service.lldp.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -76,6 +75,8 @@ class LLDPConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure LLDP: {0}'.format(str(e))
             )
+
+        return 'RELOAD'
 
 
 def _depends():

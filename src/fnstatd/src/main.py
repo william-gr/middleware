@@ -1,5 +1,5 @@
 #!/usr/local/bin/python2.7
-#+
+#
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
@@ -29,58 +29,41 @@
 
 import os
 import sys
-import time
+import re
 import math
 import errno
 import argparse
 import json
 import logging
 import setproctitle
-import numpy
 import dateutil.parser
 import dateutil.tz
 import tables
 import signal
 import socket
 import time
+import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import gevent
 import gevent.monkey
 import gevent.socket
 from gevent.server import StreamServer
-from dispatcher.client import Client, ClientError, ClientType, _thread_type
+from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
+from fnutils.debug import DebugService
+from fnutils import configure_logging, to_timedelta
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 DEFAULT_DBFILE = 'stats.hdf'
-gevent.monkey.patch_all()
-
-
-def to_timedelta(time_val):
-    num = int(time_val[:-1])
-
-    if time_val.endswith('s'):
-        return timedelta(seconds=num)
-
-    elif time_val.endswith('m'):
-        return timedelta(minutes=num)
-
-    elif time_val.endswith('h'):
-        return timedelta(hours=num)
-
-    elif time_val.endswith('d'):
-        return timedelta(days=num)
-
-    elif time_val.endswith('y'):
-        return timedelta(days=(365 * num))
+gevent.monkey.patch_all(thread=False)
 
 
 def round_timestamp(timestamp, frequency):
-    return int(frequency * round(float(timestamp)/frequency))
+    return int(frequency * round(float(timestamp) / frequency))
 
 
 def parse_datetime(s):
@@ -142,6 +125,7 @@ class DataSource(object):
         self.primary_buffer = self.bucket_buffers[0]
         self.primary_interval = self.config.buckets[0].interval
         self.last_value = 0
+        self.events_enabled = False
 
         self.logger.debug('Created')
 
@@ -170,21 +154,22 @@ class DataSource(object):
             value = None
 
         if value is not None and self.last_value is not None:
-            change = self.last_value
+            change = value - self.last_value
 
-        self.context.client.emit_event('statd.{0}.pulse'.format(self.name), {
-            'value': value,
-            'change': change,
-            'nolog': True
-        })
+        if value is not None and self.events_enabled:
+            self.context.client.emit_event('statd.{0}.pulse'.format(self.name), {
+                'value': value,
+                'change': change,
+                'nolog': True
+            })
 
         self.last_value = value
 
     def persist(self, timestamp, buffer, bucket):
+        count = bucket.interval.total_seconds() / self.config.buckets[0].interval.total_seconds()
         data = self.bucket_buffers[0].data
-        df = pd.TimeSeries(index=data['timestamp'], data=data['value'])
-        df = df[bucket.covered_start:bucket.covered_end]
-        buffer.push(timestamp, df.mean())
+        mean = np.mean(zip(*data[-count:])[1])
+        buffer.push(timestamp, mean)
 
     def query(self, start, end, frequency):
         self.logger.debug('Query: start={0}, end={1}, frequency={2}'.format(start, end, frequency))
@@ -196,6 +181,7 @@ class DataSource(object):
             if new is not None:
                 df = pd.concat((df, new))
 
+        df = df.reset_index().drop_duplicates(subset='index').set_index('index')
         df = df.sort()[0]
         df = df[start:end]
         df = df.resample(frequency, how='mean').interpolate()
@@ -236,10 +222,30 @@ class OutputService(RpcService):
         self.context = context
 
     def enable(self, event):
-        pass
+        m = re.match('^statd\.(.*)\.pulse$', event)
+        if not m:
+            return
+
+        ds_name = m.group(1)
+        ds = self.context.data_sources.get(ds_name)
+        if not ds:
+            return
+
+        self.context.logger.debug('Enabling event {0}'.format(event))
+        ds.events_enabled = True
 
     def disable(self, event):
-        pass
+        m = re.match('^statd\.(.*)\.pulse$', event)
+        if not m:
+            return
+
+        ds_name = m.group(1)
+        ds = self.context.data_sources.get(ds_name)
+        if not ds:
+            return
+
+        self.context.logger.debug('Disabling event {0}'.format(event))
+        ds.events_enabled = False
 
     def get_data_sources(self):
         return self.context.data_sources.keys()
@@ -317,7 +323,7 @@ class Main(object):
         # just a hack (since that directory's data will not persist)
         # Please remove this when system-dataset plugin is added back in
         try:
-            directory = self.client.call_sync('system-dataset.request_directory', 'statd')
+            directory = self.client.call_sync('system_dataset.request_directory', 'statd')
         except RpcException:
             directory = '/var/tmp/statd'
             if not os.path.exists(directory):
@@ -342,6 +348,7 @@ class Main(object):
             config = DataSourceConfig(self.datastore, name)
             ds = DataSource(self, name, config)
             self.data_sources[name] = ds
+            self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(name))
 
         return self.data_sources[name]
 
@@ -351,9 +358,13 @@ class Main(object):
                 self.client.connect('127.0.0.1')
                 self.client.login_service('statd')
                 self.client.enable_server()
-                self.client.enable_server()
                 self.client.register_service('statd.output', OutputService(self))
+                self.client.register_service('statd.debug', DebugService(gevent=True))
                 self.client.resume_service('statd.output')
+                self.client.resume_service('statd.debug')
+                for i in self.data_sources.keys():
+                    self.client.call_sync('plugin.register_event_type', 'statd.output', 'statd.{0}.pulse'.format(i))
+
                 return
             except socket.error, err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
@@ -366,6 +377,7 @@ class Main(object):
                 self.connect()
 
         self.client = Client()
+        self.client.use_bursts = True
         self.client.on_error(on_error)
         self.connect()
 
@@ -382,7 +394,7 @@ class Main(object):
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
         args = parser.parse_args()
-        logging.basicConfig(level=logging.DEBUG)
+        configure_logging('/var/log/fnstatd.log', 'DEBUG')
         setproctitle.setproctitle('fnstatd')
 
         # Signal handlers

@@ -55,7 +55,7 @@
         {
             $("#tasklist tbody").empty();
 
-            sock.call("task.query", null, function (tasks) {
+            sock.call("task.query", [[["state", "in", ["CREATED", "WAITING", "EXECUTING"]]]], function (tasks) {
                 $.each(tasks, function(idx, i) {
                     $("<tr/>", {
                         'data-id': i.id,
@@ -101,8 +101,8 @@
 
                 if (args.name == "task.progress") {
                     var tr = $("#tasklist").find("tr[data-id='" + args.args.id + "']");
-                    tr.find(".progress .progress-bar").css("width", args.args.percentage + "%");
-                    tr.find(".progress .progress-bar").text(args.args.percentage + "%");
+                    tr.find(".progress .progress-bar").css("width", args.args.percentage.toFixed(2) + "%");
+                    tr.find(".progress .progress-bar").text(args.args.percentage.toFixed() + "%");
                     tr.find(".message").text(args.args.message);
                 }
             });
@@ -114,8 +114,8 @@
             });
 
             sock.on("login", function() {
+                sock.subscribe(["task.*"]);
                 refresh_tasks();
-                sock.subscribe("task.*");
                 sock.call("discovery.get_tasks", null, function (tasks) {
                     $.each(tasks, function(key, value) {
                         $("<div/>", {

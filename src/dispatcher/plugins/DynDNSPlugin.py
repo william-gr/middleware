@@ -84,7 +84,6 @@ class DynDNSConfigureTask(Task):
             node = ConfigNode('service.dyndns', self.configstore)
             node.update(dyndns)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'dyndns')
-            self.dispatcher.call_sync('services.reload', 'dyndns')
             self.dispatcher.dispatch_event('service.dyndns.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -93,6 +92,8 @@ class DynDNSConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure DynamicDNS: {0}'.format(str(e))
             )
+
+        return 'RELOAD'
 
 
 def _depends():

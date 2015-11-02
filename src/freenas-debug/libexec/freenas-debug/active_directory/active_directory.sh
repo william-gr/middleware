@@ -70,7 +70,7 @@ active_directory_func()
 	#	Next, dump Active Directory configuration
 	#
 	local IFS="|"
-	read domainname bindname netbiosname use_keytab ssl \
+	read domainname bindname netbiosname ssl \
 		unix_extensions allow_trusted_doms use_default_domain \
 		dcname gcname timeout dns_timeout <<-__AD__
 	$(${FREENAS_SQLITE_CMD} ${FREENAS_CONFIG} "
@@ -78,7 +78,6 @@ active_directory_func()
 		ad_domainname,
 		ad_bindname,
 		ad_netbiosname,
-		ad_use_keytab,
 		ad_ssl,
 		ad_unix_extensions,
 		ad_allow_trusted_doms,
@@ -108,7 +107,6 @@ __AD__
 	Bind name:              ${bindname}
 	UNIX extensions:        ${unix_extensions}
 	Trusted domains:        ${allow_trusted_doms}
-	Use Keytab:             ${use_keytab}
 	SSL:                    ${ssl}
 	Timeout:                ${timeout}
 	DNS Timeout:            ${dns_timeout}
@@ -134,8 +132,8 @@ __EOF__
 	#
 	#	Dump samba configuration
 	#
-	section_header "${SMB_CONF}"
-	sc "${SMB_CONF}"
+	section_header "${SAMBA_CONF}"
+	sc "${SAMBA_CONF}"
 	section_footer
 
 	#
@@ -153,10 +151,31 @@ __EOF__
 	section_footer
 
 	#
+	#	Dump generated AD config file
+	#
+	section_header "${AD_CONFIG_FILE}"
+	sc "${AD_CONFIG_FILE}"
+	section_footer
+
+	#
+	#	Try to generate an AD config file
+	#
+	section_header "adtool get config_file"
+	adtool get config_file
+	section_footer
+
+	#
+	#	Dump Active Directory domain info
+	#
+	section_header "Active Directory Domain Info"
+	net ads info
+	section_footer
+
+	#
 	#	Dump Active Directory domain status
 	#
 	section_header "Active Directory Domain Status"
-	net ads info
+	net ads status
 	section_footer
 
 	#
@@ -174,7 +193,7 @@ __EOF__
 	section_header "Active Directory all domains"
 	wbinfo --all-domains
 	section_footer
-	section_header "Active Directory down domain"
+	section_header "Active Directory own domain"
 	wbinfo --own-domain
 	section_footer
 	section_footer

@@ -249,7 +249,10 @@ class InterfaceDownTask(Task):
 
 
 @description("Adds host entry to the database")
-@accepts(h.ref('network-host'))
+@accepts(h.all_of(
+    h.ref('network-host'),
+    h.required('id', 'address')
+))
 class AddHostTask(Task):
     def verify(self, host):
         if self.datastore.exists('network.hosts', ('id', '=', host['id'])):
@@ -319,7 +322,10 @@ class DeleteHostTask(Task):
 
 
 @description("Adds static route to the system")
-@accepts(h.ref('network-route'))
+@accepts(h.all_of(
+    h.ref('network-route'),
+    h.required('id', 'type', 'network', 'netmask', 'gateway')
+))
 class AddRouteTask(Task):
     def verify(self, route):
         if self.datastore.exists('network.routes', ('id', '=', route['id'])):

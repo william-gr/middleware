@@ -63,7 +63,6 @@ class SMARTConfigureTask(Task):
             node = ConfigNode('service.smartd', self.configstore)
             node.update(smartd)
             self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-            self.dispatcher.call_sync('services.restart', 'smartd')
             self.dispatcher.dispatch_event('service.smartd.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -72,6 +71,8 @@ class SMARTConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure SMART: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():

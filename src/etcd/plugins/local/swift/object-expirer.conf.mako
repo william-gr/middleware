@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_object_expirer.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 [DEFAULT]
 # swift_dir = /usr/local/etc/swift

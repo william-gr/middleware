@@ -1,3 +1,4 @@
+#
 # Copyright 2014 iXsystems, Inc.
 # All rights reserved
 #
@@ -23,6 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
+
 import os
 import subprocess
 import base64

@@ -1,5 +1,5 @@
 <%
-    cfg = dispatcher.call_sync('service.swift_swift.get_config')
+    cfg = dispatcher.call_sync('service.swift.get_config')
 %>\
 [swift-hash]
 

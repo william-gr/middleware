@@ -37,7 +37,7 @@ import icu
 import re
 import textwrap
 from namespace import (Command, PipeCommand, CommandException, description,
-                       EntityNamespace, Namespace)
+                       SingleItemNamespace, Namespace)
 from output import (
     Table, Object, output_dict, ValueType, output_msg, output_list,
     output_lock, output_less, output_table_list
@@ -60,8 +60,7 @@ class SetenvCommand(Command):
     """
     def run(self, context, args, kwargs, opargs):
         if args:
-            for arg in args:
-                raise CommandException("Incorrect syntax {0}".format(arg))
+            raise CommandException("Incorrect syntax {0}".format(args))
 
         for k, v in kwargs.items():
             context.variables.set(k, v)
@@ -272,10 +271,16 @@ class HelpCommand(Command):
         help
         help printenv
         help account users show
+
+    To see the properties of a given namespace, use 'help properties'
     """
     def run(self, context, args, kwargs, opargs):
-        if args:
-            if args[0] == "/":
+        arg = args[0] if len(args) > 0 else None
+        obj = context.ml.get_relative_object(context.ml.path[-1], args)
+        bases = map(lambda x: x.__name__, obj.__class__.__bases__)
+
+        if arg:
+            if arg == "/":
                 output_msg(textwrap.dedent("""\
                     Usage: /
                     / <namespace>
@@ -284,28 +289,49 @@ class HelpCommand(Command):
                     Allows you to navigate or execute commands starting \
                     from the root namespace"""))
                 return
-            elif args[0] == "..":
+            elif arg == "..":
                 output_msg(textwrap.dedent("""\
                     Usage: ..
 
                     Goes up one level of namespace"""))
                 return
-            elif args[0] == "-":
+            elif arg == "-":
                 output_msg(textwrap.dedent("""\
                     Usage: -
 
                     Goes back to the previous namespace"""))
                 return
-
-        obj = context.ml.get_relative_object(context.ml.path[-1], args)
-        bases = map(lambda x: x.__name__, obj.__class__.__bases__)
+            elif arg == "properties":
+                # If the namespace has properties, display a list of the available properties
+                if hasattr(obj, 'property_mappings'):
+                    prop_dict_list = []
+                    for prop in obj.property_mappings:
+                        if prop.enum:
+                            prop_type = "enum [" + ", ".join(prop.enum) + "]"
+                        else:
+                            prop_type = str(prop.type).split('ValueType.')[-1].lower()
+                        if not prop.set:
+                            prop_type += " (read only)"
+                        prop_dict = {
+                                'propname': prop.name,
+                                'propdescr': prop.descr,
+                                'proptype': prop_type
+                        }
+                        prop_dict_list.append(prop_dict)
+                if len(prop_dict_list) > 0:
+                    return Table(prop_dict_list, [
+                        Table.Column('Property', 'propname', ValueType.STRING),
+                        Table.Column('Description', 'propdescr', ValueType.STRING),
+                        Table.Column('Type', 'proptype', ValueType.STRING)])
 
         if 'Command' in bases and obj.__doc__:
-            if hasattr(obj.parent, 'localdoc'):
-                if obj.__class__.__name__ in obj.parent.localdoc.keys():
-                    output_msg(textwrap.dedent(obj.parent.localdoc[obj.__class__.__name__]))
-                else:
-                    output_msg(inspect.getdoc(obj))
+            command_name = obj.__class__.__name__
+            if (
+                hasattr(obj, 'parent') and
+                hasattr(obj.parent, 'localdoc') and
+                command_name in obj.parent.localdoc.keys()
+               ):
+                output_msg(textwrap.dedent(obj.parent.localdoc[command_name]))
             else:
                 output_msg(inspect.getdoc(obj))
 
@@ -314,9 +340,11 @@ class HelpCommand(Command):
 
         if isinstance(obj, Namespace):
             # First listing the Current Namespace's commands
-            cmd_dict_list = [{"cmd":"/","description":"Go to the root namespace"},
-                                     {"cmd":"..","description":"Go up one namespace"},
-                                     {"cmd":"-","description":"Go back to previous namespace"}] 
+            cmd_dict_list = [
+                {"cmd": "/", "description": "Go to the root namespace"},
+                {"cmd": "..", "description": "Go up one namespace"},
+                {"cmd": "-", "description": "Go back to previous namespace"}
+            ]
             ns_cmds = obj.commands()
             for key, value in ns_cmds.iteritems():
                 cmd_dict = {
@@ -327,7 +355,7 @@ class HelpCommand(Command):
 
             # Then listing the namespaces available from this namespace
             for nss in obj.namespaces():
-                if not isinstance(nss, EntityNamespace.SingleItemNamespace):
+                if not isinstance(nss, SingleItemNamespace):
                     namespace_dict = {
                         'cmd': nss.name,
                         'description': nss.description,
@@ -357,18 +385,6 @@ class HelpCommand(Command):
                         Table.Column('Global Command', 'cmd', ValueType.STRING),
                         Table.Column('Description', 'description', ValueType.STRING)
                     ]))
-            # If the namespace has properties, display a list of the available properties
-            if hasattr(obj, 'property_mappings'):
-                prop_dict_list = []
-                for prop in obj.property_mappings:
-                    prop_dict = {
-                            'propname': prop.name,
-                            'propdescr': prop.descr
-                    }
-                    prop_dict_list.append(prop_dict)
-                output_call_list.append(Table(prop_dict_list, [
-                    Table.Column('Property', 'propname', ValueType.STRING),
-                    Table.Column('Description', 'propdescr', ValueType.STRING)]))
             output_less(lambda: output_table_list(output_call_list))
 
 

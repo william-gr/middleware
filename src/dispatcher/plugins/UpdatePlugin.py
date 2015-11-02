@@ -32,6 +32,7 @@ import logging
 import os
 import signal
 import sys
+import random
 import re
 import tempfile
 from resources import Resource
@@ -52,10 +53,6 @@ from freenasOS.Update import CheckForUpdates, DownloadUpdate, ApplyUpdate
 logger = logging.getLogger('UpdatePlugin')
 update_cache = CacheStore()
 update_resource_string = 'update:operations'
-
-
-def _depends():
-    return ['SystemDatasetPlugin']
 
 
 def parse_changelog(changelog, start='', end=''):
@@ -114,10 +111,10 @@ class CheckUpdateHandler(object):
         for c in self.changes:
             opdict = {
                 'operation': c['operation'],
-                'previous_name': c['old'].Name(),
-                'previous_version': c['old'].Version(),
-                'new_name': c['new'].Name(),
-                'new_version': c['new'].Version()
+                'previous_name': c['old'].Name() if c['old'] else None,
+                'previous_version': c['old'].Version() if c['old'] else None,
+                'new_name': c['new'].Name() if c['new'] else None,
+                'new_version': c['new'].Version() if c['new'] else None,
             }
             output.append(opdict)
         return output
@@ -725,14 +722,17 @@ class UpdateVerifyTask(ProgressTask):
 
 
 @description("Checks for updates from the update server and downloads them if available")
-@accepts()
+@accepts(h.any_of(
+    bool,
+    None,
+))
 @returns(bool)
 class CheckFectchUpdateTask(ProgressTask):
     def describe(self):
         return "Checks for updates from the update server and downloads them if available. " +\
                "Returns Ture if updates were found and applied else False"
 
-    def verify(self):
+    def verify(self, mail=False):
         block = self.dispatcher.resource_graph.get_resource(update_resource_string)
         if block is not None and block.busy:
             raise VerifyException(errno.EBUSY, (
@@ -742,21 +742,62 @@ class CheckFectchUpdateTask(ProgressTask):
 
         return []
 
-    def run(self):
-        self.message = 'Checking for new updates from update server...'
-        self.set_progress(0)
+    def run(self, mail=False):
+        self.set_progress(0, 'Checking for new updates from update server...')
         self.join_subtasks(self.run_subtask('update.check'))
         if self.dispatcher.call_sync('update.is_update_available'):
-            self.message = 'New updates found. Downloading them now...'
-            self.set_progress(20)
+            self.set_progress(20, 'New updates found. Downloading them now...')
             self.join_subtasks(self.run_subtask('update.download'))
-            self.message = 'Updates successfully Downloaded.'
-            self.set_progress(100)
+
+            if mail:
+                changelog = self.dispatcher.call_sync('update.obtain_changelog')
+                train = self.dispatcher.call_sync('update.get_config').get('train')
+
+                self.dispatcher.call_sync('mail.send', {
+                    'subject': 'Update Available',
+                    'message': 'A new update is available for the {0} train.\n\nChangelog:\n{1}'.format(
+                        train,
+                        '\n'.join(changelog),
+                    ),
+                })
+
+            self.set_progress(100, 'Updates successfully Downloaded')
+
             return True
         return False
 
 
+def _depends():
+    return ['CalendarTasksPlugin', 'MailPlugin', 'SystemDatasetPlugin']
+
+
 def _init(dispatcher, plugin):
+
+    def nightly_update_check(args):
+        if args.get('name') != 'schedulerd':
+            return
+
+        logger.debug('Scheduling a nightly update check task')
+        caltask = dispatcher.call_sync(
+            'calendar_tasks.query', [('name', '=', 'update.checkfetch')], {'single': True}
+        ) or {'schedule': {}}
+
+        caltask.update({
+            'name': 'update.checkfetch',
+            'args': [True],
+            'hidden': True,
+            'description': 'Nightly update check',
+        })
+        caltask['schedule'].update({
+            'hour': str(random.randint(1, 6)),
+            'minute': str(random.randint(0, 59)),
+        })
+
+        if caltask.get('id'):
+            dispatcher.call_task_sync('calendar_tasks.update', caltask['id'], caltask)
+        else:
+            dispatcher.call_task_sync('calendar_tasks.create', caltask)
+
     # Register Schemas
     plugin.register_schema_definition('update', {
         'type': 'object',
@@ -785,14 +826,14 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('update-ops', {
         'type': 'object',
         'properties': {
-            'new_name': {'type': 'string'},
-            'previous_version': {'type': 'string'},
             'operation': {
                 'type': 'string',
                 'enum': ['delete', 'install', 'upgrade']
             },
-            'new_version': {'type': 'string'},
-            'previous_name': {'type': 'string'},
+            'new_name': {'type': ['string', 'null']},
+            'new_version': {'type': ['string', 'null']},
+            'previous_name': {'type': ['string', 'null']},
+            'previous_version': {'type': ['string', 'null']},
         }
     })
 
@@ -841,3 +882,6 @@ def _init(dispatcher, plugin):
 
     # Get the Update Cache (if any) at system boot (and hence in init here)
     generate_update_cache(dispatcher)
+
+    # Schedule a task to check/dowload for updates
+    plugin.register_event_handler('server.service_login', nightly_update_check)

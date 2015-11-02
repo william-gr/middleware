@@ -100,6 +100,11 @@ class UsersTest(BaseTestCase):
         self.assertIsInstance(users, list)
         self.assertGreater(len(users), 0)
         self.assertIsInstance(users[0], dict)
+    
+    def test_query_next_uid(self):
+        uid = self.conn.call_sync('users.next_uid')
+        self.assertIsInstance(uid, int)
+        
 
 
 class GroupsTest(BaseTestCase):
@@ -138,7 +143,10 @@ class GroupsTest(BaseTestCase):
         pass
 
     def test_list_groups(self):
-        pass
+        groups = self.conn.call_sync('groups.query')
+        self.assertIsInstance(groups, list)
+        self.assertGreater(len(groups), 0)
+        self.assertIsInstance(groups[0], dict)
 
 
 if __name__ == '__main__':

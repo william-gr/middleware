@@ -62,7 +62,6 @@ class SWIFTConfigureTask(Task):
         try:
             node = ConfigNode('service.swift', self.configstore)
             node.update(swift)
-            self.dispatcher.call_sync('services.restart', 'swift')
             self.dispatcher.dispatch_event('service.swift.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -71,6 +70,8 @@ class SWIFTConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure SWIFT: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():
