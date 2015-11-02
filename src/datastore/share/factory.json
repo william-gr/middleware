@@ -922,6 +922,7 @@
             ],
             "middleware.token_lifetime": 600,
             "middleware.parallel_disk_format": false,
+            "middleware.executors_count": 4,
             "system.console.keymap": "us.iso",
             "system.syslog_server": null,
             "system.timezone": "America/Los_Angeles",
