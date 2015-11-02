@@ -811,33 +811,28 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         })
 
     def on_message(self, message, *args, **kwargs):
+        trace_log('{0} -> {1}', self.real_client_address, unicode(message))
 
-        #if self.has_external_transport is True and message is None:
-        #    return
-        #else:
-            trace_log('{0} -> {1}', self.real_client_address, unicode(message))
+        if not type(message) is str:
+            return
 
-            if not type(message) is str:
-                return
+        try:
+            message = loads(message)
+        except ValueError:
+            self.emit_rpc_error(None, errno.EINVAL, 'Request is not valid JSON')
+            return
 
-            try:
-                message = loads(message)
-            except ValueError:
-                #if self.has_external_transport is False:
-                self.emit_rpc_error(None, errno.EINVAL, 'Request is not valid JSON')
-                return
+        if 'namespace' not in message:
+            self.emit_rpc_error(None, errno.EINVAL, 'Invalid request')
+            return
 
-            if 'namespace' not in message:
-                self.emit_rpc_error(None, errno.EINVAL, 'Invalid request')
-                return
+        try:
+            method = getattr(self, "on_{}_{}".format(message["namespace"], message["name"]))
+        except AttributeError:
+            self.emit_rpc_error(None, errno.EINVAL, 'Invalid request')
+            return
 
-            try:
-                method = getattr(self, "on_{}_{}".format(message["namespace"], message["name"]))
-            except AttributeError:
-                self.emit_rpc_error(None, errno.EINVAL, 'Invalid request')
-                return
-
-            method(message["id"], message["args"])
+        method(message["id"], message["args"])
 
     def on_transport_setup(self, id, client_address):
         self.has_external_transport = True
