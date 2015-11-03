@@ -1341,6 +1341,7 @@ class ShellConnection(WebSocketApplication, EventEmitter):
             return
 
         for i in message:
+            i = bytes([i])
             if i == '\r':
                 i = '\n'
             self.inq.put(i)
