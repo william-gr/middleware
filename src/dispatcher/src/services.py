@@ -325,6 +325,8 @@ class TaskService(RpcService):
                 'pid': exe.pid
             })
 
+        return result
+
     def query(self, filter=None, params=None):
         def extend(t):
             task = self.__balancer.get_task(t['id'])
