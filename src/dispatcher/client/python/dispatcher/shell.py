@@ -77,7 +77,8 @@ class ShellClient(object):
         self.connection.connect()
         self.connection.send(dumps({'token': self.token}))
         while not self.connection.terminated:
-            self.authenticated.wait(1)
+            if self.authenticated.wait(1):
+                break
 
     def on_data(self, callback):
         self.read_callback = callback
