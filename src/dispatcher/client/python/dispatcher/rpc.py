@@ -266,7 +266,7 @@ class DiscoveryService(RpcService):
         self.__context = context
 
     def get_services(self):
-        return self.__context.services.keys()
+        return list(self.__context.services.keys())
 
     def get_tasks(self):
         return {n: x._get_metadata() for n, x in self.__context.dispatcher.tasks.items()}
@@ -278,7 +278,7 @@ class DiscoveryService(RpcService):
         return list(self.__context.instances[service].enumerate_methods())
 
     def get_event_types(self):
-        return {n: populate_event_data(x) for n, x in self.__context.dispatcher.event_types.items() }
+        return {n: populate_event_data(x) for n, x in self.__context.dispatcher.event_types.items()}
 
     def get_schema(self):
         return {
