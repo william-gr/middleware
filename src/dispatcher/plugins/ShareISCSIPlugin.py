@@ -493,30 +493,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    plugin.register_schema_definition('iscsi-portal', {
-        'type': 'object',
-        'additionalProperties': False,
-        'properties': {
-            'id': {'type': 'string'},
-            'description': {'type': 'string'},
-            'discovery_auth_group': {'type': ['string', 'null']},
-            'discovery_auth_method': {
-                'type': 'string',
-                'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
-            },
-            'portals': {
-                'type': 'array',
-                'items': {
-                    'additionalProperties': False,
-                    'properties': {
-                        'address': {'$ref': 'ip-address'},
-                        'port': {'type': 'integer'}
-                    }
-                }
-            }
-        }
-    })
-
     plugin.register_task_handler("share.iscsi.create", CreateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.update", UpdateISCSIShareTask)
     plugin.register_task_handler("share.iscsi.delete", DeleteiSCSIShareTask)
