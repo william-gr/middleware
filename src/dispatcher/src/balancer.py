@@ -599,7 +599,7 @@ class Balancer(object):
 def serialize_error(err):
     ret = {
         'type': type(err).__name__,
-        'message': err.message,
+        'message': str(err),
         'stacktrace': err.stacktrace if hasattr(err, 'stacktrace') else traceback.format_exc()
     }
 
