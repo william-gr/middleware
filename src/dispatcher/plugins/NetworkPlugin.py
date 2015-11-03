@@ -559,3 +559,6 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('network.interface.delete', DeleteInterfaceTask)
 
     plugin.register_event_handler('etcd.file_generated', on_resolv_conf_change)
+    plugin.register_event_type('network.interface.changed')
+    plugin.register_event_type('network.host.changed')
+    plugin.register_event_type('network.route.changed')
