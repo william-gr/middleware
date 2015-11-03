@@ -76,7 +76,8 @@ class ShellClient(object):
         self.connection = self.ShellWebsocketHandler('ws://{0}:{1}/shell'.format(self.hostname, self.port), self)
         self.connection.connect()
         self.connection.send(dumps({'token': self.token}))
-        self.authenticated.wait()
+        while not self.connection.terminated:
+            self.authenticated.wait(1)
 
     def on_data(self, callback):
         self.read_callback = callback
