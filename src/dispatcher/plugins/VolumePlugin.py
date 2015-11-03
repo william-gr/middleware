@@ -1041,10 +1041,10 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('volume.snapshot.create', SnapshotCreateTask)
     plugin.register_task_handler('volume.snapshot.delete', SnapshotDeleteTask)
 
-    plugin.register_hook('volumes.pre-destroy')
-    plugin.register_hook('volumes.pre-detach')
-    plugin.register_hook('volumes.pre-create')
-    plugin.register_hook('volumes.pre-attach')
+    plugin.register_hook('volumes.pre_destroy')
+    plugin.register_hook('volumes.pre_detach')
+    plugin.register_hook('volumes.pre_create')
+    plugin.register_hook('volumes.pre_attach')
 
     plugin.register_event_handler('zfs.pool.changed', on_pool_change)
     plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_change)

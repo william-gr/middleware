@@ -163,8 +163,8 @@ def _init(dispatcher, plugin):
 
     plugin.register_provider('swap', SwapProvider)
     plugin.register_event_handler('volumes.changed', on_volumes_change)
-    plugin.attach_hook('volumes.pre-destroy', volumes_pre_detach)
-    plugin.attach_hook('volumes.pre-detach', volumes_pre_detach)
+    plugin.attach_hook('volumes.pre_destroy', volumes_pre_detach)
+    plugin.attach_hook('volumes.pre_detach', volumes_pre_detach)
 
     clear_swap(dispatcher)
     rearrange_swap(dispatcher)
