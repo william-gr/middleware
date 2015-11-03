@@ -45,7 +45,7 @@ class ShellClient(object):
         def received_message(self, message):
             if not self.parent.authenticated.is_set():
                 try:
-                    ret = loads(message.data)
+                    ret = loads(message.data.decode('utf8'))
                 except ValueError:
                     self.parent.authenticated.set_exception(RpcException(errno.EINVAL, 'Invalid response from server'))
                     return
