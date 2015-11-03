@@ -39,17 +39,21 @@ import setproctitle
 
 
 proc = None
+null = None
+log = None
 
 
 def sigterm(signo, frame):
     if proc:
         proc.terminate()
 
+    null.close()
+    log.close()
     sys.exit(0)
 
 
 def main():
-    global proc
+    global proc, null, log
 
     if len(sys.argv) < 2:
         print("Usage: crash-wrapper <path to executable> [args...]", file=sys.stderr)
