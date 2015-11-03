@@ -79,8 +79,8 @@ def link_directories(dispatcher):
                 os.symlink(target, d.link)
 
         if hasattr(d, 'owner'):
-            user = dispatcher.call_sync('users.query', [('id', '=', d.owner)], {'single': True})
-            group = dispatcher.call_sync('groups.query', [('id', '=', d.group)], {'single': True})
+            user = dispatcher.call_sync('users.query', [('username', '=', d.owner)], {'single': True})
+            group = dispatcher.call_sync('groups.query', [('name', '=', d.group)], {'single': True})
             if user and group:
                 os.chown(target, user['id'], group['id'])
 
@@ -95,8 +95,8 @@ def link_directories(dispatcher):
                     )
 
             if hasattr(c, 'owner'):
-                user = dispatcher.call_sync('users.query', [('id', '=', c.owner)], {'single': True})
-                group = dispatcher.call_sync('groups.query', [('id', '=', c.group)], {'single': True})
+                user = dispatcher.call_sync('users.query', [('username', '=', c.owner)], {'single': True})
+                group = dispatcher.call_sync('groups.query', [('name', '=', c.group)], {'single': True})
                 if user and group:
                     os.chown(os.path.join(target, c.name), user['id'], group['id'])
 
