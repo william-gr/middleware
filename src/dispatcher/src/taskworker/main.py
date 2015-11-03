@@ -34,7 +34,7 @@ import setproctitle
 import socket
 import traceback
 import logging
-import Queue
+import queue
 from threading import Event
 from dispatcher.client import Client, ClientType
 from dispatcher.rpc import RpcService, RpcException
@@ -119,7 +119,7 @@ class TaskProxyService(RpcService):
 class Context(object):
     def __init__(self):
         self.service = TaskProxyService(self)
-        self.task = Queue.Queue(1)
+        self.task = queue.Queue(1)
         self.datastore = None
         self.conn = None
         self.instance = None
