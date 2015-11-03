@@ -62,7 +62,7 @@ class RIAKConfigureTask(Task):
         try:
             node = ConfigNode('service.riak', self.configstore)
             node.update(riak)
-            self.dispatcher.call_sync('services.restart', 'riak')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'riak')
             self.dispatcher.dispatch_event('service.riak.changed', {
                 'operation': 'updated',
                 'ids': None,
@@ -71,6 +71,8 @@ class RIAKConfigureTask(Task):
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure RIAK: {0}'.format(str(e))
             )
+
+        return 'RESTART'
 
 
 def _depends():
