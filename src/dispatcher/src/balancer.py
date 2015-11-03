@@ -181,7 +181,9 @@ class TaskExecutor(object):
             self.proc.wait()
             self.balancer.logger.error('Executor process with PID {0} died abruptly with exit code {1}'.format(
                 self.proc.pid,
-                self.proc.returncode))
+                self.proc.returncode)
+            )
+
             self.result.set_exception(TaskException(errno.EFAULT, 'Task executor died'))
             gevent.sleep(1)
 
@@ -210,7 +212,7 @@ class Task(object):
         self.instance = None
         self.parent = None
         self.result = None
-        self.output = None
+        self.output = ''
         self.rusage = None
         self.ended = Event()
         self.debugger = None
