@@ -339,7 +339,7 @@ class ClientTransportSSH(ClientTransportBase):
             data_received = self.stdout.readline()
             if self.terminated is False:
                 debug_log("Received data: {0}", data_received)
-                self.parent.recv(data_received)
+                self.parent.recv(BinaryMessage(data_received.encode('utf8')))
 
     def closed(self):
         exit_status = self.channel.recv_exit_status()
