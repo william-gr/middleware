@@ -176,17 +176,17 @@ class Context(object):
                     self.instance.configstore = ConfigStore(self.datastore)
                     self.running.set()
                     result = self.instance.run(*task['args'])
-                except BaseException, err:
+                except BaseException as err:
                     print("Task exception: {0}".format(str(err)), file=sys.stderr)
                     traceback.print_exc(file=sys.stderr)
                     self.put_status('FAILED', exception=err)
                 else:
                     self.put_status('FINISHED', result=result)
 
-            except RpcException, err:
+            except RpcException as err:
                 print("RPC failed: {0}".format(str(err)), file=sys.stderr)
                 sys.exit(errno.EBADMSG)
-            except socket.error, err:
+            except socket.error as err:
                 print("Cannot connect to dispatcher: {0}".format(str(err)), file=sys.stderr)
                 sys.exit(errno.ETIMEDOUT)
 
