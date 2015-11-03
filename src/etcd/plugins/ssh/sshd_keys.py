@@ -63,15 +63,15 @@ def run(context):
             config.set('service.sshd.keys.{0}.public'.format(keytype), base64.b64encode(fd.read()))
             fd.close()
         else:
-            with open(private_key_file, 'w') as fd:
+            with open(private_key_file, 'wb') as fd:
                 fd.write(base64.b64decode(private_key))
             os.chmod(private_key_file, 0o600)
 
-            with open(public_key_file, 'w') as fd:
+            with open(public_key_file, 'wb') as fd:
                 fd.write(base64.b64decode(public_key))
 
             if cert_public_key:
-                with open(cert_public_key_file, 'w') as fd:
+                with open(cert_public_key_file, 'wb') as fd:
                     fd.write(base64.b64decode(cert_public_key))
                 context.emit_event('etcd.file_generated', {'filename': cert_public_key_file})
 
