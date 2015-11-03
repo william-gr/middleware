@@ -60,8 +60,6 @@ class EntitySubscriberEventSource(EventSource):
         ids = event['ids']
         operation = event['operation']
 
-        self.logger.debug('Collection provided by service {0} changed'.format(service))
-
         if operation == 'delete':
             self.dispatcher.dispatch_event('entity-subscriber.{0}.changed'.format(service), {
                 'service': service,
