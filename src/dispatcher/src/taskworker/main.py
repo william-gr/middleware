@@ -34,6 +34,7 @@ import setproctitle
 import socket
 import traceback
 import logging
+import Queue
 from threading import Event
 from dispatcher.client import Client, ClientType
 from dispatcher.rpc import RpcService, RpcException
@@ -111,10 +112,14 @@ class TaskProxyService(RpcService):
         except BaseException, err:
             raise RpcException(errno.EFAULT, 'Cannot abort: {0}'.format(str(err)))
 
+    def run(self, task):
+        self.context.task.put(task)
+
 
 class Context(object):
     def __init__(self):
         self.service = TaskProxyService(self)
+        self.task = Queue.Queue(1)
         self.datastore = None
         self.conn = None
         self.instance = None
@@ -141,43 +146,55 @@ class Context(object):
 
         key = sys.argv[1]
         logging.basicConfig(file=sys.stdout, level=logging.DEBUG)
-        try:
-            self.datastore = get_default_datastore()
-            self.conn = Client()
-            self.conn.connect('127.0.0.1')
-            self.conn.login_service('task.{0}'.format(os.getpid()))
-            self.conn.enable_server()
-            self.conn.rpc.register_service_instance('taskproxy', self.service)
-            task = self.conn.call_sync('task.checkin', key)
+
+        self.datastore = get_default_datastore()
+        self.conn = Client()
+        self.conn.connect('127.0.0.1')
+        self.conn.login_service('task.{0}'.format(os.getpid()))
+        self.conn.enable_server()
+        self.conn.rpc.register_service_instance('taskproxy', self.service)
+        self.conn.call_sync('task.checkin', key)
+        setproctitle.setproctitle('task executor (idle)')
+
+        while True:
+            try:
+                task = self.task.get()
+                setproctitle.setproctitle('task executor (tid {0})'.format(task['id']))
+
+                if task['debugger']:
+                    sys.path.append('/usr/local/lib/dispatcher/pydev')
+
+                    import pydevd
+                    host, port = task['debugger']
+                    pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
+
+                module = imp.load_source('plugin', task['filename'])
+                setproctitle.setproctitle('task executor (tid {0})'.format(task['id']))
+
+                try:
+                    self.instance = getattr(module, task['class'])(DispatcherWrapper(self.conn), self.datastore)
+                    self.instance.configstore = ConfigStore(self.datastore)
+                    self.running.set()
+                    result = self.instance.run(*task['args'])
+                except BaseException, err:
+                    print("Task exception: {0}".format(str(err)), file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
+                    self.put_status('FAILED', exception=err)
+                else:
+                    self.put_status('FINISHED', result=result)
+
+            except RpcException, err:
+                print("RPC failed: {0}".format(str(err)), file=sys.stderr)
+                sys.exit(errno.EBADMSG)
+            except socket.error, err:
+                print("Cannot connect to dispatcher: {0}".format(str(err)), file=sys.stderr)
+                sys.exit(errno.ETIMEDOUT)
 
             if task['debugger']:
-                sys.path.append('/usr/local/lib/dispatcher/pydev')
-
                 import pydevd
-                host, port = task['debugger']
-                pydevd.settrace(host, port=port, stdoutToServer=True, stderrToServer=True)
+                pydevd.stoptrace()
 
-            module = imp.load_source('plugin', task['filename'])
-            setproctitle.setproctitle('task executor (tid {0})'.format(task['id']))
-
-            try:
-                self.instance = getattr(module, task['class'])(DispatcherWrapper(self.conn), self.datastore)
-                self.instance.configstore = ConfigStore(self.datastore)
-                self.running.set()
-                result = self.instance.run(*task['args'])
-            except BaseException, err:
-                print("Task exception: {0}".format(str(err)), file=sys.stderr)
-                traceback.print_exc(file=sys.stderr)
-                self.put_status('FAILED', exception=err)
-            else:
-                self.put_status('FINISHED', result=result)
-
-        except RpcException, err:
-            print("RPC failed: {0}".format(str(err)), file=sys.stderr)
-            sys.exit(errno.EBADMSG)
-        except socket.error, err:
-            print("Cannot connect to dispatcher: {0}".format(str(err)), file=sys.stderr)
-            sys.exit(errno.ETIMEDOUT)
+            setproctitle.setproctitle('task executor (idle)')
 
 
 if __name__ == '__main__':

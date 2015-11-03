@@ -40,5 +40,5 @@ libexec/dispatcher/ssh_transport_catcher
 etc/rc.d/dispatcher
 sbin/dispatcherd
 sbin/dispatcherctl
-libexec/taskproxy
+libexec/taskworker
 etc/middleware.conf

@@ -316,6 +316,15 @@ class TaskService(RpcService):
 
         return result
 
+    def list_executors(self):
+        result = []
+        for exe in self.__dispatcher.executors:
+            result.append({
+                'index': exe.index,
+                'state': exe.state,
+                'pid': exe.pid
+            })
+
     def query(self, filter=None, params=None):
         def extend(t):
             task = self.__balancer.get_task(t['id'])
@@ -329,26 +338,26 @@ class TaskService(RpcService):
     @private
     @pass_sender
     def checkin(self, key, sender):
-        task = self.__balancer.get_task_by_key(key)
-        if not task:
+        executor = self.__balancer.get_executor_by_key(key)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
-        return task.executor.checkin(sender)
+        return executor.checkin(sender)
 
     @private
     @pass_sender
     def put_status(self, status, sender):
-        task = self.__balancer.get_task_by_sender(sender)
-        if not task:
+        executor = self.__balancer.get_executor_by_sender(sender)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
-        task.executor.put_status(status)
+        executor.put_status(status)
 
     @private
     @pass_sender
     def run_hook(self, hook, args, sender):
-        task = self.__balancer.get_task_by_sender(sender)
-        if not task:
+        executor = self.__balancer.get_executor_by_sender(sender)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
         return self.__dispatcher.run_hook(hook, args)
@@ -356,27 +365,27 @@ class TaskService(RpcService):
     @private
     @pass_sender
     def verify_subtask(self, name, args, sender):
-        task = self.__balancer.get_task_by_sender(sender)
-        if not task:
+        executor = self.__balancer.get_executor_by_sender(sender)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
-        return self.__dispatcher.verify_subtask(task, name, args)
+        return self.__dispatcher.verify_subtask(executor.task, name, args)
 
     @private
     @pass_sender
     def run_subtask(self, name, args, sender):
-        task = self.__balancer.get_task_by_sender(sender)
-        if not task:
+        executor = self.__balancer.get_executor_by_sender(sender)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
-        ret = self.__dispatcher.balancer.run_subtask(task, name, args)
+        ret = self.__dispatcher.balancer.run_subtask(executor.task, name, args)
         return ret.id
 
     @private
     @pass_sender
     def join_subtasks(self, subtask_ids, sender):
-        task = self.__balancer.get_task_by_sender(sender)
-        if not task:
+        executor = self.__balancer.get_executor_by_sender(sender)
+        if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
         subtasks = map(self.__balancer.get_task, subtask_ids)

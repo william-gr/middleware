@@ -6,7 +6,7 @@ install:
 	install etc/middleware.conf ${STAGEDIR}${PREFIX}/etc/middleware.conf
 	install tools/dispatcherd ${STAGEDIR}${PREFIX}/sbin/
 	install tools/dispatcherctl ${STAGEDIR}${PREFIX}/sbin/
-	install tools/taskproxy ${STAGEDIR}${PREFIX}/libexec/
+	install tools/taskworker ${STAGEDIR}${PREFIX}/libexec/
 	install -d ${STAGEDIR}${PREFIX}/lib/dispatcher/src
 	install -d ${STAGEDIR}${PREFIX}/lib/dispatcher/plugins
 	install -d ${STAGEDIR}${PREFIX}/lib/dispatcher/pydev

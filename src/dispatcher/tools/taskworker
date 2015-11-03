@@ -1,4 +1,4 @@
 #!/bin/sh
 LIBDIR=/usr/local/lib/dispatcher/src
 export PYTHONPATH=$LIBDIR
-exec /usr/local/bin/python2.7 -u $LIBDIR/taskproxy/main.py $*
+exec /usr/local/bin/python2.7 -u $LIBDIR/taskworker/main.py $*

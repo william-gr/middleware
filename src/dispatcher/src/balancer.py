@@ -47,36 +47,34 @@ from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
 
 
-TASKPROXY_PATH = '/usr/local/libexec/taskproxy'
+TASKWORKER_PATH = '/usr/local/libexec/taskworker'
 
 
 class WorkerState(object):
     IDLE = 'IDLE'
     EXECUTING = 'EXECUTING'
-    WAITING = 'WAITING'
+    STARTING = 'STARTING'
 
 
 class TaskExecutor(object):
-    def __init__(self, balancer, task):
+    def __init__(self, balancer, index):
         self.balancer = balancer
-        self.task = task
+        self.index = index
+        self.task = None
         self.proc = None
         self.pid = None
         self.conn = None
+        self.state = None
+        self.key = str(uuid.uuid4())
         self.checked_in = Event()
         self.result = AsyncResult()
+        gevent.spawn(self.executor)
 
     def checkin(self, conn):
-        self.balancer.logger.debug('Check-in of task #{0} (key {1})'.format(self.task.id, self.task.key))
+        self.balancer.logger.debug('Check-in of worker #{0} (key {1})'.format(self.index, self.key))
         self.conn = conn
-        self.task.set_state(TaskState.EXECUTING)
-        return {
-            'id': self.task.id,
-            'class': self.task.clazz.__name__,
-            'filename': inspect.getsourcefile(self.task.clazz),
-            'args': self.task.args,
-            'debugger': self.task.debugger
-        }
+        self.state = WorkerState.IDLE
+        self.checked_in.set()
 
     def get_status(self):
         if not self.conn:
@@ -110,8 +108,19 @@ class TaskExecutor(object):
                 extra=error.get('extra')
             ))
 
-    def run(self):
-        gevent.spawn(self.executor)
+    def run(self, task):
+        self.result = AsyncResult()
+        self.task = task
+        self.task.set_state(TaskState.EXECUTING)
+
+        self.conn.call_client_sync('taskproxy.run', {
+            'id': task.id,
+            'class': task.clazz.__name__,
+            'filename': inspect.getsourcefile(task.clazz),
+            'args': task.args,
+            'debugger': task.debugger
+        })
+
         try:
             self.result.get()
         except BaseException, e:
@@ -125,14 +134,17 @@ class TaskExecutor(object):
             self.task.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
                 "stacktrace": traceback.format_exc()
             }))
+
             self.task.ended.set()
             self.balancer.task_exited(self.task)
+            self.state = WorkerState.IDLE
             return
 
         self.task.result = self.result.value
         self.task.set_state(TaskState.FINISHED, TaskStatus(100, ''))
         self.task.ended.set()
         self.balancer.task_exited(self.task)
+        self.state = WorkerState.IDLE
 
     def abort(self):
         self.balancer.logger.info("Trying to abort task #{0}".format(self.task.id))
@@ -145,26 +157,35 @@ class TaskExecutor(object):
             self.proc.terminate()
 
     def executor(self):
-        try:
-            self.proc = Popen(
-                [TASKPROXY_PATH, self.task.key],
-                close_fds=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
+        while True:
+            try:
+                self.proc = Popen(
+                    [TASKWORKER_PATH, self.key],
+                    close_fds=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT)
 
-            self.pid = self.proc.pid
-            self.balancer.logger.debug('Started task #{0} as PID {1}'.format(self.task.id, self.pid))
-        except OSError:
-            self.result.set_exception(TaskException(errno.EFAULT, 'Cannot spawn task executor'))
-            return
+                self.pid = self.proc.pid
+                self.balancer.logger.debug('Started executor #{0} as PID {1}'.format(self.index, self.pid))
+            except OSError:
+                self.result.set_exception(TaskException(errno.EFAULT, 'Cannot spawn task executor'))
+                return
 
-        out, _ = self.proc.communicate()
-        self.task.set_output(out)
-        if not self.result.ready():
+            for line in self.proc.stdout:
+                self.balancer.logger.debug('Executor output: {0}'.format(line))
+                if self.task:
+                    self.task.output += line
+
+            self.proc.wait()
             self.balancer.logger.error('Executor process with PID {0} died abruptly with exit code {1}'.format(
                 self.proc.pid,
                 self.proc.returncode))
             self.result.set_exception(TaskException(errno.EFAULT, 'Task executor died'))
+            gevent.sleep(1)
+
+    def die(self):
+        if self.proc:
+            self.proc.terminate()
 
 
 class Task(object):
@@ -174,7 +195,6 @@ class Task(object):
         self.started_at = None
         self.finished_at = None
         self.id = None
-        self.key = str(uuid.uuid4())
         self.name = name
         self.clazz = None
         self.args = None
@@ -190,9 +210,9 @@ class Task(object):
         self.result = None
         self.output = None
         self.rusage = None
-        self.executor = TaskExecutor(self.dispatcher.balancer, self)
         self.ended = Event()
         self.debugger = None
+        self.executor = None
 
     def __getstate__(self):
         return {
@@ -255,8 +275,15 @@ class Task(object):
         self.dispatcher.balancer.task_exited(self)
 
     def start(self):
+        try:
+            self.dispatcher.balancer.assign_executor(self)
+        except OverflowError:
+            self.set_state(TaskState.FAILED, error='Out of executors')
+            self.ended.set()
+            self.dispatcher.balancer.task_exited(self)
+
         # Start actual task
-        gevent.spawn(self.executor.run)
+        gevent.spawn(self.executor.run, self)
 
         # Start progress watcher
         gevent.spawn(self.progress_watcher)
@@ -329,13 +356,14 @@ class Balancer(object):
         self.resource_graph = dispatcher.resource_graph
         self.queues = {}
         self.threads = []
+        self.executors = []
         self.logger = logging.getLogger('Balancer')
         self.dispatcher.require_collection('tasks', 'serial', type='log')
         self.create_initial_queues()
+        self.start_executors()
         self.distribution_lock = RLock()
         self.debugger = None
         self.debugged_tasks = None
-
         self.dispatcher.register_event_type('task.changed')
 
         # Lets try to get `EXECUTING|WAITING|CREATED` state tasks
@@ -360,6 +388,11 @@ class Balancer(object):
 
     def create_initial_queues(self):
         self.resource_graph.add_resource(Resource('system'))
+
+    def start_executors(self):
+        for i in range(0, self.dispatcher.configstore.get('middleware.executors_count')):
+            self.logger.info('Starting task executor #{0}...'.format(i))
+            self.executors.append(TaskExecutor(self, i))
 
     def start(self):
         self.threads.append(gevent.spawn(self.distribution_thread))
@@ -511,6 +544,26 @@ class Balancer(object):
             self.schedule_tasks()
             self.logger.debug("Task %d assigned to resources %s", task.id, ','.join(task.resources))
 
+    def assign_executor(self, task):
+        for i in self.executors:
+            if i.state == WorkerState.IDLE:
+                self.logger.info("Task %d assigned to executor #%d", task.id, i.index)
+                task.executor = i
+                i.state = WorkerState.EXECUTING
+                return
+
+        # Out of executors! Need to spawn new one
+        executor = TaskExecutor(self, len(self.executors))
+        self.executors.append(executor)
+        executor.checked_in.wait()
+        executor.state = WorkerState.EXECUTING
+        task.executor = executor
+        self.logger.info("Task %d assigned to executor #%d", task.id, executor.index)
+
+    def dispose_executors(self):
+        for i in self.executors:
+            i.die()
+
     def get_active_tasks(self):
         return filter(lambda x: x.state in (
             TaskState.CREATED,
@@ -533,11 +586,11 @@ class Balancer(object):
         self.distribution_lock.release()
         return t
 
-    def get_task_by_key(self, key):
-        return first_or_default(lambda t: t.key == key, self.task_list)
+    def get_executor_by_key(self, key):
+        return first_or_default(lambda t: t.key == key, self.executors)
 
-    def get_task_by_sender(self, sender):
-        return first_or_default(lambda t: t.executor.conn == sender, self.task_list)
+    def get_executor_by_sender(self, sender):
+        return first_or_default(lambda t: t.conn == sender, self.executors)
 
 
 def serialize_error(err):

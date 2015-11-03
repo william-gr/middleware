@@ -707,6 +707,7 @@ class Dispatcher(object):
             'description': 'Server is shutting down.',
         })
 
+        self.balancer.dispose_executors()
         gevent.killall(self.threads)
         self.logger.warning('Unloading plugins')
         self.unload_plugins()
