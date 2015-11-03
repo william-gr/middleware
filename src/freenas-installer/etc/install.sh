@@ -996,7 +996,7 @@ menu_install()
 		# Set the root password
 		#chroot /tmp/data /etc/netcli reset_root_pw ${_password}
 		chroot /tmp/data /usr/local/sbin/dsinit --start-forked
-		chroot /tmp/data /usr/local/sbin/dspasswd root ${_password}
+		chroot /tmp/data /usr/local/sbin/dspasswd root "${_password}"
 		chroot /tmp/data /usr/local/sbin/dsinit --stop-forked
 	fi
     fi
