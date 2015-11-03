@@ -88,7 +88,7 @@ class ServiceInfoProvider(Provider):
                 return greenlet.value
 
         result = group.map(result, jobs)
-        result = map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result)
+        result = list(map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result))
         return result[0] if single is True else result
 
     @accepts(str)
