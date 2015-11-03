@@ -46,7 +46,7 @@ from task import TaskException
 def serialize_error(err):
     ret = {
         'type': type(err).__name__,
-        'message': err.message,
+        'message': str(err),
         'stacktrace': traceback.format_exc()
     }
 
