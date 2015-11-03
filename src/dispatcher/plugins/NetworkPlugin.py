@@ -399,9 +399,6 @@ def _depends():
 def _init(dispatcher, plugin):
 
     def on_resolv_conf_change(args):
-        filename = args.get('filename')
-        if filename != '/etc/resolv.conf':
-            return
         # If DNS has changed lets reset our DNS resolver to reflect reality
         logger.debug('Resetting resolver')
         del hub.get_hub().resolver
@@ -558,7 +555,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('network.interface.create', CreateInterfaceTask)
     plugin.register_task_handler('network.interface.delete', DeleteInterfaceTask)
 
-    plugin.register_event_handler('etcd.file_generated', on_resolv_conf_change)
+    plugin.register_event_handler('network.dns.configured', on_resolv_conf_change)
     plugin.register_event_type('network.interface.changed')
     plugin.register_event_type('network.host.changed')
     plugin.register_event_type('network.route.changed')

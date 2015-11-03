@@ -472,12 +472,16 @@ class ConfigurationService(RpcService):
         for s in self.context.configstore.get('network.dns.search'):
             print('search {0}'.format(s), file=resolv)
 
-        for n in self.context.configstore.get('network.dns.addresses'):
+        addrs = self.context.configstore.get('network.dns.addresses')
+        for n in addrs:
             print('nameserver {0}'.format(n), file=resolv)
 
         proc.communicate(resolv.getvalue())
         proc.wait()
         resolv.close()
+        self.client.emit_event('network.dns.configured', {
+            'addresses': addrs,
+        })
 
     def configure_interface(self, name):
         entity = self.datastore.get_one('network.interfaces', ('id', '=', name))
