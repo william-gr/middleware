@@ -1325,7 +1325,7 @@ class ShellConnection(WebSocketApplication, EventEmitter):
             return
 
         if not self.authenticated:
-            message = loads(message)
+            message = loads(message.decode('utf8'))
 
             if type(message) is not dict:
                 return
