@@ -356,7 +356,7 @@ def activedirectory_has_keytab():
             ad_has_keytab = True
 
     except Exception as e:
-        print "XXX: e = ", e
+        print("XXX: e = ", e)
         ad_has_keytab = False
 
     return ad_has_keytab

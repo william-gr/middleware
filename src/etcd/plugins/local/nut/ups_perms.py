@@ -38,6 +38,6 @@ def run(context):
         if not os.path.exists(f):
             continue
 
-        os.chmod(f, 0440)
+        os.chmod(f, 0o440)
         # root/uucp
         os.chown(f, 0, 66)

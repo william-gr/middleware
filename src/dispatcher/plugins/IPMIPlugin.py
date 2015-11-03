@@ -74,11 +74,11 @@ class IPMIProvider(Provider):
 
         try:
             out, err = system('/usr/local/bin/ipmitool', 'lan', 'print', str(channel))
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise RpcException(errno.EFAULT, 'Cannot receive IPMI configuration: {0}'.format(e.err.strip()))
 
         raw = {k.strip(): v.strip() for k, v in RE_ATTRS.findall(out)}
-        ret = {IPMI_ATTR_MAP[k]: v for k, v in raw.items() if k in IPMI_ATTR_MAP}
+        ret = {IPMI_ATTR_MAP[k]: v for k, v in list(raw.items()) if k in IPMI_ATTR_MAP}
         ret['channel'] = channel
         ret['vlan_id'] = None if ret['vlan_id'] == 'Disabled' else ret['vlan_id']
         ret['dhcp'] = True if ret['dhcp'] == 'DHCP Address' else False
@@ -128,12 +128,12 @@ class ConfigureIPMITask(Task):
                 system('/usr/local/bin/ipmitool', 'user', 'set', 'password', '2', updated_params['password'])
                 system('/usr/local/bin/ipmitool', 'user', 'enable', '2')
 
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Cannot configure IPMI channel {0}: {1}'.format(channel, err.err))
 
 
 def cidr_to_netmask(cidr):
-    iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
+    iface = ipaddress.ip_interface('0.0.0.0/{0}'.format(cidr))
     return str(iface.netmask)
 
 
@@ -166,7 +166,7 @@ def _init(dispatcher, plugin):
     # Load ipmi kernel module
     try:
         kld.kldload('/boot/kernel/ipmi.ko')
-    except OSError, err:
+    except OSError as err:
         if err.errno != errno.EEXIST:
             logger.warning('Cannot load IPMI module: %s', str(err))
             logger.warning('IPMI unavailable')

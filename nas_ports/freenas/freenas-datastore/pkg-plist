@@ -17,7 +17,7 @@ share/datastore/test/sample/migrations/users/0003-dependent.py
 %%PYTHON_SITELIBDIR%%/datastore/__init__.pyc
 %%PYTHON_SITELIBDIR%%/datastore/config.py
 %%PYTHON_SITELIBDIR%%/datastore/config.pyc
-%%PYTHON_SITELIBDIR%%/datastore-10.0-py2.7.egg-info
+%%PYTHON_SITELIBDIR%%/datastore-10.0-py%%PYTHON_VER%%.egg-info
 etc/rc.d/datastore
 sbin/dsutil
 sbin/dsdump

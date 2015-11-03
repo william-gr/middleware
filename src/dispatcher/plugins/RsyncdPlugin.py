@@ -85,7 +85,7 @@ class RsyncdConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure Rsyncd: {0}'.format(str(e))
             )
@@ -396,7 +396,7 @@ class RsyncCopyTask(ProgressTask):
                             old_seek = seek
                             self.message = proc_output.strip()
                             proc_output = proc_output.split(' ')
-                            progress = filter(lambda x: '%' in x, proc_output)
+                            progress = [x for x in proc_output if '%' in x]
                             if len(progress):
                                 self.set_progress(int(progress[0][:-1]))
                     except Exception as e:

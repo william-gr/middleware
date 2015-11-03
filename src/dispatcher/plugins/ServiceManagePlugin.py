@@ -73,7 +73,7 @@ class ServiceInfoProvider(Provider):
                 gevent.spawn(extend, entry): entry
                 for entry in result
             }
-        gevent.joinall(jobs.keys(), timeout=15)
+        gevent.joinall(list(jobs.keys()), timeout=15)
         group = gevent.pool.Group()
 
         def result(greenlet):
@@ -88,7 +88,7 @@ class ServiceInfoProvider(Provider):
                 return greenlet.value
 
         result = group.map(result, jobs)
-        result = map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result)
+        result = list(map(lambda s: extend_dict(s, {'config': self.get_service_config(s['name'])}), result))
         return result[0] if single is True else result
 
     @accepts(str)
@@ -116,7 +116,7 @@ class ServiceInfoProvider(Provider):
         rc_scripts = svc['rcng']['rc-scripts']
 
         try:
-            if type(rc_scripts) is unicode:
+            if type(rc_scripts) is str:
                 system("/usr/sbin/service", rc_scripts, 'onestart')
 
             if type(rc_scripts) is list:
@@ -139,7 +139,7 @@ class ServiceInfoProvider(Provider):
         rc_scripts = svc['rcng']['rc-scripts']
 
         try:
-            if type(rc_scripts) is unicode:
+            if type(rc_scripts) is str:
                 system("/usr/sbin/service", rc_scripts, 'onestop')
 
             if type(rc_scripts) is list:
@@ -162,7 +162,7 @@ class ServiceInfoProvider(Provider):
         if status['state'] != 'RUNNING':
             return
 
-        if type(rc_scripts) is unicode:
+        if type(rc_scripts) is str:
             try:
                 system("/usr/sbin/service", rc_scripts, 'onereload')
             except SubprocessException:
@@ -200,7 +200,7 @@ class ServiceInfoProvider(Provider):
         rc_scripts = svc['rcng']['rc-scripts']
 
         try:
-            if type(rc_scripts) is unicode:
+            if type(rc_scripts) is str:
                 system("/usr/sbin/service", rc_scripts, 'onerestart')
 
             if type(rc_scripts) is list:
@@ -266,7 +266,7 @@ class ServiceManageTask(Task):
         rc_scripts = service['rcng'].get('rc-scripts')
         reload_scripts = service['rcng'].get('reload', rc_scripts)
         try:
-            if type(rc_scripts) is unicode:
+            if type(rc_scripts) is str:
                 system("/usr/sbin/service", rc_scripts, 'one' + action)
 
             if type(rc_scripts) is list:
@@ -276,7 +276,7 @@ class ServiceManageTask(Task):
 
                     system("/usr/sbin/service", i, 'one' + action)
 
-        except SubprocessException, e:
+        except SubprocessException as e:
             raise TaskException(errno.EBUSY, e.err)
 
         self.dispatcher.dispatch_event('services.changed', {
@@ -386,7 +386,7 @@ def get_status(dispatcher, service):
         pid = None
         state = 'RUNNING'
         try:
-            if type(rc_scripts) is unicode:
+            if type(rc_scripts) is str:
                 system("/usr/sbin/service", rc_scripts, 'onestatus')
 
             if type(rc_scripts) is list:

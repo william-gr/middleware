@@ -88,7 +88,7 @@ class DynDNSConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure DynamicDNS: {0}'.format(str(e))
             )
@@ -106,7 +106,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('service-dyndns', {
         'type': 'object',
         'properties': {
-            'provider': {'type': ['string', 'null'], 'enum': [None] + PROVIDERS.values()},
+            'provider': {'type': ['string', 'null'], 'enum': [None] + list(PROVIDERS.values())},
             'ipserver': {'type': ['string', 'null']},
             'domains': {'type': 'array', 'items': {'type': 'string'}},
             'username': {'type': 'string'},

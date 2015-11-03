@@ -59,7 +59,7 @@ class SSHConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure SSH: {0}'.format(str(e))
             )

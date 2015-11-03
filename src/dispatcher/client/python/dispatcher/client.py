@@ -31,7 +31,7 @@ import enum
 import uuid
 import errno
 import time
-from jsonenc import dumps, loads
+from .jsonenc import dumps, loads
 from dispatcher import rpc
 from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
@@ -159,7 +159,7 @@ class Client(object):
             self.__send(self.__pack(
                 'events',
                 'event_burst',
-                {'events': map(lambda t: {'name': t[0], 'args': t[1]}, self.pending_events)}
+                {'events': list([{'name': t[0], 'args': t[1]} for t in self.pending_events])},
             ))
 
             del self.pending_events[:]
@@ -183,16 +183,16 @@ class Client(object):
         self.transport.send(data)
 
     def recv(self, message):
-        debug_log('-> {0}', unicode(message))
+        debug_log('-> {0}', message.data.decode('utf8'))
         try:
-            msg = loads(unicode(message))
-        except ValueError, err:
+            msg = loads(message.data.decode('utf8'))
+        except ValueError as err:
             if self.error_callback is not None:
                 self.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
             return
 
-        self.decode(msg) 
-        
+        self.decode(msg)
+
     def __process_event(self, name, args):
         self.event_distribution_lock.acquire()
         if name in self.event_handlers:
@@ -266,7 +266,7 @@ class Client(object):
                 def run_async(msg, args):
                     try:
                         result = self.rpc.dispatch_call(args['method'], args['args'], sender=self)
-                    except rpc.RpcException, err:
+                    except rpc.RpcException as err:
                         self.__send_error(msg['id'], err.code, err.message)
                     else:
                         self.__send_response(msg['id'], result)

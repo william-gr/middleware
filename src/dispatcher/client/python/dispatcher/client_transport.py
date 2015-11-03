@@ -34,6 +34,7 @@ import socket
 from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
 from abc import ABCMeta, abstractmethod
+from six import with_metaclass
 
 _debug_log_file = None
 
@@ -73,9 +74,7 @@ class ClientTransportBuilder(object):
         else:
             raise ValueError('Unsupported type of connection scheme.')
 
-class ClientTransportBase(object):
-
-    __metaclass__ = ABCMeta
+class ClientTransportBase(with_metaclass(ABCMeta, object)):
 
     @abstractmethod
     def connect(self, url, parent, **kwargs):
@@ -176,7 +175,7 @@ class ClientTransportWS(ClientTransportBase):
     def send(self, message):
         try:
             self.ws.send(message)
-        except OSError, err:
+        except OSError as err:
             if err.errno == errno.EPIPE:
                 debug_log('Socket is closed. Closing connection')
                 self.close()
@@ -340,7 +339,7 @@ class ClientTransportSSH(ClientTransportBase):
             data_received = self.stdout.readline()
             if self.terminated is False:
                 debug_log("Received data: {0}", data_received)
-                self.parent.recv(data_received)
+                self.parent.recv(BinaryMessage(data_received.encode('utf8')))
 
     def closed(self):
         exit_status = self.channel.recv_exit_status()

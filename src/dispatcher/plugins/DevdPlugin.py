@@ -96,7 +96,7 @@ class DeviceInfoPlugin(Provider):
 
     def _get_class_network(self):
         result = []
-        for i in netif.list_interfaces().keys():
+        for i in list(netif.list_interfaces().keys()):
             if i.startswith('lo'):
                 continue
 
@@ -213,10 +213,10 @@ class DevdEventSource(EventSource):
             try:
                 self.socket = socket.socket(family=socket.AF_UNIX)
                 self.socket.connect("/var/run/devd.pipe")
-                f = self.socket.makefile("r", 0)
+                f = self.socket.makefile("rb", 0)
                 # with self.socket.makefile("r", 0) as f:
                 while True:
-                    line = f.readline()
+                    line = f.readline().decode('utf8', 'replace')
                     if line is None:
                         # Connection closed - we need to reconnect
                         # return

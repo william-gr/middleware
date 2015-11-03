@@ -73,7 +73,7 @@ class FilesystemProvider(Provider):
         try:
             st = os.stat(path)
             a = acl.ACL(file=path)
-        except OSError, err:
+        except OSError as err:
             raise RpcException(err.errno, str(err))
 
         try:
@@ -125,7 +125,7 @@ class FilesystemProvider(Provider):
     def download(self, path, sender):
         try:
             f = open(path, 'r')
-        except OSError, e:
+        except OSError as e:
             raise RpcException(e.errno, e.message)
 
         token = self.dispatcher.token_store.issue_token(FileToken(
@@ -138,12 +138,12 @@ class FilesystemProvider(Provider):
         return token
 
     @pass_sender
-    @accepts(str, long, str)
+    @accepts(str, int, str)
     @returns(str)
     def upload(self, dest_path, size, mode, sender):
         try:
             f = open(dest_path, 'w')
-        except OSError, e:
+        except OSError as e:
             raise RpcException(e.errno, e.message)
 
         token = self.dispatcher.token_store.issue_token(FileToken(
@@ -175,7 +175,7 @@ class DownloadFileTask(Task):
         return TaskStatus(percentage)
 
 
-@accepts(str, long)
+@accepts(str, int)
 @private
 class UploadFileTask(Task):
     def verify(self, name, connection):
@@ -344,11 +344,11 @@ def _init(dispatcher, plugin):
         'properties': {
             'tag': {
                 'type': 'string',
-                'enum': acl.ACLEntryTag.__members__.keys()
+                'enum': list(acl.ACLEntryTag.__members__.keys())
             },
             'type': {
                 'type': 'string',
-                'enum': acl.ACLEntryType.__members__.keys()
+                'enum': list(acl.ACLEntryType.__members__.keys())
             },
             'id': {'type': ['string', 'null']},
             'name': {'type': ['string', 'null']},

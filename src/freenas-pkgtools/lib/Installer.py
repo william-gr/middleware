@@ -8,9 +8,6 @@ import hashlib
 import logging
 import tempfile
 
-# And now freenas modules
-import Configuration
-
 debug = 0
 verbose = False
 
@@ -154,7 +151,7 @@ def RemoveFile(path):
             if debug: log.debug("RemoveFile(%s):  errno = %d" % (path, e[0]))
             return False
     if os.path.exists(path):
-	raise Exception("After removal, %s still exists" % path)
+        raise Exception("After removal, %s still exists" % path)
     return True
 
 # Like the above, but for a directory.
@@ -181,7 +178,7 @@ def RemoveDirectory(path):
 
 def MakeDirs(dir):
     try:
-        os.makedirs(dir, 0755)
+        os.makedirs(dir, 0o755)
     except:
         pass
     return
@@ -282,8 +279,8 @@ def RunPkgScript(scripts, type, root = None, **kwargs):
     if "SCRIPT_ARG" in kwargs and kwargs["SCRIPT_ARG"] is not None:
         args.append(kwargs["SCRIPT_ARG"])
         
-    print "script (chroot to %s):  %s\n-----------" % ("/" if root is None else root, args)
-    print "%s\n--------------" % scripts[type]
+    print("script (chroot to %s):  %s\n-----------" % ("/" if root is None else root, args))
+    print("%s\n--------------" % scripts[type])
     if os.geteuid() != 0 and root is not None:
         log.error("Installation root is set, and process is not root.  Cannot run script %s" % type)
         if debug < 4:
@@ -350,18 +347,18 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
         full_path = "%s%s" % ("" if fileName.startswith("/") else "/", fileName)
         root = ""
     try:
-	import stat
-	m = os.lstat(full_path).st_mode
-	if stat.S_ISDIR(m):
-	    orig_type = TYPE_DIR
-	elif stat.S_ISREG(m):
-	    orig_type = TYPE_FILE
-	elif stat.S_ISLNK(m):
-	    orig_type = TYPE_SLNK
-	else:
-	    orig_type = TYPE_OTHER
+        import stat
+        m = os.lstat(full_path).st_mode
+        if stat.S_ISDIR(m):
+            orig_type = TYPE_DIR
+        elif stat.S_ISREG(m):
+            orig_type = TYPE_FILE
+        elif stat.S_ISLNK(m):
+            orig_type = TYPE_SLNK
+        else:
+            orig_type = TYPE_OTHER
     except:
-	orig_type = None
+        orig_type = None
 
     # After that, we've got a full_path, and so we get the directory it's in,
     # and the name of the file.
@@ -386,29 +383,29 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
     hash = ""
     
     if entry.isfile() or entry.islnk():
-	new_type = TYPE_FILE
+        new_type = TYPE_FILE
     elif entry.isdir():
-	new_type = TYPE_DIR
+        new_type = TYPE_DIR
     elif entry.issym():
-	new_type = TYPE_SLNK
+        new_type = TYPE_SLNK
     else:
-	new_type = TYPE_OTHER
+        new_type = TYPE_OTHER
 
     # If the type of the entry changed, but it didn't get removed,
     # then bad things could happen.  Especially if it changed from
     # a symlink to a file or directory.
     if orig_type is not None and orig_type != new_type:
-	log.debug("Original type = %s, new type = %s, path = %s" % (orig_type, new_type, full_path))
-	log.debug("Removing original entry")
-	if os.path.islink(full_path) or os.path.isfile(full_path):
-	    RemoveFile(full_path)
-	elif os.path.isdir(full_path):
-	    import shutil
-	    try:
-		shutil.rmtree(full_path)
-	    except BaseException as e:
-		log.error("Couldn't remove old directory %s: %s" % (full_path, str(e)))
-		raise e
+        log.debug("Original type = %s, new type = %s, path = %s" % (orig_type, new_type, full_path))
+        log.debug("Removing original entry")
+        if os.path.islink(full_path) or os.path.isfile(full_path):
+            RemoveFile(full_path)
+        elif os.path.isdir(full_path):
+            import shutil
+            try:
+                shutil.rmtree(full_path)
+            except BaseException as e:
+                log.error("Couldn't remove old directory %s: %s" % (full_path, str(e)))
+                raise e
     # Process the entry.  We look for a file, directory,
     # symlink, or hard link.
     if entry.isfile():
@@ -450,10 +447,10 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
             pass
         newfile = None
         try:
-            f = open(full_path, "w")
+            f = open(full_path, "wb")
         except:
             newfile = full_path + ".new"
-            f = open(newfile, "w")
+            f = open(newfile, "wb")
         while True:
             d = temp_entry.read(1024 * 1024)
             if d:
@@ -473,9 +470,8 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
         # If the directory already exists, we don't care.
         try:
             os.makedirs(full_path)
-        except os.error as e:
-            if e[0] != errno.EEXIST:
-                raise e
+        except FileExistsError:
+            pass
         SetPosix(full_path, meta)
         
         type = "dir"
@@ -486,9 +482,9 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
             # But they remove the leading / for the target,
             # so we have to do the same.
             if entry.linkname.startswith("/"):
-                hash = hashlib.sha256(entry.linkname[1:]).hexdigest()
+                hash = hashlib.sha256(entry.linkname[1:].encode('utf8')).hexdigest()
             else:
-                hash = hashlib.sha256(entry.linkname).hexdigest()
+                hash = hashlib.sha256(entry.linkname.encode('utf8')).hexdigest()
             if hash != mFileHash:
                 log.error("%s hash does not match manifest" % entry.name)
                 hash = ""
@@ -500,8 +496,8 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
         # Then create the new one.
         try:
             os.unlink(full_path)
-        except os.error as e:
-            if e[0] == errno.EPERM and os.path.isdir(full_path):
+        except PermissionError as e:
+            if os.path.isdir(full_path):
                 # You can't unlink a directory these days.
                 import shutil
                 try:
@@ -510,9 +506,11 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
                 except BaseException as e2:
                     log.error("Couldn't rmtree %s: %s" % (full_path, str(e2)))
                     raise e2
-            elif e[0] != errno.ENOENT:
-                log.error("Couldn't unlink %s: %s" % (full_path, e[0]))
-                raise e
+        except FileNotFoundError as e:
+            pass
+        except OSError as e:
+            log.error("Couldn't unlink %s: %s" % (full_path, e))
+            raise e
         os.symlink(entry.linkname, full_path)
         SetPosix(full_path, meta)
         type = "slink"
@@ -528,8 +526,8 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
                 pass
             try:
                 os.link(source_file, full_path)
-            except os.error as e:
-                if e[0] == errno.EXDEV:
+            except OSError as e:
+                if e.errno == errno.EXDEV:
                     log.debug("Unable to link %s -> %s, trying a copy" % (source_file, full_path))
                     # Cross-device link, so we'll just copy it
                     try:
@@ -552,7 +550,7 @@ def ExtractEntry(tf, entry, root, prefix = None, mFileHash = None):
             if st.st_flags != 0:
                 os.lchflags(source_file, st.st_flags)
         
-        except os.error as e:
+        except OSError as e:
             log.error("Could not link %s to %s: %s" % (source_file, full_path, str(e)))
             sys.exit(1)
         # Except on mac os, hard links are always files.
@@ -581,6 +579,7 @@ def install_path(pkgfile, dest):
         return install_file(f, dest)
             
 def install_file(pkgfile, dest):
+    from . import Configuration
     global debug, verbose, dryrun
     prefix = None
     # We explicitly want to use the pkgdb from the destination
@@ -602,7 +601,7 @@ def install_file(pkgfile, dest):
         if not member.name.startswith("+"): break
         if member.name == PKG_MANIFEST_NAME:
             manifest = t.extractfile(member)
-            mjson = json.load(manifest)
+            mjson = json.loads(manifest.read().decode('utf8'))
             manifest.close()
 
     # All packages must have a +MANIFEST file.
@@ -657,7 +656,7 @@ def install_file(pkgfile, dest):
     if PKG_DIRS_KEY in mjson:
         mdirs.update(mjson[PKG_DIRS_KEY])
     
-    print "%s-%s" % (pkgName, pkgVersion)
+    print("%s-%s" % (pkgName, pkgVersion))
     if debug > 1:  log.debug("installation target = %s" % dest)
         
     # Note that none of this is at all atomic.
@@ -680,7 +679,7 @@ def install_file(pkgfile, dest):
                   (PKG_SCRIPT_TYPES.PKG_SCRIPT_POST_DELTA in pkgScripts)) and \
                  pkgDeltaVersion is not None)
 
-        print "upgrade_aware = %s" % upgrade_aware
+        print("upgrade_aware = %s" % upgrade_aware)
         # First thing we do, if we're upgrade-aware, is to run the
         # upgrade scripts from the old version.
         if upgrade_aware:
@@ -825,6 +824,7 @@ class Installer(object):
 
         if self._conf is None:
             # Get the system configuration
+            from . import Configuration
             self._conf = Configuration.Configuration()
         if self._manifest is None:
             self._manifest = self._conf.SystemManifest()

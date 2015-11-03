@@ -107,7 +107,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'south',
-    'freenasUI.freeadmin',
     'freenasUI.account',
     'freenasUI.directoryservice',
     'freenasUI.network',

@@ -48,20 +48,21 @@ from dispatcher.rpc import RpcService, RpcException, private
 from fnutils.query import wrap
 from fnutils.debug import DebugService
 from fnutils import configure_logging
+from functools import reduce
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
 
 def cidr_to_netmask(cidr):
-    iface = ipaddress.ip_interface(u'0.0.0.0/{0}'.format(cidr))
-    return unicode(str(iface.netmask))
+    iface = ipaddress.ip_interface('0.0.0.0/{0}'.format(cidr))
+    return str(str(iface.netmask))
 
 
 def convert_aliases(entity):
     for i in entity.get('aliases', []):
         addr = netif.InterfaceAddress()
-        iface = ipaddress.ip_interface(u'{0}/{1}'.format(i['address'], i['netmask']))
+        iface = ipaddress.ip_interface('{0}/{1}'.format(i['address'], i['netmask']))
         addr.af = getattr(netif.AddressFamily, i.get('type', 'INET'))
         addr.address = ipaddress.ip_address(i['address'])
         addr.netmask = iface.netmask
@@ -109,10 +110,10 @@ def default_route(gateway):
 
     gw = ipaddress.ip_address(gateway)
     if gw.version == 4:
-        r = netif.Route(u'0.0.0.0', u'0.0.0.0', gateway)
+        r = netif.Route('0.0.0.0', '0.0.0.0', gateway)
 
     elif gw.version == 6:
-        r = netif.Route(u'::', u'::', gateway)
+        r = netif.Route('::', '::', gateway)
 
     else:
         return
@@ -134,10 +135,10 @@ def filter_routes(routes):
     :return: filtered routes list
     """
 
-    aliases = [i.addresses for i in netif.list_interfaces().values()]
+    aliases = [i.addresses for i in list(netif.list_interfaces().values())]
     aliases = reduce(lambda x, y: x+y, aliases)
-    aliases = filter(lambda a: a.af == netif.AddressFamily.INET, aliases)
-    aliases = [ipaddress.ip_interface(u'{0}/{1}'.format(a.address, a.netmask)) for a in aliases]
+    aliases = [a for a in aliases if a.af == netif.AddressFamily.INET]
+    aliases = [ipaddress.ip_interface('{0}/{1}'.format(a.address, a.netmask)) for a in aliases]
 
     for i in routes:
         if type(i.gateway) is str:
@@ -171,7 +172,7 @@ class RoutingSocketEventSource(threading.Thread):
 
     def build_cache(self):
         # Build a cache of certain interface states so we'll later know what has changed
-        for i in netif.list_interfaces().values():
+        for i in list(netif.list_interfaces().values()):
             self.mtu_cache[i.name] = i.mtu
             self.flags_cache[i.name] = i.flags
             self.link_state_cache[i.name] = i.link_state
@@ -314,13 +315,13 @@ class ConfigurationService(RpcService):
             'BRIDGE': 'bridge'
         }
 
-        if type not in type_map.keys():
+        if type not in list(type_map.keys()):
             raise RpcException(errno.EINVAL, 'Invalid type: {0}'.format(type))
 
         ifaces = netif.list_interfaces()
         for i in range(0, 999):
             name = '{0}{1}'.format(type_map[type], i)
-            if name not in ifaces.keys() and not self.datastore.exists('network.interfaces', ('id', '=', name)):
+            if name not in list(ifaces.keys()) and not self.datastore.exists('network.interfaces', ('id', '=', name)):
                 return name
 
         raise RpcException(errno.EBUSY, 'No free interfaces left')
@@ -336,7 +337,7 @@ class ConfigurationService(RpcService):
         if self.config.get('network.autoconfigure'):
             # Try DHCP on each interface until we find lease. Mark failed ones as disabled.
             self.logger.warn('Network in autoconfiguration mode')
-            for i in netif.list_interfaces().values():
+            for i in list(netif.list_interfaces().values()):
                 entity = self.datastore.get_by_id('network.interfaces', i.name)
                 if i.type == netif.InterfaceType.LOOP:
                     continue
@@ -360,11 +361,11 @@ class ConfigurationService(RpcService):
             self.logger.info('Configuring interface {0}...'.format(i['id']))
             try:
                 self.configure_interface(i['id'])
-            except BaseException, e:
+            except BaseException as e:
                 self.logger.warning('Cannot configure {0}: {1}'.format(i['id'], str(e)))
 
         # Are there any orphaned interfaces?
-        for name, iface in netif.list_interfaces().items():
+        for name, iface in list(netif.list_interfaces().items()):
             if not name.startswith(('vlan', 'lagg', 'bridge')):
                 continue
 
@@ -388,7 +389,7 @@ class ConfigurationService(RpcService):
                 self.logger.info('Removing default route')
                 try:
                     rtable.delete(rtable.default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot remove default route: {0}'.format(str(e)))
 
             # Default route was added
@@ -396,7 +397,7 @@ class ConfigurationService(RpcService):
                 self.logger.info('Adding default route via {0}'.format(default_route_ipv4.gateway))
                 try:
                     rtable.add(default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
             # Default route was changed
@@ -407,7 +408,7 @@ class ConfigurationService(RpcService):
 
                 try:
                     rtable.change(default_route_ipv4)
-                except OSError, e:
+                except OSError as e:
                     self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
         else:
@@ -421,7 +422,7 @@ class ConfigurationService(RpcService):
             self.logger.info('Removing default route')
             try:
                 rtable.delete(rtable.default_route_ipv6)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot remove default route: {0}'.format(str(e)))
 
         elif not rtable.default_route_ipv6 and default_route_ipv6:
@@ -429,7 +430,7 @@ class ConfigurationService(RpcService):
             self.logger.info('Adding default route via {0}'.format(default_route_ipv6.gateway))
             try:
                 rtable.add(default_route_ipv6)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
         elif rtable.default_route_ipv6 != default_route_ipv6:
@@ -440,7 +441,7 @@ class ConfigurationService(RpcService):
 
             try:
                 rtable.change(default_route_ipv6)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot add default route: {0}'.format(str(e)))
 
         # Now the static routes...
@@ -451,14 +452,14 @@ class ConfigurationService(RpcService):
             self.logger.info('Removing static route to {0}'.format(describe_route(i)))
             try:
                 rtable.delete(i)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot remove static route to {0}: {1}'.format(describe_route(i), str(e)))
 
         for i in new_routes - old_routes:
             self.logger.info('Adding static route to {0}'.format(describe_route(i)))
             try:
                 rtable.add(i)
-            except OSError, e:
+            except OSError as e:
                 self.logger.error('Cannot add static route to {0}: {1}'.format(describe_route(i), str(e)))
 
     def configure_dns(self):
@@ -513,7 +514,7 @@ class ConfigurationService(RpcService):
                         tag = int(tag)
                         iface.unconfigure()
                         iface.configure(parent, tag)
-                    except Exception, e:
+                    except Exception as e:
                         self.logger.warn('Failed to configure VLAN interface {0}: {1}'.format(name, str(e)))
 
         # Configure protocol and member ports for a LAGG
@@ -531,7 +532,7 @@ class ConfigurationService(RpcService):
                 self.logger.warn('Failed to configure interface {0} using DHCP'.format(name))
         else:
             addresses = set(convert_aliases(entity))
-            existing_addresses = set(filter(lambda a: a.af != netif.AddressFamily.LINK, iface.addresses))
+            existing_addresses = set([a for a in iface.addresses if a.af != netif.AddressFamily.LINK])
 
             # Remove orphaned addresses
             for i in existing_addresses - addresses:
@@ -645,7 +646,7 @@ class Main:
         existing = []
 
         # Add newly plugged NICs to DB
-        for i in netif.list_interfaces().values():
+        for i in list(netif.list_interfaces().values()):
             # We want only physical NICs
             if i.cloned:
                 continue
@@ -668,17 +669,17 @@ class Main:
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
-        except ValueError, err:
+        except ValueError as err:
             self.logger.error('Config file has unreadable format (not valid JSON)')
             sys.exit(1)
 
     def init_datastore(self):
         try:
             self.datastore = get_datastore(self.config['datastore']['driver'], self.config['datastore']['dsn'])
-        except DatastoreException, err:
+        except DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -698,7 +699,7 @@ class Main:
                     self.client.resume_service('networkd.debug')
 
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
@@ -719,14 +720,14 @@ class Main:
     def register_schemas(self):
         self.client.register_schema('network-aggregation-protocols', {
             'type': 'string',
-            'enum': netif.AggregationProtocol.__members__.keys()
+            'enum': list(netif.AggregationProtocol.__members__.keys())
         })
 
         self.client.register_schema('network-interface-flags', {
             'type': 'array',
             'items': {
                 'type': 'string',
-                'enum': netif.InterfaceFlags.__members__.keys()
+                'enum': list(netif.InterfaceFlags.__members__.keys())
             }
         })
 
@@ -734,7 +735,7 @@ class Main:
             'type': 'array',
             'items': {
                 'type': 'string',
-                'enum': netif.InterfaceCapability.__members__.keys()
+                'enum': list(netif.InterfaceCapability.__members__.keys())
             }
         })
 
@@ -742,7 +743,7 @@ class Main:
             'type': 'array',
             'items': {
                 'type': 'string',
-                'enum': netif.InterfaceMediaOption.__members__.keys()
+                'enum': list(netif.InterfaceMediaOption.__members__.keys())
             }
         })
 

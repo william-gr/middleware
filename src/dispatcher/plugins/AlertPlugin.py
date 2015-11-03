@@ -55,7 +55,7 @@ class AlertsProvider(Provider):
     def dismiss(self, id):
         try:
             self.datastore.delete('alerts', id)
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(
                 errno.EBADMSG,
                 'Cannot delete alert: {0}'.format(str(e))
@@ -76,7 +76,7 @@ class AlertsProvider(Provider):
         # Try to find the first matching namespace
         emitters = None
         dot = alert['name'].split('.')
-        for i in xrange(len(dot), 0, -1):
+        for i in range(len(dot), 0, -1):
             namespace = '.'.join(dot[0:i])
             afilter = self.datastore.get_one(
                 'alerts-filters', ('name', '=', namespace),
@@ -166,7 +166,7 @@ class AlertFilterDeleteTask(Task):
     def run(self, id):
         try:
             self.datastore.delete('alerts-filters', id)
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(
                 errno.EBADMSG,
                 'Cannot delete alert filter: {0}'.format(str(e))
@@ -193,7 +193,7 @@ class AlertFilterUpdateTask(Task):
             alertfilter = self.datastore.get_by_id('alerts-filters', id)
             alertfilter.update(updated_fields)
             self.datastore.update('alerts-filters', id, alertfilter)
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(
                 errno.EBADMSG,
                 'Cannot update alert filter: {0}'.format(str(e))

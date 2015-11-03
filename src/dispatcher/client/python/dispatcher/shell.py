@@ -28,8 +28,8 @@
 
 import errno
 from dispatcher import AsyncResult
-from jsonenc import loads, dumps
-from rpc import RpcException
+from .jsonenc import loads, dumps
+from .rpc import RpcException
 from ws4py.client.threadedclient import WebSocketClient
 
 
@@ -45,7 +45,7 @@ class ShellClient(object):
         def received_message(self, message):
             if not self.parent.authenticated.is_set():
                 try:
-                    ret = loads(message.data)
+                    ret = loads(message.data.decode('utf8'))
                 except ValueError:
                     self.parent.authenticated.set_exception(RpcException(errno.EINVAL, 'Invalid response from server'))
                     return
@@ -76,7 +76,9 @@ class ShellClient(object):
         self.connection = self.ShellWebsocketHandler('ws://{0}:{1}/shell'.format(self.hostname, self.port), self)
         self.connection.connect()
         self.connection.send(dumps({'token': self.token}))
-        self.authenticated.wait()
+        while not self.connection.terminated:
+            if self.authenticated.wait(1):
+                break
 
     def on_data(self, callback):
         self.read_callback = callback

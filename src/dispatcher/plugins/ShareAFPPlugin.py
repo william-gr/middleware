@@ -43,7 +43,7 @@ class AFPSharesProvider(Provider):
             if i.name() != 'afpd':
                 continue
 
-            conns = filter(lambda c: c.pid == i.pid, psutil.net_connections('inet'))
+            conns = [c for c in psutil.net_connections('inet') if c.pid == i.pid]
             conn = first_or_default(lambda c: c.laddr[1] == 548, conns)
 
             if not conn:

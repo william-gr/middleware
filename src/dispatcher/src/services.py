@@ -59,12 +59,12 @@ class ManagementService(RpcService):
         pass
 
     def get_event_sources(self):
-        return self.dispatcher.event_sources.keys()
+        return list(self.dispatcher.event_sources.keys())
 
     def get_connected_clients(self):
         return [
             inner
-            for outter in [s.clients.keys() for s in self.dispatcher.ws_servers]
+            for outter in [list(s.clients.keys()) for s in self.dispatcher.ws_servers]
             for inner in outter
         ]
 
@@ -173,15 +173,15 @@ class PluginService(RpcService):
             return call_wrapped
 
     def __client_disconnected(self, args):
-        for name, svc in self.services.items():
+        for name, svc in list(self.services.items()):
             if args['address'] == svc.connection.real_client_address:
                 self.unregister_service(name, svc.connection)
 
-        for name, conn in self.schemas.items():
+        for name, conn in list(self.schemas.items()):
             if args['address'] == conn.real_client_address:
                 self.unregister_schema(name, conn)
 
-        for name, conn in self.event_types.items():
+        for name, conn in list(self.event_types.items()):
             if args['address'] == conn.ws.handler.client_address:
                 self.unregister_event_type(name)
 
@@ -206,12 +206,12 @@ class PluginService(RpcService):
             'description': "Service {0} registered".format(name)
         })
 
-        if name in self.events.keys():
+        if name in list(self.events.keys()):
             self.events[name].set()
 
     @pass_sender
     def unregister_service(self, name, sender):
-        if name not in self.services.keys():
+        if name not in list(self.services.keys()):
             raise RpcException(errno.ENOENT, 'Service not found')
 
         svc = self.services[name]
@@ -229,7 +229,7 @@ class PluginService(RpcService):
 
     @pass_sender
     def resume_service(self, name, sender):
-        if name not in self.services.keys():
+        if name not in list(self.services.keys()):
             raise RpcException(errno.ENOENT, 'Service not found')
 
         svc = self.services[name]
@@ -245,7 +245,7 @@ class PluginService(RpcService):
 
     @pass_sender
     def unregister_schema(self, name, sender):
-        if name not in self.schemas.keys():
+        if name not in list(self.schemas.keys()):
             raise RpcException(errno.ENOENT, 'Schema not found')
 
         conn = self.schemas[name]
@@ -267,7 +267,7 @@ class PluginService(RpcService):
         del self.event_types[event]
 
     def wait_for_service(self, name, timeout=None):
-        if name in self.services.keys():
+        if name in list(self.services.keys()):
             return
 
         self.events[name] = Event()
@@ -390,14 +390,14 @@ class TaskService(RpcService):
         if not executor:
             raise RpcException(errno.EPERM, 'Not authorized')
 
-        subtasks = map(self.__balancer.get_task, subtask_ids)
+        subtasks = list(map(self.__balancer.get_task, subtask_ids))
         self.__dispatcher.balancer.join_subtasks(*subtasks)
 
         for i in subtasks:
             if i.state != TaskState.FINISHED:
                 raise RpcException(i.error['code'], 'Subtask failed: {0}'.format(i.error['message']))
 
-        return map(lambda t: t.result, subtasks)
+        return [t.result for t in subtasks]
 
 
 class LockService(RpcService):
@@ -434,7 +434,7 @@ class LockService(RpcService):
         return self.locks[lock].locked()
 
     def get_locks(self):
-        return self.locks.keys()
+        return list(self.locks.keys())
 
 
 class ShellService(RpcService):

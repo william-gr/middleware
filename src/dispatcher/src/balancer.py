@@ -45,6 +45,7 @@ from gevent.subprocess import Popen
 from fnutils import first_or_default
 from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
+import collections
 
 
 TASKWORKER_PATH = '/usr/local/libexec/taskworker'
@@ -84,7 +85,7 @@ class TaskExecutor(object):
             st = TaskStatus(0)
             st.__setstate__(self.conn.call_client_sync('taskproxy.get_status'))
             return st
-        except RpcException, err:
+        except RpcException as err:
             self.balancer.logger.error("Cannot obtain status from task #{0}: {1}".format(self.task.id, str(err)))
             self.proc.terminate()
 
@@ -123,7 +124,7 @@ class TaskExecutor(object):
 
         try:
             self.result.get()
-        except BaseException, e:
+        except BaseException as e:
             if not isinstance(e, TaskException):
                 self.balancer.dispatcher.report_error(
                     'Task {0} raised exception other than TaskException'.format(self.task.name),
@@ -151,7 +152,7 @@ class TaskExecutor(object):
         # Try to abort via RPC. If this fails, kill process
         try:
             self.conn.call_client_sync('taskproxy.abort')
-        except RpcException, err:
+        except RpcException as err:
             self.balancer.logger.warning("Failed to abort task #{0} gracefully: {1}".format(self.task.id, str(err)))
             self.balancer.logger.warning("Killing process {0}".format(self.pid))
             self.proc.terminate()
@@ -172,6 +173,7 @@ class TaskExecutor(object):
                 return
 
             for line in self.proc.stdout:
+                line = line.decode('utf8')
                 self.balancer.logger.debug('Executor output: {0}'.format(line))
                 if self.task:
                     self.task.output += line
@@ -242,14 +244,14 @@ class Task(object):
             "percentage": self.progress.percentage,
             "message": self.progress.message,
             "extra": self.progress.extra,
-            "abortable": True if (hasattr(self.instance, 'abort') and callable(self.instance.abort)) else False
+            "abortable": True if (hasattr(self.instance, 'abort') and isinstance(self.instance.abort, collections.Callable)) else False
         })
 
     def run(self):
         self.set_state(TaskState.EXECUTING)
         try:
             result = self.instance.run(*(copy.deepcopy(self.args)))
-        except TaskAbortException, e:
+        except TaskAbortException as e:
             self.error = serialize_error(e)
 
             self.progress = self.instance.get_status()
@@ -258,7 +260,7 @@ class Task(object):
             self.dispatcher.balancer.task_exited(self)
             self.dispatcher.balancer.logger.debug("Task ID: %d, Name: %s aborted by user", self.id, self.name)
             return
-        except BaseException, e:
+        except BaseException as e:
             self.error = serialize_error(e)
 
             self.set_state(TaskState.FAILED, TaskStatus(0, str(e), extra={
@@ -505,7 +507,7 @@ class Balancer(object):
 
         :return:
         """
-        for task in filter(lambda t: t.state == TaskState.WAITING, self.task_list):
+        for task in [t for t in self.task_list if t.state == TaskState.WAITING]:
             if not self.resource_graph.can_acquire(*task.resources):
                 continue
 
@@ -565,17 +567,16 @@ class Balancer(object):
             i.die()
 
     def get_active_tasks(self):
-        return filter(lambda x: x.state in (
+        return [x for x in self.task_list if x.state in (
             TaskState.CREATED,
             TaskState.WAITING,
-            TaskState.EXECUTING),
-            self.task_list)
+            TaskState.EXECUTING)]
 
     def get_tasks(self, type=None):
         if type is None:
             return self.task_list
 
-        return filter(lambda x: x.state == type, self.task_list)
+        return [x for x in self.task_list if x.state == type]
 
     def get_task(self, id):
         self.distribution_lock.acquire()
@@ -612,7 +613,7 @@ def serialize_error(err):
 
 def remove_dots(obj):
     if isinstance(obj, dict):
-        return {k.replace('.', '+'): v for k, v in obj.items()}
+        return {k.replace('.', '+'): v for k, v in list(obj.items())}
 
     if isinstance(obj, (list, tuple)):
         return [remove_dots(x) for x in obj]

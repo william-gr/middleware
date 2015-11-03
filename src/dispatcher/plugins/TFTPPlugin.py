@@ -67,7 +67,7 @@ class TFTPConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure TFTP: {0}'.format(str(e))
             )

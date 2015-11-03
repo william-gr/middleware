@@ -53,7 +53,7 @@ def system(*args, **kwargs):
                        ' '.join(args), proc.returncode, err)
         raise SubprocessException(proc.returncode, out, err)
 
-    return out, err
+    return out.decode('utf8'), err.decode('utf8')
 
 
 # Only use this for running background processes

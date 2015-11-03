@@ -25,7 +25,7 @@
 #
 #####################################################################
 
-from __future__ import print_function
+
 import os
 import sys
 import errno
@@ -34,7 +34,7 @@ import setproctitle
 import socket
 import traceback
 import logging
-import Queue
+import queue
 from threading import Event
 from dispatcher.client import Client, ClientType
 from dispatcher.rpc import RpcService, RpcException
@@ -109,7 +109,7 @@ class TaskProxyService(RpcService):
 
         try:
             self.context.instance.abort()
-        except BaseException, err:
+        except BaseException as err:
             raise RpcException(errno.EFAULT, 'Cannot abort: {0}'.format(str(err)))
 
     def run(self, task):
@@ -119,7 +119,7 @@ class TaskProxyService(RpcService):
 class Context(object):
     def __init__(self):
         self.service = TaskProxyService(self)
-        self.task = Queue.Queue(1)
+        self.task = queue.Queue(1)
         self.datastore = None
         self.conn = None
         self.instance = None
@@ -145,7 +145,7 @@ class Context(object):
             sys.exit(errno.EINVAL)
 
         key = sys.argv[1]
-        logging.basicConfig(file=sys.stdout, level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
 
         self.datastore = get_default_datastore()
         self.conn = Client()
@@ -176,17 +176,17 @@ class Context(object):
                     self.instance.configstore = ConfigStore(self.datastore)
                     self.running.set()
                     result = self.instance.run(*task['args'])
-                except BaseException, err:
+                except BaseException as err:
                     print("Task exception: {0}".format(str(err)), file=sys.stderr)
                     traceback.print_exc(file=sys.stderr)
                     self.put_status('FAILED', exception=err)
                 else:
                     self.put_status('FINISHED', result=result)
 
-            except RpcException, err:
+            except RpcException as err:
                 print("RPC failed: {0}".format(str(err)), file=sys.stderr)
                 sys.exit(errno.EBADMSG)
-            except socket.error, err:
+            except socket.error as err:
                 print("Cannot connect to dispatcher: {0}".format(str(err)), file=sys.stderr)
                 sys.exit(errno.ETIMEDOUT)
 

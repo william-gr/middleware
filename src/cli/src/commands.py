@@ -62,7 +62,7 @@ class SetenvCommand(Command):
         if args:
             raise CommandException("Incorrect syntax {0}".format(args))
 
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             context.variables.set(k, v)
 
     def complete(self, context, tokens):
@@ -145,7 +145,7 @@ class ShellCommand(Command):
 
     def run(self, context, args, kwargs, opargs):
         def read(data):
-            sys.stdout.write(data)
+            sys.stdout.write(data.decode('utf8'))
             sys.stdout.flush()
 
         def close():
@@ -155,9 +155,9 @@ class ShellCommand(Command):
         name = args[0] if len(args) > 0 and len(args[0]) > 0 else '/bin/sh'
         token = context.call_sync('shell.spawn', name)
         shell = ShellClient(context.hostname, token)
-        shell.open()
         shell.on_data(read)
         shell.on_close(close)
+        shell.open()
 
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
@@ -346,7 +346,7 @@ class HelpCommand(Command):
                 {"cmd": "-", "description": "Go back to previous namespace"}
             ]
             ns_cmds = obj.commands()
-            for key, value in ns_cmds.iteritems():
+            for key, value in ns_cmds.items():
                 cmd_dict = {
                     'cmd': key,
                     'description': value.description,
@@ -364,7 +364,7 @@ class HelpCommand(Command):
 
             # Finally listing the builtin cmds
             builtin_cmd_dict_list = []
-            for key, value in context.ml.builtin_commands.iteritems():
+            for key, value in context.ml.builtin_commands.items():
                 builtin_cmd_dict = {
                     'cmd': key,
                     'description': value.description,
@@ -466,7 +466,7 @@ class SourceCommand(Command):
                         with open(arg, 'r') as f:
                             for line in f:
                                 context.ml.process(line.strip())
-                    except UnicodeDecodeError, e:
+                    except UnicodeDecodeError as e:
                         output_msg(_("Incorrect filetype, cannot parse file: {0}".format(str(e))))
                     finally:
                         context.ml.path = path
@@ -526,7 +526,7 @@ class EchoCommand(Command):
                             return
 
                 echo_output_list[x] = ' '.join(tmp_lst)
-            map(output_msg, echo_output_list)
+            list(map(output_msg, echo_output_list))
 
 
 @description("Allows the user to scroll through output")
@@ -625,7 +625,7 @@ class SelectPipeCommand(PipeCommand):
     def run(self, context, args, kwargs, opargs, input=None):
         field = args[0]
         if isinstance(input, Table):
-            input.data = map(lambda x: {'result': x.get(field)}, input.data)
+            input.data = [{'result': x.get(field)} for x in input.data]
             input.columns = [Table.Column('Result', 'result')]
 
             return input

@@ -141,7 +141,7 @@ class MongodbDatastore(object):
             self.db[name].create_index(ttl_index, expireAfterSeconds=0)
 
         for idx in unique_indexes:
-            if isinstance(idx, basestring):
+            if isinstance(idx, str):
                 idx = [idx]
 
             self.db[name].create_index([(i, pymongo.ASCENDING) for i in idx], unique_indexes=True)
@@ -220,7 +220,7 @@ class MongodbDatastore(object):
                 if isinstance(select, (list, tuple)):
                     return [obj.get(i) for i in select]
 
-                if isinstance(select, basestring):
+                if isinstance(select, str):
                     return obj.get(select)
 
             old = postprocess

@@ -60,7 +60,6 @@ class Migration(DataMigration):
                 id_uuid_map[obj.id] = pkey
 
                 if obj.cert_signedby is not None:
-                    print obj.cert_name, "-"
                     signedby.append(obj.id)
 
             return id_uuid_map, signedby
@@ -68,22 +67,17 @@ class Migration(DataMigration):
         def migrate_signedby(model, id_uuid_map, signedby, ca_map):
             for id in signedby:
                 cobj = model.objects.get(id=id)
-                print cobj.cert_name, "|"
                 pkey = id_uuid_map.get(id)
                 if pkey is None:
-                    print "pkey none"
                     continue
                 cert = ds.get_by_id('crypto.certificates', pkey)
                 if cobj.cert_signedby is None:
-                    print "cert_", "none"
                     continue
 
                 signedby = ca_map.get(cobj.cert_signedby.id)
                 if signedby is None:
-                    print "signed by none"
                     continue
                 cert['signedby'] = signedby
-                print cert['id'], signedby, model
                 ds.update('crypto.certificates', pkey, cert)
 
         id_uuid_map, signedby = migrate_cert(orm['system.CertificateAuthority'].objects.order_by('cert_signedby'))

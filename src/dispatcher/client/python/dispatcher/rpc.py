@@ -28,6 +28,8 @@
 import errno
 import inspect
 import logging
+import six
+import sys
 import traceback
 from dispatcher import validator
 from jsonschema import RefResolver
@@ -211,7 +213,10 @@ class RpcException(Exception):
         self.code = code
         self.message = message
         self.extra = extra
-        self.stacktrace = stacktrace or traceback.format_exc()
+        if stacktrace is None and sys.exc_info()[2]:
+            self.stacktrace = traceback.format_exc()
+        else:
+            self.stacktrace = stacktrace
 
     def __str__(self):
         return "{0}: {1} {2}".format(
@@ -287,11 +292,11 @@ class DiscoveryService(RpcService):
 class SchemaHelper(object):
     @staticmethod
     def all_of(*args):
-        return {'allOf': map(convert_schema, args)}
+        return {'allOf': list(map(convert_schema, args))}
 
     @staticmethod
     def any_of(*args):
-        return {'anyOf': map(convert_schema, args)}
+        return {'anyOf': list(map(convert_schema, args))}
 
     @staticmethod
     def no(sch):
@@ -299,7 +304,7 @@ class SchemaHelper(object):
 
     @staticmethod
     def one_of(*args):
-        return {'oneOf': map(convert_schema, args)}
+        return {'oneOf': list(map(convert_schema, args))}
 
     @staticmethod
     def ref(target, **kwargs):
@@ -331,7 +336,7 @@ class SchemaHelper(object):
     def tuple(*args):
         return {
             'type': 'array',
-            'items': map(convert_schema, args)
+            'items': list(map(convert_schema, args))
         }
 
     @staticmethod
@@ -344,13 +349,16 @@ class SchemaHelper(object):
 def convert_schema(sch):
     type_mapping = {
         str: 'string',
-        unicode: 'string',
-        int: 'number',
-        long: 'number',
         float: 'number',
         bool: 'boolean',
         None: 'null'
     }
+
+    if six.PY2:
+        type_mapping[unicode] = 'string'
+
+    for typ in six.integer_types:
+        type_mapping[typ] = 'integer'
 
     if isinstance(sch, dict):
         return sch
@@ -372,7 +380,7 @@ def description(descr):
 
 def accepts(*sch):
     def wrapped(fn):
-        fn.params_schema = map(convert_schema, sch)
+        fn.params_schema = list(map(convert_schema, sch))
         return fn
 
     return wrapped
@@ -380,7 +388,7 @@ def accepts(*sch):
 
 def returns(*sch):
     def wrapped(fn):
-        fn.result_schema = map(convert_schema, sch)
+        fn.result_schema = list(map(convert_schema, sch))
         return fn
 
     return wrapped

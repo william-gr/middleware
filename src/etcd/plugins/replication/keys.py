@@ -43,7 +43,7 @@ def run(context):
     with open(private_key_file, 'w') as fd:
         fd.write(private_key)
 
-    os.chmod(private_key_file, 0600)
+    os.chmod(private_key_file, 0o600)
 
     with open(public_key_file, 'w') as fd:
         fd.write(public_key)

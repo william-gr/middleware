@@ -1,33 +1,28 @@
 #
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       cam
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
-PORTREVISION=   ${REVISION}
-PKGNAMEPREFIX=  ${PYTHON_PKGNAMEPREFIX}
+PORTNAME=	cam
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTREVISION=	${REVISION}
+PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        Python libcam wrapper
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	Python libcam wrapper
 
-BUILD_DEPENDS=	
+BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
 
 USES=		python
+USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
-BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
 
 WRKSRC=		/usr/middleware_src/py-cam
 
-USES=		python:2
-USE_PYTHON=	autoplist distutils
-
-export FREEBSD_SRC=/usr/src
+MAKE_ENV=	FREEBSD_SRC=/usr/src
 
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 .include <bsd.port.mk>

@@ -66,7 +66,7 @@ class GlusterdConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure Glusterd: {0}'.format(str(e))
             )

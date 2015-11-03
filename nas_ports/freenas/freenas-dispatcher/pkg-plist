@@ -1,4 +1,4 @@
-%%PYTHON_SITELIBDIR%%/dispatcher_client-10.0-py2.7.egg-info
+%%PYTHON_SITELIBDIR%%/dispatcher_client-10.0-py%%PYTHON_VER%%.egg-info
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.pyc
 %%PYTHON_SITELIBDIR%%/dispatcher/rpc.py
 %%PYTHON_SITELIBDIR%%/dispatcher/spawn_thread.py

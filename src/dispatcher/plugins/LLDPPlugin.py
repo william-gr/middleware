@@ -71,7 +71,7 @@ class LLDPConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure LLDP: {0}'.format(str(e))
             )

@@ -97,7 +97,7 @@ class VolumeProvider(Provider):
                             'disks.partition_to_disk',
                             vdev['path']
                         )
-                    except RpcException, err:
+                    except RpcException as err:
                         if err.code == errno.ENOENT:
                             pass
 
@@ -117,7 +117,7 @@ class VolumeProvider(Provider):
                     vol.update({
                         'description': config.get('root_dataset.properties.org\\.freenas:description.value'),
                         'mountpoint': config['root_dataset.properties.mountpoint.value'],
-                        'datasets': map(extend_dataset, flatten_datasets(config['root_dataset'])),
+                        'datasets': list(map(extend_dataset, flatten_datasets(config['root_dataset']))),
                         'upgraded': is_upgraded(config),
                     })
 
@@ -216,7 +216,7 @@ class VolumeProvider(Provider):
         volname = tokens[1]
         config = self.get_config(volname)
         if config:
-            datasets = map(lambda d: d['name'], flatten_datasets(config['root_dataset']))
+            datasets = [d['name'] for d in flatten_datasets(config['root_dataset'])]
         else:
             raise RpcException(errno.ENOENT, "Volume '{0}' does not exist".format(volname))
         n = len(tokens)
@@ -459,13 +459,13 @@ class VolumeAutoCreateTask(Task):
     def run(self, name, type, disks, params=None):
         vdevs = []
         if len(disks) % 3 == 0:
-            for i in xrange(0, len(disks), 3):
+            for i in range(0, len(disks), 3):
                 vdevs.append({
                     'type': 'raidz1',
                     'children': [{'type': 'disk', 'path': os.path.join('/dev', i)} for i in disks[i:i+3]]
                 })
         elif len(disks) % 2 == 0:
-            for i in xrange(0, len(disks), 2):
+            for i in range(0, len(disks), 2):
                 vdevs.append({
                     'type': 'mirror',
                     'children': [{'type': 'disk', 'path': os.path.join('/dev', i)} for i in disks[i:i+2]]
@@ -551,7 +551,7 @@ class VolumeUpdateTask(Task):
             params = {}
             subtasks = []
 
-            for group, vdevs in updated_params['topology'].items():
+            for group, vdevs in list(updated_params['topology'].items()):
                 for vdev in vdevs:
                     if 'guid' not in vdev:
                         new_vdevs.setdefault(group, []).append(vdev)
@@ -642,14 +642,14 @@ class VolumeDiskImportTask(ProgressTask):
         if fstype == 'ntfs':
             try:
                 bsd.kld.kldload('/boot/kernel/fuse.ko')
-            except OSError, err:
+            except OSError as err:
                 raise TaskException(err.errno, err.message)
 
         src_mount = tempfile.mkdtemp()
 
         try:
             bsd.nmount(source=src, fspath=src_mount, fstype=fstype)
-        except OSError, err:
+        except OSError as err:
             raise TaskException(err.errno, "Cannot mount disk: {0}".format(str(err)))
 
         def callback(srcfile, dstfile):
@@ -662,7 +662,7 @@ class VolumeDiskImportTask(ProgressTask):
 
         try:
             copytree(src_mount, dest_path, progress_callback=callback)
-        except shutil.Error, err:
+        except shutil.Error as err:
             failures = err.message
 
         try:
@@ -737,7 +737,7 @@ class DatasetCreateTask(Task):
             pool_name,
             path,
             type,
-            {k: v['value'] for k, v in params['properties'].items()} if params else {}
+            {k: v['value'] for k, v in list(params['properties'].items())} if params else {}
         ))
 
         if params:
@@ -865,7 +865,7 @@ def flatten_datasets(root):
 
 
 def iterate_vdevs(topology):
-    for name, grp in topology.items():
+    for name, grp in list(topology.items()):
         for vdev in grp:
             if vdev['type'] == 'disk':
                 yield vdev, name
@@ -902,7 +902,7 @@ def _init(dispatcher, plugin):
     boot_pool = dispatcher.call_sync('zfs.pool.get_boot_pool')
 
     def on_pool_change(args):
-        ids = filter(lambda i: i != boot_pool['guid'], args['ids'])
+        ids = [i for i in args['ids'] if i != boot_pool['guid']]
         if args['operation'] == 'delete':
             for i in ids:
                 logger.info('Volume {0} is going away'.format(i))
@@ -1059,7 +1059,7 @@ def _init(dispatcher, plugin):
             # XXX: check mountpoint property and correct if needed
 
 
-        except TaskException, err:
+        except TaskException as err:
             if err.code != errno.EBUSY:
                 logger.warning('Cannot mount volume {0}: {1}'.format(vol['name'], str(err)))
 

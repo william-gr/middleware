@@ -12,10 +12,10 @@ COMMENT=	Tool to upgrade from 9.3 databases
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}django16>0:${PORTSDIR}/www/py-django16 \
 		${PYTHON_PKGNAMEPREFIX}south>0:${PORTSDIR}/databases/py-south \
-		${PYTHON_PKGNAMEPREFIX}ipaddr>0:${PORTSDIR}/devel/py-ipaddr \
 		${PYTHON_PKGNAMEPREFIX}lxml>0:${PORTSDIR}/devel/py-lxml
 
 USES=		python
+USE_PYTHON=	py3kplist
 EXTRACT_ONLY=
 
 NO_BUILD=	yes

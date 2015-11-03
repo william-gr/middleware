@@ -89,11 +89,11 @@ class CIFSConfigureTask(Task):
             errors.append(('netbiosname', errno.EEXIST, 'NetBIOS and Workgroup must be unique'))
 
         dirmask = cifs.get('dirmask')
-        if dirmask and (int(dirmask, 8) & ~011777):
+        if dirmask and (int(dirmask, 8) & ~0o11777):
             errors.append(('dirmask', errno.EINVAL, 'This is not a valid mask'))
 
         filemask = cifs.get('filemask')
-        if filemask and (int(filemask, 8) & ~011777):
+        if filemask and (int(filemask, 8) & ~0o11777):
             errors.append(('filemask', errno.EINVAL, 'This is not a valid mask'))
 
         if errors:
@@ -116,7 +116,7 @@ class CIFSConfigureTask(Task):
                 'operation': 'updated',
                 'ids': None,
             })
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO, 'Cannot reconfigure CIFS: {0}'.format(str(e))
             )
@@ -144,7 +144,7 @@ def configure_params(cifs):
     conf['oplocks'] = 'yes'
     conf['deadtime'] = '15'
     conf['max log size'] = '51200'
-    conf['max open files'] = str(long(get_sysctl('kern.maxfilesperproc')) - 25)
+    conf['max open files'] = str(int(get_sysctl('kern.maxfilesperproc')) - 25)
 
     if cifs['syslog']:
         conf['syslog only'] = 'yes'
@@ -232,7 +232,7 @@ def _init(dispatcher, plugin):
             'unix_charset': {'type': 'string'},
             'log_level': {
                 'type': 'string',
-                'enum': LogLevel.__members__.keys()
+                'enum': list(LogLevel.__members__.keys())
             },
             'syslog': {'type': 'boolean'},
             'local_master': {'type': 'boolean'},

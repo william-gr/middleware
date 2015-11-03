@@ -65,7 +65,7 @@ class SharesProvider(Provider):
     @returns(h.array(str))
     def supported_types(self):
         result = {}
-        for p in self.dispatcher.plugins.values():
+        for p in list(self.dispatcher.plugins.values()):
             if p.metadata and p.metadata.get('type') == 'sharing':
                 result[p.metadata['method']] = {
                     'subtype': p.metadata['subtype'],
@@ -294,7 +294,7 @@ def _init(dispatcher, plugin):
                 # neither about direct children of root datasets
                 return
 
-            types = dispatcher.call_sync('shares.supported_types').keys()
+            types = list(dispatcher.call_sync('shares.supported_types').keys())
             pool, share_type, rest = tokens
 
             if share_type not in types:
@@ -322,7 +322,7 @@ def _init(dispatcher, plugin):
                 # neither about direct children of root datasets
                 return
 
-            types = dispatcher.call_sync('shares.supported_types').keys()
+            types = list(dispatcher.call_sync('shares.supported_types').keys())
             pool, share_type, rest = tokens
 
             if share_type not in types:

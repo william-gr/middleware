@@ -84,9 +84,9 @@ class NTPServerCreateTask(Task):
                 'operation': 'create',
                 'ids': [pkey]
             })
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot create NTP Server: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
         return pkey
 
@@ -134,9 +134,9 @@ class NTPServerUpdateTask(Task):
                 'operation': 'update',
                 'ids': [id]
             })
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot update NTP Server: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
         return id
 
@@ -159,9 +159,9 @@ class NTPServerDeleteTask(Task):
                 'operation': 'delete',
                 'ids': [id]
             })
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete NTP Server: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
 

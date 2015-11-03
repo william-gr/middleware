@@ -1,18 +1,19 @@
 # $FreeBSD$
 
-PORTNAME=       freenas-networkd
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-networkd
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS network configuration daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS network configuration daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}ipaddress>0:${PORTSDIR}/net/py-ipaddress
 
 USES=		python
+USE_PYTHON=	py3kplist
 EXTRACT_ONLY=
 
 NO_BUILD=	yes

@@ -1784,7 +1784,7 @@ class notifier:
 
         secret = Random.new().read(PWENC_BLOCK_SIZE)
         with open(PWENC_FILE_SECRET, 'wb') as f:
-            os.chmod(PWENC_FILE_SECRET, 0600)
+            os.chmod(PWENC_FILE_SECRET, 0o600)
             f.write(secret)
 
         settings.stg_pwenc_check = self.pwenc_encrypt(PWENC_CHECK)
@@ -1991,4 +1991,4 @@ if __name__ == '__main__':
         if f is None:
             sys.stderr.write("Unknown action: %s\n" % sys.argv[1])
             usage()
-        print f(*sys.argv[2:])
+        print(f(*sys.argv[2:]))

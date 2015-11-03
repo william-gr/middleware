@@ -1,25 +1,22 @@
 # $FreeBSD$
-# $Id$
 
-PORTNAME=       freenas-dispatcher
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTNAME=	freenas-dispatcher
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        FreeNAS middleware daemon
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	FreeNAS middleware daemon
 
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh \
 		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil \
-		${PYTHON_PKGNAMEPREFIX}enum34>0:${PORTSDIR}/devel/py-enum34 \
 		${PYTHON_PKGNAMEPREFIX}Flask>0:${PORTSDIR}/www/py-flask \
 		${PYTHON_PKGNAMEPREFIX}Flask-Bootstrap>0:${PORTSDIR}/www/py-flask-bootstrap \
 		${PYTHON_PKGNAMEPREFIX}fnutils>0:${PORTSDIR}/freenas/py-fnutils \
 		${PYTHON_PKGNAMEPREFIX}gevent>0:${PORTSDIR}/devel/py-gevent \
 		${PYTHON_PKGNAMEPREFIX}gevent-websocket>0:${PORTSDIR}/www/py-gevent-websocket \
-		${PYTHON_PKGNAMEPREFIX}ipaddress>0:${PORTSDIR}/net/py-ipaddress \
 		${PYTHON_PKGNAMEPREFIX}jsonschema>0:${PORTSDIR}/devel/py-jsonschema \
 		${PYTHON_PKGNAMEPREFIX}lxml>0:${PORTSDIR}/devel/py-lxml \
 		${PYTHON_PKGNAMEPREFIX}openssl>0:${PORTSDIR}/security/py-openssl \
@@ -32,6 +29,7 @@ RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py
 
 USES=		python
+USE_PYTHON=	py3kplist
 
 EXTRACT_ONLY=
 

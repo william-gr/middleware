@@ -47,7 +47,7 @@ class Directory(object):
     def __init__(self, name, **kwargs):
         self.name = name
         self.children = []
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             setattr(self, k, v)
 
 
@@ -87,7 +87,7 @@ def link_directories(dispatcher):
         for c in d.children:
             try:
                 os.mkdir(os.path.join(target, c.name))
-            except OSError, err:
+            except OSError as err:
                 if err.errno != errno.EEXIST:
                     logger.warning('Cannot create skeleton directory {0}: {1}'.format(
                         os.path.join(target, c.name),
@@ -118,7 +118,7 @@ def create_system_dataset(dispatcher, dsid, pool):
     try:
         ds.properties['canmount'].value = 'noauto'
         ds.properties['mountpoint'].value = SYSTEM_DIR
-    except libzfs.ZFSException, err:
+    except libzfs.ZFSException as err:
         logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
 
 
@@ -146,7 +146,7 @@ def mount_system_dataset(dispatcher, dsid, pool, path):
 
         ds.properties['mountpoint'].value = path
         ds.mount()
-    except libzfs.ZFSException, err:
+    except libzfs.ZFSException as err:
         logger.error('Cannot mount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
         raise err
 
@@ -158,7 +158,7 @@ def umount_system_dataset(dispatcher, dsid, pool):
         ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
         ds.umount(force=True)
         return
-    except libzfs.ZFSException, err:
+    except libzfs.ZFSException as err:
         logger.error('Cannot unmount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
 
 
@@ -173,7 +173,7 @@ def move_system_dataset(dispatcher, dsid, services, src_pool, dst_pool):
 
     try:
         copytree(SYSTEM_DIR, tmpath)
-    except shutil.Error, err:
+    except shutil.Error as err:
         logger.warning('Following errors were encountered during migration:')
         for i in err:
             logger.warning('{0} -> {1}: {2}'.format(*i[0]))
@@ -232,10 +232,7 @@ class SystemDatasetConfigure(Task):
     def run(self, pool):
         status = self.dispatcher.call_sync('system_dataset.status')
         services = self.configstore.get('system.dataset.services')
-        restart = filter(
-            lambda s: self.configstore.get('service.{0}.enable'.format(s)),
-            services
-        )
+        restart = [s for s in services if self.configstore.get('service.{0}.enable'.format(s))]
 
         logger.warning('Services to be restarted: {0}'.format(', '.join(restart)))
 

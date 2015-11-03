@@ -93,7 +93,7 @@ class SystemInfoProvider(Provider):
     @returns(h.object(properties={
         'cpu_model': str,
         'cpu_cores': int,
-        'memory_size': long,
+        'memory_size': int,
     }))
     def hardware(self):
         return {
@@ -186,7 +186,7 @@ class SystemAdvancedProvider(Provider):
     @returns(h.array(str))
     def serial_ports(self):
         ports = []
-        for devices in devinfo.DevInfo().resource_managers['I/O ports'].values():
+        for devices in list(devinfo.DevInfo().resource_managers['I/O ports'].values()):
             for dev in devices:
                 if not dev.name.startswith('uart'):
                     continue
@@ -261,7 +261,7 @@ class SystemGeneralConfigureTask(Task):
             if syslog_changed:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'syslog')
                 self.dispatcher.call_sync('services.reload', 'syslog')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO,
                 'Cannot reconfigure system: {0}'.format(str(e),)
@@ -360,9 +360,9 @@ class SystemAdvancedConfigureTask(Task):
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'loader')
             if rc:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot configure system advanced: {0}'.format(str(e)))
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot reconfigure system: {0}'.format(str(e)))
 
         self.dispatcher.dispatch_event('system.advanced.changed', {
@@ -401,7 +401,7 @@ class SystemUIConfigureTask(Task):
                 'etcd.generation.generate_group', 'nginx'
             )
             self.dispatcher.call_sync('services.reload', 'nginx')
-        except RpcException, e:
+        except RpcException as e:
             raise TaskException(
                 errno.ENXIO,
                 'Cannot reconfigure system UI: {0}'.format(str(e),)
@@ -431,7 +431,7 @@ class SystemTimeConfigureTask(Task):
             self.configstore.set('system.timezone', props['timezone'])
             try:
                 self.dispatcher.call_sync('etcd.generation.generate_group', 'localtime')
-            except RpcException, e:
+            except RpcException as e:
                 raise TaskException(
                     errno.ENXIO,
                     'Cannot reconfigure system time: {0}'.format(str(e))

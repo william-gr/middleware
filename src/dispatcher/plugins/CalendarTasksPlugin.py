@@ -121,10 +121,10 @@ class CommandTask(Task):
     def run(self, user, command):
         try:
             out, err = system('/usr/bin/su', '-m', user, '-c', '/bin/sh', '-c', command)
-        except SubprocessException, err:
+        except SubprocessException as err:
             raise TaskException(errno.EFAULT, 'Command failed')
 
-        print out
+        print(out)
 
 
 def _init(dispatcher, plugin):

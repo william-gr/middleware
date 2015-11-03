@@ -74,7 +74,7 @@ class EntitySubscriberEventSource(EventSource):
     def fetch(self, service, operation, ids):
         try:
             entities = self.dispatcher.call_sync('{0}.query'.format(service), [('id', 'in', ids)])
-        except BaseException, e:
+        except BaseException as e:
             self.logger.warn('Cannot fetch changed entities from service {0}: {1}'.format(service, str(e)))
             return
 
@@ -102,7 +102,7 @@ class EntitySubscriberEventSource(EventSource):
 
     def run(self):
         # Scan through registered events for those ending with .changed
-        for i in self.dispatcher.event_types.keys():
+        for i in list(self.dispatcher.event_types.keys()):
             service, _, changed = i.rpartition('.')
             if changed == 'changed':
                 self.register(service)

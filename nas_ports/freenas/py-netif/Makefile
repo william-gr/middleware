@@ -1,31 +1,25 @@
-#
 # $FreeBSD$
-# $Id$
-#
 
-PORTNAME=       netif
-PORTVERSION=    ${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
-PORTREVISION=   ${REVISION}
-PKGNAMEPREFIX=  ${PYTHON_PKGNAMEPREFIX}
+PORTNAME=	netif
+PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
+PORTREVISION=	${REVISION}
+PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 
-CATEGORIES=     freenas
+CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
 
-MAINTAINER=     dev@ixsystems.com
-COMMENT=        Python network configuration library
+MAINTAINER=	dev@ixsystems.com
+COMMENT=	Python network configuration library
 
-BUILD_DEPENDS=	
+BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
 
 USES=		python
+USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
-BUILD_DEPENDS=  ${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
 
 WRKSRC=		/usr/middleware_src/py-netif
 
-USES=		python:2
-USE_PYTHON=	autoplist distutils
-
 checksum fetch:
-	echo ${.TARGET} not needed because building direct
+	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 .include <bsd.port.mk>

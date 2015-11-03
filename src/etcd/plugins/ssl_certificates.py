@@ -29,7 +29,7 @@ import os
 
 def generate_file(context, path, content):
     if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path), 0755)
+        os.makedirs(os.path.dirname(path), 0o755)
 
     with open(path, 'w') as f:
         f.write(content)

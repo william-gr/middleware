@@ -16,6 +16,7 @@ RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}setproctitle>0:${PORTSDIR}/devel/py-setproctitle
 
 USES=		python
+USE_PYTHON=	py3kplist
 EXTRACT_ONLY=
 
 NO_BUILD=	yes

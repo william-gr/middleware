@@ -61,13 +61,13 @@ class Migration(DataMigration):
             if os.path.exists(ldap.ldap_tls_cacertfile):
                 new_certfile = "/data/ldap_certfile"
                 os.rename(ldap.ldap_tls_cacertfile, new_certfile)
-                os.chmod(new_certfile, 0400)
+                os.chmod(new_certfile, 0o400)
                 orm_ldap.ldap_certfile = new_certfile
 
             orm_ldap.save()
 
         except Exception as e:
-            print >> sys.stderr, "FAIL: LDAP migration: %s" % e
+            print("FAIL: LDAP migration: %s" % e, file=sys.stderr)
             ldap = orm.LDAP.objects.create()
 
 
@@ -82,7 +82,7 @@ class Migration(DataMigration):
             orm_nis.save()
 
         except Exception as e:
-            print >> sys.stderr, "FAIL: NIS migration: %s" % e
+            print("FAIL: NIS migration: %s" % e, file=sys.stderr)
             nis = orm.NIS.objects.create()
 
 
@@ -98,9 +98,9 @@ class Migration(DataMigration):
             orm_nt4.save()
 
         except Exception as e:
-            print >> sys.stderr, "FAIL: NT4 migration: %s" % e
+            print("FAIL: NT4 migration: %s" % e, file=sys.stderr)
             nt4 = orm.NT4.objects.create()
-          
+
     def backwards(self, orm):
         pass
 

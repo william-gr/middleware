@@ -45,7 +45,7 @@ class BootEnvironmentsProvider(Provider):
             obj['id'] = obj.pop('name')
             return obj
 
-        clones = map(extend, ListClones())
+        clones = list(map(extend, ListClones()))
         return wrap(clones).query(*(filter or []), **(params or {}))
 
 

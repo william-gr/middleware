@@ -1,4 +1,4 @@
-#!/usr/local/bin/python2.7
+#!/usr/local/bin/python3
 #+
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
@@ -26,7 +26,6 @@
 #
 #####################################################################
 
-from __future__ import print_function
 import argparse
 import os
 import sys
@@ -46,10 +45,10 @@ def read_config(filename):
         f = open(filename)
         conf = json.load(f)
         f.close()
-    except IOError, err:
+    except IOError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
-    except ValueError, err:
+    except ValueError as err:
         print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
         sys.exit(1)
 
@@ -88,7 +87,7 @@ def do_check_dbdirs(driver_name, db_dir):
 
             try:
                 os.mkdir(perdb_dir)
-            except OSError, err:
+            except OSError as err:
                 if err.errno == errno.EEXIST:
                     pass
 

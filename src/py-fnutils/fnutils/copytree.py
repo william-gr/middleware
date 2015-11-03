@@ -43,7 +43,7 @@ def copytree(src, dst, symlinks=False, progress_callback=None):
 
     try:
         os.makedirs(dst)
-    except OSError, err:
+    except OSError as err:
         if err.errno == errno.EEXIST:
             pass
 

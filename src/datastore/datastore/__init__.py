@@ -63,7 +63,7 @@ def get_default_datastore():
             f = open(filename, 'r')
             config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             raise DatastoreException('Cannot read config file: {0}'.format(err.message))
         except ValueError:
             raise DatastoreException('Config file has unreadable format (not valid JSON)')

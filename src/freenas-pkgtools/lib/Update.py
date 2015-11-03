@@ -154,7 +154,7 @@ def RunCommand(command, args):
     if args is not None:  proc_args.extend(args)
     log.debug("RunCommand(%s, %s)" % (command, args))
     if debug:
-        print >> sys.stderr, proc_args
+        print(proc_args, file=sys.stderr)
         child = 0
     else:
         libc = ctypes.cdll.LoadLibrary("libc.so.7")
@@ -179,7 +179,7 @@ def GetRootDataset():
     # This will be of the form zroot/ROOT/<be-name>
     cmd = ["/bin/df", "/"]
     if debug:
-        print >> sys.stderr, cmd
+        print(cmd, file=sys.stderr)
         return None
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -190,7 +190,7 @@ def GetRootDataset():
     if p.returncode != 0:
         log.error("%s returned %d" % (cmd, p.returncode))
         return None
-    lines = stdout.rstrip().split("\n")
+    lines = stdout.decode('utf8').rstrip().split("\n")
     if len(lines) != 2:
         log.error("Unexpected output from %s, too many lines (%d):  %s" % (cmd, len(lines), lines))
         return None
@@ -318,7 +318,7 @@ def ListClones():
     cmd = [beadm, "list", "-H" ]
     rv = []
     if debug:
-        print >> sys.stderr, cmd
+        print(cmd, file=sys.stderr)
         return None
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -330,7 +330,7 @@ def ListClones():
         log.error("`%s' returned %d" %( cmd, p.returncode))
         return None
 
-    for line in stdout.strip('\n').split('\n'):
+    for line in stdout.decode('utf8').strip('\n').split('\n'):
         fields = line.split('\t')
         name = fields[0]
         if len(fields) > 5 and fields[5] != "-":
@@ -346,7 +346,7 @@ def ListClones():
         try:
             prop_cmd = ["/sbin/zfs", "get", "-H", "-o", "value", "beadm:keep"]
             prop_cmd.append("freenas-boot/ROOT/{0}".format(tdict["realname"]))
-            keep_str = subprocess.check_output(prop_cmd).rstrip()
+            keep_str = subprocess.check_output(prop_cmd).decode('utf8').rstrip()
             if keep_str == "-":
                 tdict["keep"] = None
             else:
@@ -610,7 +610,7 @@ def GetUpdateChanges(old_manifest, new_manifest, cache_dir = None):
                 if not svc in base_list:
                     base_list.append(svc)
         elif isinstance(new_list, dict):
-            for svc, val in new_list.iteritems():
+            for svc, val in new_list.items():
                 if val:
                     if not svc in base_list:
                         base_list.append(svc)
@@ -1324,7 +1324,7 @@ def VerifyUpdate(directory):
             # Okay, at least one of them exists.
             # Let's try the full file first
             try:
-                with open(directory + "/" + pkg.FileName()) as f:
+                with open(directory + "/" + pkg.FileName(), 'rb') as f:
                     if pkg.Checksum():
                         cksum = Configuration.ChecksumFile(f)
                         if cksum == pkg.Checksum():
@@ -1346,7 +1346,7 @@ def VerifyUpdate(directory):
             if update and update.Checksum():
                 upd_cksum = update.Checksum()
                 try:
-                    with open(directory + "/" + pkg.FileName(cur_vers)) as f:
+                    with open(directory + "/" + pkg.FileName(cur_vers), 'rb') as f:
                         cksum = Configuration.ChecksumFile(f)
                         if upd_cksum != cksum:
                             update = None
