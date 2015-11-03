@@ -62,6 +62,7 @@ class StanchionConfigureTask(Task):
         try:
             node = ConfigNode('service.stanchion', self.configstore)
             node.update(stanchion)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'stanchion')
             self.dispatcher.dispatch_event('service.stanchion.changed', {
                 'operation': 'updated',
                 'ids': None,

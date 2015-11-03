@@ -1441,7 +1441,6 @@
                     "rc-scripts": "riak"
                 },
                 "builtin": false,
-                "etcd-group": "riak",
                 "pidfile": "/var/run/riak/riak.pid",
                 "task": "service.riak.configure",
                 "name": "riak"

@@ -63,6 +63,7 @@ class HAProxyConfigureTask(Task):
         try:
             node = ConfigNode('service.haproxy', self.configstore)
             node.update(haproxy)
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'haproxy')
             self.dispatcher.dispatch_event('service.haproxy.changed', {
                 'operation': 'updated',
                 'ids': None,
