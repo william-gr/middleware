@@ -174,7 +174,7 @@ class TaskExecutor(object):
 
             for line in self.proc.stdout:
                 line = line.decode('utf8')
-                self.balancer.logger.debug('Executor output: {0}'.format(line))
+                self.balancer.logger.debug('Executor #{0}: {1}'.format(self.index, line.strip()))
                 if self.task:
                     self.task.output += line
 
