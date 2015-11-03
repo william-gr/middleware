@@ -121,6 +121,7 @@ class Context(object):
         self.service = TaskProxyService(self)
         self.task = queue.Queue(1)
         self.datastore = None
+        self.configstore = None
         self.conn = None
         self.instance = None
         self.running = Event()
@@ -148,6 +149,7 @@ class Context(object):
         logging.basicConfig(level=logging.DEBUG)
 
         self.datastore = get_default_datastore()
+        self.configstore = ConfigStore(self.datastore)
         self.conn = Client()
         self.conn.connect('127.0.0.1')
         self.conn.login_service('task.{0}'.format(os.getpid()))
@@ -173,7 +175,7 @@ class Context(object):
 
                 try:
                     self.instance = getattr(module, task['class'])(DispatcherWrapper(self.conn), self.datastore)
-                    self.instance.configstore = ConfigStore(self.datastore)
+                    self.instance.configstore = self.configstore
                     self.running.set()
                     result = self.instance.run(*task['args'])
                 except BaseException as err:
