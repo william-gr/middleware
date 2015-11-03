@@ -318,7 +318,7 @@ class TaskService(RpcService):
 
     def list_executors(self):
         result = []
-        for exe in self.__dispatcher.executors:
+        for exe in self.__dispatcher.balancer.executors:
             result.append({
                 'index': exe.index,
                 'state': exe.state,
