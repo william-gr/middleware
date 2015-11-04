@@ -343,6 +343,9 @@ def _init(dispatcher, plugin):
         on_dataset_delete({'ds': args['ds']})
         on_dataset_create({'ds': args['new_ds']})
 
+    def volume_pre_destroy(args):
+        dispatcher.call_task_sync('share.delete_dependent', args['name'])
+
     plugin.register_schema_definition('share', {
         'type': 'object',
         'properties': {
@@ -381,3 +384,5 @@ def _init(dispatcher, plugin):
     plugin.register_event_handler('fs.zfs.dataset.created', on_dataset_create)
     plugin.register_event_handler('fs.zfs.dataset.deleted', on_dataset_delete)
     plugin.register_event_handler('fs.zfs.dataset.renamed', on_dataset_rename)
+    plugin.attach_hook('volumes.pre_destroy', volume_pre_destroy)
+    plugin.attach_hook('volumes.pre_detach', volume_pre_destroy)
