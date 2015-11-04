@@ -236,7 +236,7 @@ class UpdateShareTask(Task):
 @description("Deletes share")
 @accepts(str)
 class DeleteShareTask(Task):
-    def verify(self, id):
+    def verify(self, id, skip_dataset=False):
         share = self.datastore.get_by_id('shares', id)
         if not share:
             raise VerifyException(errno.ENOENT, 'Share not found')
@@ -301,13 +301,13 @@ def _init(dispatcher, plugin):
                 # Unknown type
                 return
 
-            if dispatcher.datastore.query('shares', [
+            if dispatcher.datastore.exists('shares',
                 ('name', '=', rest),
                 ('type', '=', share_type)
-            ], {'single': True}):
+            ):
                 return
 
-            dispatcher.call_task_sync('share.create', {
+            dispatcher.submit_task('share.create', {
                 'name': rest,
                 'type': share_type,
                 'target': pool,
@@ -329,15 +329,14 @@ def _init(dispatcher, plugin):
                 # Unknown type
                 return
 
-            share = dispatcher.datastore.query('shares', [
+            share = dispatcher.datastore.get_one('shares',
                 ('name', '=', rest),
                 ('type', '=', share_type)
-            ], {'single': True})
-
+            )
             if not share:
                 return
 
-            dispatcher.call_task_sync('share.delete', share['id'], True)
+            dispatcher.submit_task('share.delete', share['id'], True)
 
     def on_dataset_rename(args):
         on_dataset_delete({'ds': args['ds']})
