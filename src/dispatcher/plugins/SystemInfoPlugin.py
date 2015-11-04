@@ -137,7 +137,7 @@ class SystemGeneralProvider(Provider):
             return []
 
         rv = []
-        with open(KEYMAPS_INDEX, 'r') as f:
+        with open(KEYMAPS_INDEX, 'r', encoding='utf-8', errors='ignore') as f:
             d = f.read()
         fnd = re.findall(r'^(?P<name>[^#\s]+?)\.kbd:en:(?P<desc>.+)$', d, re.M)
         for name, desc in fnd:
