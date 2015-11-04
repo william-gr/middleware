@@ -128,6 +128,7 @@ class CreateShareTask(Task):
 
             normalize(share, {
                 'enabled': True,
+                'compression': 'lz4',
                 'description': ''
             })
 
@@ -141,12 +142,18 @@ class CreateShareTask(Task):
 
                 if share_type['subtype'] == 'file':
                     self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'FILESYSTEM', {
-                        'permissions_type': share_type['perm_type']
+                        'permissions_type': share_type['perm_type'],
+                        'properties': {
+                            'compression': {'value': share['compression']}
+                        }
                     }))
 
                 if share_type['subtype'] == 'block':
                     self.join_subtasks(self.run_subtask('volume.dataset.create', pool, ds_name, 'VOLUME', {
-                        'volsize': share['properties']['size']
+                        'volsize': share['properties']['size'],
+                        'properties': {
+                            'compression': {'value': share['compression']}
+                        }
                     }))
 
             ids = self.join_subtasks(self.run_subtask('share.{0}.create'.format(share['type']), share))
@@ -203,6 +210,13 @@ class UpdateShareTask(Task):
             old_type = share['type']
             old_ds_name = os.path.join(pool, share['type'], share['name'])
             share.update(updated_fields)
+
+            if 'compression' in updated_fields:
+                self.run_subtask('volume.dataset.update', pool, old_ds_name, {
+                    'properties': {
+                        'compression': {'value': share['compression']}
+                    }
+                })
 
             if 'type' in updated_fields:
                 # Rename dataset and convert share type
