@@ -24,11 +24,11 @@
 
     user = pwd.getpwnam('webdav')
     os.chown(auth_file, user.pw_uid, user.pw_gid)
-    os.chmod(auth_file, 0640)
+    os.chmod(auth_file, 0o640)
 
     lockdir = "/etc/local/apache24/var"
     if not os.path.isdir(lockdir):
-        os.mkdir(lockdir, 0774)
+        os.mkdir(lockdir, 0o774)
     os.chown(lockdir, user.pw_uid, user.pw_gid)
 
 %>\
