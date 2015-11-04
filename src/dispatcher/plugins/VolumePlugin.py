@@ -641,7 +641,7 @@ class VolumeDiskImportTask(ProgressTask):
             try:
                 bsd.kld.kldload('/boot/kernel/fuse.ko')
             except OSError as err:
-                raise TaskException(err.errno, err.message)
+                raise TaskException(err.errno, str(err))
 
         src_mount = tempfile.mkdtemp()
 
@@ -661,7 +661,7 @@ class VolumeDiskImportTask(ProgressTask):
         try:
             copytree(src_mount, dest_path, progress_callback=callback)
         except shutil.Error as err:
-            failures = err.message
+            failures = list(err)
 
         try:
             bsd.unmount(src_mount, bsd.MountFlags.FORCE)
