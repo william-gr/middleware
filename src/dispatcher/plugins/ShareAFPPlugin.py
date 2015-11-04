@@ -94,13 +94,13 @@ class CreateAFPShareTask(Task):
 @description("Updates existing AFP share")
 @accepts(str, h.ref('afp-share'))
 class UpdateAFPShareTask(Task):
-    def describe(self, name, updated_fields):
-        return "Updating AFP share {0}".format(name)
+    def describe(self, id, updated_fields):
+        return "Updating AFP share {0}".format(id)
 
     def verify(self, id, updated_fields):
         return ['service:afp']
 
-    def run(self, name, updated_fields):
+    def run(self, id, updated_fields):
         share = self.datastore.get_by_id('shares', id)
         share.update(updated_fields)
         self.datastore.update('shares', id, share)
