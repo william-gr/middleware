@@ -55,13 +55,11 @@ def run(context):
                 raise
 
             # Save generated keys back to config db
-            fd = open(private_key_file, 'r')
-            config.set('service.sshd.keys.{0}.private'.format(keytype), base64.b64encode(fd.read()))
-            fd.close()
+            with open(private_key_file, 'rb') as fd:
+                config.set('service.sshd.keys.{0}.private'.format(keytype), base64.b64encode(fd.read()))
 
-            fd = open(public_key_file, 'r')
-            config.set('service.sshd.keys.{0}.public'.format(keytype), base64.b64encode(fd.read()))
-            fd.close()
+            with open(public_key_file, 'rb') as fd:
+                config.set('service.sshd.keys.{0}.public'.format(keytype), base64.b64encode(fd.read()))
         else:
             with open(private_key_file, 'wb') as fd:
                 fd.write(base64.b64decode(private_key))
