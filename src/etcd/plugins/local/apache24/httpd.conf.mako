@@ -22,14 +22,15 @@
         with open(auth_file, 'w') as f:
             f.write('webdav:webdav:{0}\n'.format(hexdigest))
 
-    user = pwd.getpwnam('webdav')
-    os.chown(auth_file, user.pw_uid, user.pw_gid)
-    os.chmod(auth_file, 0o640)
+    user = dispatcher.call_sync('users.query', [('username', '=', 'webdav')], {'single': True})
+    if user:
+        os.chown(auth_file, user['id'], user['group'])
+        os.chmod(auth_file, 0o640)
 
-    lockdir = "/etc/local/apache24/var"
-    if not os.path.isdir(lockdir):
-        os.mkdir(lockdir, 0o774)
-    os.chown(lockdir, user.pw_uid, user.pw_gid)
+        lockdir = "/etc/local/apache24/var"
+        if not os.path.isdir(lockdir):
+            os.mkdir(lockdir, 0o774)
+        os.chown(lockdir, user['id'], user['group'])
 
 %>\
 # Generating apache general httpd.conf
