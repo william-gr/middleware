@@ -356,6 +356,10 @@ def _init(dispatcher, plugin):
             'target': {'type': 'string'},
             'filesystem_path': {'type': 'string'},
             'dataset_path': {'type': 'string'},
+            'compression': {
+                'type': 'string',
+                'enum': ['off', 'on', 'lzjb', 'gzip', 'zle', 'lz4']
+            },
             'properties': {'type': 'object'}
         }
     })
