@@ -31,11 +31,12 @@ import errno
 import re
 import logging
 import subprocess
+import tempfile
 from Crypto.PublicKey import RSA
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from task import Provider, Task, ProgressTask, VerifyException, TaskException
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns, private
 from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
 from fnutils import to_timedelta, first_or_default
@@ -309,14 +310,14 @@ class ReplicateDatasetTask(ProgressTask):
         for ds in datasets:
             localfs = ds
             remotefs = localfs.replace(localds, remoteds, 1)
-            local_snapshots = filter(
+            local_snapshots = list(filter(
                 is_replicated,
                 wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', localfs))
-            )
+            ))
 
             try:
                 remote_snapshots_full = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
-                remote_snapshots = filter(is_replicated, remote_snapshots_full)
+                remote_snapshots = list(filter(is_replicated, remote_snapshots_full))
             except RpcException as err:
                 raise TaskException(err.code, 'Cannot contact {0}: {1}'.format(remote, err.message))
 
@@ -325,7 +326,7 @@ class ReplicateDatasetTask(ProgressTask):
 
             if remote_snapshots_full:
                 # Find out the last common snapshot.
-                pairs = filter(matches, zip(local_snapshots, remote_snapshots))
+                pairs = list(filter(matches, zip(local_snapshots, remote_snapshots)))
                 if pairs:
                     pairs.sort(key=lambda p: int(p[0]['properties.creation.rawvalue']), reverse=True)
                     found, _ = first_or_default(None, pairs)
