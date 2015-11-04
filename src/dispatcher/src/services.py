@@ -191,9 +191,10 @@ class PluginService(RpcService):
         self.events = {}
         self.event_types = {}
         self.__dispatcher = context.dispatcher
-        self.__dispatcher.register_event_handler(
-            'server.client_disconnected',
-            self.__client_disconnected)
+        self.__dispatcher.register_event_handler( 'server.client_disconnected', self.__client_disconnected)
+        self.__dispatcher.register_event_type('plugin.service_unregistered')
+        self.__dispatcher.register_event_type('plugin.service_registered')
+        self.__dispatcher.register_event_type('plugin.service_resume')
 
     @pass_sender
     def register_service(self, name, sender):
@@ -237,6 +238,10 @@ class PluginService(RpcService):
             raise RpcException(errno.EPERM, 'Permission denied')
 
         svc.resumed.set()
+
+        self.__dispatcher.dispatch_event('plugin.service_resume', {
+            'name': name,
+        })
 
     @pass_sender
     def register_schema(self, name, schema, sender):
