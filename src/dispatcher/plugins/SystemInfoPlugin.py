@@ -93,12 +93,14 @@ class SystemInfoProvider(Provider):
     @returns(h.object(properties={
         'cpu_model': str,
         'cpu_cores': int,
+        'cpu_clockrate': int,
         'memory_size': int,
     }))
     def hardware(self):
         return {
             'cpu_model': get_sysctl("hw.model"),
             'cpu_cores': get_sysctl("hw.ncpu"),
+            'cpu_clockrate': get_sysctl("hw.clockrate"),
             'memory_size': get_sysctl("hw.physmem")
         }
 
