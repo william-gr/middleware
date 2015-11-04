@@ -774,7 +774,7 @@ def _depends():
 def _init(dispatcher, plugin):
 
     def nightly_update_check(args):
-        if args.get('name') != 'schedulerd':
+        if args.get('name') != 'scheduler.management':
             return
 
         logger.debug('Scheduling a nightly update check task')
@@ -884,4 +884,4 @@ def _init(dispatcher, plugin):
     generate_update_cache(dispatcher)
 
     # Schedule a task to check/dowload for updates
-    plugin.register_event_handler('server.service_login', nightly_update_check)
+    plugin.register_event_handler('plugin.service_resume', nightly_update_check)
