@@ -111,6 +111,9 @@ class ClientTransportWS(ClientTransportBase):
         def closed(self, code, reason=None):
             debug_log('Connection closed, code {0}', code)
             self.parent.opened.clear()
+            self.parent.parent.drop_pending_calls()
+            if self.parent.parent.error_callback is not None:
+                self.parent.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
             self.parent.current_message = message
@@ -347,6 +350,9 @@ class ClientTransportSSH(ClientTransportBase):
         debug_log("Transport connection has closed with exit status {0}", exit_status)
         self.terminated = True
         self.ssh.close()
+        self.parent.drop_pending_calls()
+        if self.parent.error_callback is not None:
+            self.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
     def close(self):
         debug_log("Transport connection closed by client.")

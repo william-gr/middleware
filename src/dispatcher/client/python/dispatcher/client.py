@@ -227,6 +227,17 @@ class Client(object):
             while True:
                 time.sleep(60)
 
+    def drop_pending_calls(self):
+        message = "Connection closed"
+        for key, call in self.pending_calls.items():
+            call.result = None
+            call.error = {
+                "code":  errno.ECONNABORTED,
+                "message": message
+            }
+            call.completed.set()
+            del self.pending_calls[key]
+
     def decode(self, msg):
         if 'namespace' not in msg:
             self.error_callback(ClientError.INVALID_JSON_RESPONSE)
