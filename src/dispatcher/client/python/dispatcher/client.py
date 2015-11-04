@@ -39,6 +39,7 @@ from dispatcher.client_transport import ClientTransportBuilder
 from fnutils.query import matches
 from ws4py.compat import urlsplit
 
+
 if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
     from gevent.lock import RLock
     from gevent.event import Event
@@ -50,6 +51,7 @@ else:
     from threading import RLock
     _thread_type = ClientType.THREADED
 
+
 class ClientError(enum.Enum):
     INVALID_JSON_RESPONSE = 1
     CONNECTION_TIMEOUT = 2
@@ -60,7 +62,9 @@ class ClientError(enum.Enum):
     LOGOUT = 7
     OTHER = 8
 
+
 _debug_log_file = None
+
 
 def debug_log(message, *args):
     global _debug_log_file
@@ -74,6 +78,7 @@ def debug_log(message, *args):
 
         print(message.format(*args), file=_debug_log_file)
         _debug_log_file.flush()
+
 
 class Client(object):
     class PendingCall(object):

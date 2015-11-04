@@ -64,8 +64,8 @@ def debug_log(message, *args):
         print(message.format(*args), file=_debug_log_file)
         _debug_log_file.flush()
 
-class ClientTransportBuilder(object):
 
+class ClientTransportBuilder(object):
     def create(self, scheme):
         if 'ssh' in scheme:
             return ClientTransportSSH()
@@ -96,6 +96,7 @@ class ClientTransportBase(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def close(self):
         return
+
 
 class ClientTransportWS(ClientTransportBase):
     class WebSocketHandler(WebSocketClient):
@@ -197,9 +198,9 @@ class ClientTransportWS(ClientTransportBase):
     @property
     def connected(self):
         return self.opened.is_set()
-    
-class ClientTransportSSH(ClientTransportBase):
 
+
+class ClientTransportSSH(ClientTransportBase):
     def __init__(self):
         self.ssh = None
         self.channel = None
