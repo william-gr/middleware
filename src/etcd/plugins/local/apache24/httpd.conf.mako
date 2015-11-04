@@ -18,7 +18,7 @@
         passwdfile.update('webdav', cfg['password'])
     else:
         import hashlib
-        hexdigest = hashlib.md5('webdav:webdav:{0}'.format(cfg['password'])).hexdigest()
+        hexdigest = hashlib.md5('webdav:webdav:{0}'.format(cfg['password']).encode('utf8')).hexdigest()
         with open(auth_file, 'w') as f:
             f.write('webdav:webdav:{0}\n'.format(hexdigest))
 
