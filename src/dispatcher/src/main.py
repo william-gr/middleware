@@ -538,6 +538,9 @@ class Dispatcher(object):
     def call_task_sync(self, name, *args):
         return self.balancer.join_subtasks(self.balancer.run_subtask(None, name, args))
 
+    def submit_task(self, name, *args):
+        self.balancer.run_subtask(None, name, args)
+
     def verify_subtask(self, *args, **kwargs):
         return self.balancer.verify_subtask(*args, **kwargs)
 
