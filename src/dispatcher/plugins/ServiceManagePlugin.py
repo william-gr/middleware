@@ -341,7 +341,7 @@ class UpdateServiceConfigTask(Task):
                             break
 
         self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
-        self.dispatcher.call_sync('services.apply_state', service, restart, reload)
+        self.dispatcher.call_sync('services.apply_state', service, restart, reload, timeout=30)
         self.dispatcher.dispatch_event('services.changed', {
             'operation': 'update',
             'ids': [service_def['id']]
