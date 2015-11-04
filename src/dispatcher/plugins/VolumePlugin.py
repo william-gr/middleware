@@ -81,7 +81,6 @@ class VolumeProvider(Provider):
                     'quota', 'refquota', 'reservation', 'refreservation',
                     'casesensitivity', 'volsize', 'volblocksize',
                 ),
-                'share_type': ds.get('properties.org\\.freenas:share_type.value'),
                 'permissions_type':  ds.get('properties.org\\.freenas:permissions_type.value'),
             }
 
@@ -421,7 +420,6 @@ class VolumeCreateTask(ProgressTask):
                 'zfs.configure',
                 name, name,
                 {
-                    'org.freenas:share_type': {'value': 'UNIX'},
                     'org.freenas:permissions_type': {'value': 'PERM'}
                 }
             ))
@@ -742,11 +740,9 @@ class DatasetCreateTask(Task):
 
         if params:
             props = {}
-            if 'share_type' in params:
-                props['org.freenas:share_type'] = {'value': params['share_type']}
-
             if 'permissions_type' in params:
                 props['org.freenas:permissions_type'] = {'value': params['permissions_type']}
+                props['aclmode'] = {'value': 'restricted' if params['permissions_type'] == 'ACL' else 'passthrough'}
 
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, path, props))
 
@@ -805,21 +801,9 @@ class DatasetConfigureTask(Task):
             props = exclude(updated_params['properties'], 'used', 'available', 'dedup', 'casesensitivity')
             self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], props))
 
-        if 'share_type' in updated_params:
-            self.join_subtasks(self.run_subtask('zfs.configure', pool_name, ds['name'], {
-                'org.freenas:share_type': {'value': updated_params['share_type']}
-            }))
-
         if 'permissions_type' in updated_params:
-            share_typ = ds['properties.org\\.freenas:share_type.value']
             oldtyp = ds['properties.org\\.freenas:permissions_type.value']
             typ = updated_params['permissions_type']
-
-            if share_typ == 'WINDOWS' and typ == 'PERMS':
-                raise TaskException(errno.EINVAL, 'Cannot use unix permissions with Windows share type')
-
-            if share_typ == 'MAC' and typ == 'ACL':
-                raise TaskException(errno.EINVAL, 'Cannot use acls with Mac share type')
 
             if oldtyp != 'ACL' and typ == 'ACL':
                 self.switch_to_acl(pool_name, ds['name'])
@@ -989,10 +973,6 @@ def _init(dispatcher, plugin):
             },
             'volsize': {'type': ['integer', 'null']},
             'properties': {'type': 'object'},
-            'share_type': {
-                'type': 'string',
-                'enum': ['UNIX', 'MAC', 'WINDOWS']
-            },
             'permissions_type': {
                 'type': 'string',
                 'enum': ['PERM', 'ACL']
@@ -1062,27 +1042,3 @@ def _init(dispatcher, plugin):
         except TaskException as err:
             if err.code != errno.EBUSY:
                 logger.warning('Cannot mount volume {0}: {1}'.format(vol['name'], str(err)))
-
-    # Scan for sentinel files indicating share type and convert them
-    # to zfs user properties
-    for vol in dispatcher.call_sync('volumes.query'):
-        if vol['status'] != 'ONLINE':
-            continue
-
-        for ds in vol['datasets']:
-            share_type = None
-            ds_name = ds['name'].split('/')[1:]
-            path = os.path.join(vol['mountpoint'], *ds_name)
-
-            if os.path.exists(os.path.join(path, '.windows')):
-                os.unlink(os.path.join(path, '.windows'))
-                share_type = 'WINDOWS'
-
-            if os.path.exists(os.path.join(path, '.apple')):
-                os.unlink(os.path.join(path, '.apple'))
-                share_type = 'MAC'
-
-            if share_type:
-                dispatcher.call_task_sync('zfs.configure', vol['name'], ds['name'], {
-                    'org.freenas:share_type': {'value': share_type}
-                })
