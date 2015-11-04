@@ -244,6 +244,11 @@ class RoutingSocketEventSource(threading.Thread):
                         'new-flags': [f.name for f in message.flags]
                     })
 
+                self.client.emit_event('network.interface.changed', {
+                    'operation': 'update',
+                    'ids': [ifname]
+                })
+
                 self.build_cache()
 
             if type(message) is netif.InterfaceAddrMessage:
