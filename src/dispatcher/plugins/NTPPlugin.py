@@ -180,9 +180,6 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
-    # Require collection used by the plugin
-    dispatcher.require_collection('ntpservers')
-
     # Register events
     plugin.register_event_type('ntpservers.changed')
 

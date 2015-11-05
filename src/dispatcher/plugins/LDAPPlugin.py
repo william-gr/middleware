@@ -70,8 +70,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('directoryservice.ldap')
-
     plugin.register_provider('directoryservice.ldap', LDAPProvider)
 
     plugin.register_task_handler('directoryservice.ldap.configure',

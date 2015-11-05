@@ -434,10 +434,6 @@ def _depends():
 
 
 def _init(dispatcher, plugin):
-
-    # Make sure collections are present
-    dispatcher.require_collection('rsyncd-module')
-
     # Register schemas
     plugin.register_schema_definition('service-rsyncd', {
         'type': 'object',
@@ -447,6 +443,7 @@ def _init(dispatcher, plugin):
         },
         'additionalProperties': False,
     })
+
     plugin.register_schema_definition('rsyncd-module', {
         'type': 'object',
         'properties': {
@@ -467,6 +464,7 @@ def _init(dispatcher, plugin):
         },
         'additionalProperties': False,
     })
+
     plugin.register_schema_definition('rsync_copy', {
         'type': 'object',
         'properties': {

@@ -70,9 +70,6 @@ class PasswordAuthenticator(object):
         self.datastore = dispatcher.datastore
         self.users = {}
 
-        dispatcher.require_collection('users', pkey_type='serial')
-        dispatcher.require_collection('groups', pkey_type='serial')
-
     def get_user(self, name):
         entity = self.datastore.get_one('users', ('username', '=', name))
         if entity is None:

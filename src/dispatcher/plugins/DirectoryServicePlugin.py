@@ -89,8 +89,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('directoryservices')
-
     plugin.register_provider('directoryservices', DirectoryServicesProvider)
 
     plugin.register_task_handler('directoryservice.create', CreateDirectoryServiceTask)

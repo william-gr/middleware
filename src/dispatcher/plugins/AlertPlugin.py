@@ -247,9 +247,6 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
-    dispatcher.require_collection('alerts')
-    dispatcher.require_collection('alerts-filters')
-
     # Register providers
     plugin.register_provider('alerts', AlertsProvider)
     plugin.register_provider('alerts.filters', AlertsFiltersProvider)

@@ -252,9 +252,6 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
-    # Require collection used by the plugin
-    dispatcher.require_collection('tunables')
-
     # Register events
     plugin.register_event_type('tunables.changed')
 

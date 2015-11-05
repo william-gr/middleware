@@ -526,10 +526,6 @@ class GroupDeleteTask(Task):
 
 
 def _init(dispatcher, plugin):
-    # Make sure collections are present
-    dispatcher.require_collection('users', pkey_type='serial')
-    dispatcher.require_collection('groups', pkey_type='serial')
-
     # Register definitions for objects used
     plugin.register_schema_definition('user', {
         'type': 'object',

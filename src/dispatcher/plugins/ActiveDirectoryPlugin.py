@@ -75,8 +75,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('directoryservice.activedirectory')
-
     plugin.register_provider('directoryservice.activedirectory', ActiveDirectoryProvider)
 
     plugin.register_task_handler('directoryservice.activedirectory.configure',

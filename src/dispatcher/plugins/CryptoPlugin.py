@@ -598,8 +598,6 @@ def _init(dispatcher, plugin):
         'additionalProperties': False,
     })
 
-    dispatcher.require_collection('crypto.certificates')
-
     plugin.register_provider('crypto.certificates', CertificateProvider)
 
     plugin.register_task_handler('crypto.certificates.ca_internal_create', CAInternalCreateTask)

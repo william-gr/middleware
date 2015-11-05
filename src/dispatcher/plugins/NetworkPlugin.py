@@ -533,10 +533,6 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('network.interfaces')
-    dispatcher.require_collection('network.routes')
-    dispatcher.require_collection('network.hosts')
-
     plugin.register_provider('network.config', NetworkProvider)
     plugin.register_provider('network.interfaces', InterfaceProvider)
     plugin.register_provider('network.routes', RouteProvider)
