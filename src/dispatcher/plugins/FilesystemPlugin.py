@@ -323,7 +323,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('unix-permissions', {
         'type': 'object',
         'properties': {
-            'value': {'type': 'integer'},
+            'value': {'type': ['integer', 'null']},
             'user': {'$ref': 'unix-mode-tuple'},
             'group': {'$ref': 'unix-mode-tuple'},
             'others': {'$ref': 'unix-mode-tuple'}
