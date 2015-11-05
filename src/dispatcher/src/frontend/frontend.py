@@ -108,6 +108,9 @@ def json_filter(obj):
 @app.context_processor
 def utils():
     def call_args(obj, method_name):
+        if not hasattr(obj, method_name):
+            return []
+
         method = getattr(obj, method_name)
         return inspect.getargspec(method)
 
