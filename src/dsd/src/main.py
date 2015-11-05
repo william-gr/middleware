@@ -26,16 +26,20 @@
 #
 #####################################################################
 
-import os
-import sys
 import argparse
+import datetime
+import imp
 import json
 import logging
-import subprocess
+import os
 import setproctitle
 import socket
+import subprocess
+import sys
+import tempfile
 import threading
 import time
+import traceback
 
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
@@ -54,6 +58,10 @@ class DSDConfigurationService(RpcService):
         self.config = context.configstore
         self.datastore = context.datastore
         self.client = context.client
+
+    # Hard coded for now
+    def get_supported_directories(self):
+        return [ 'activedirectory', 'ldap', 'kerberos' ]
 
     def configure_hostname(self):
         self.logger.debug('DSDConfigurationSerivce.configure_hostname()')
@@ -78,9 +86,9 @@ class DSDConfigurationService(RpcService):
         self.logger.debug('DSDConfigurationSerivce.configure_openldap()')
         self.client.call_sync('etcd.generation.generate_group', 'openldap')
 
-    def configure_nss_ldap(self):
+    def configure_nssldap(self):
         self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
-        self.client.call_sync('etcd.generation.generate_group', 'nss_ldap')
+        self.client.call_sync('etcd.generation.generate_group', 'nssldap')
 
     def configure_sssd(self):
         self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
@@ -105,6 +113,12 @@ class DSDConfigurationService(RpcService):
         self.logger.debug('DSDConfigurationSerivce.configure_ldap()')
         self.client.call_sync('etcd.generation.generate_group', 'ldap')
 
+    def enable(self):
+        self.logger.debug('DSDConfigurationSerivce.enable()')
+
+    def disable(self):
+        self.logger.debug('DSDConfigurationSerivce.disable()')
+
 
 class Main(object):
     def __init__(self):
@@ -113,6 +127,8 @@ class Main(object):
         self.datastore = None
         self.configstore = None
         self.rstock_thread = None
+        self.module_dir = '/usr/local/lib/dsd/modules'
+        self.modules = {}
         self.logger = logging.getLogger('dsd')
 
     def parse_config(self, filename):
@@ -120,10 +136,10 @@ class Main(object):
             f = open(filename, 'r')
             self.config = json.load(f)
             f.close()
-        except IOError, err:
+        except IOError as err:
             self.logger.error('Cannot read config file: %s', err.message)
             sys.exit(1)
-        except ValueError, err:
+        except ValueError as err:
             self.logger.error('Config file has unreadable format (not valid JSON)')
             sys.exit(1)
 
@@ -131,7 +147,7 @@ class Main(object):
         try:
             self.datastore = get_datastore(self.config['datastore']['driver'],
                 self.config['datastore']['dsn'])
-        except DatastoreException, err:
+        except DatastoreException as err:
             self.logger.error('Cannot initialize datastore: %s', str(err))
             sys.exit(1)
 
@@ -144,14 +160,16 @@ class Main(object):
                 self.client.login_service('dsd')
                 self.client.enable_server()
                 self.register_schemas()
+                self.logger.debug("XXX: before register_service dsd.configuration")
                 self.client.register_service('dsd.configuration', DSDConfigurationService(self))
+                self.logger.debug("XXX: after register_service dsd.configuration")
                 self.client.register_service('dsd.debug', DebugService())
                 if resume:
                     self.client.resume_service('dsd.configuration')
                     self.client.resume_service('dsd.debug')
 
                 return
-            except socket.error, err:
+            except socket.error as err:
                 self.logger.warning('Cannot connect to dispatcher: {0}, retrying in 1 second'.format(str(err)))
                 time.sleep(1)
 
@@ -170,6 +188,42 @@ class Main(object):
         # XXX do stuff here? To be determined ...
         pass
 
+    def report_error(self, message, exception):
+        if not os.path.isdir('/var/tmp/crash'):
+            try:
+                os.mkdir('/var/tmp/crash')
+            except:
+                return
+
+        report = {
+            'timestamp': str(datetime.datetime.now()),
+            'type': 'exception',
+            'application': 'dsd',
+            'message': message,
+            'exception': str(exception),
+            'traceback': traceback.format_exc()
+        }
+
+        try:
+            with tempfile.NamedTemporaryFile(dir='/var/tmp/crash', suffix='.json', prefix='report-', delete=False) as f:
+                json.dump(report, f, indent=4)
+        except:
+            pass
+
+    def init_directory_service_modules(self):
+        directoryservices = [ 'activedirectory', 'ldap', 'kerberos' ]
+        for ds in directoryservices:
+            try:
+                module_path = "%s/%s.py" % (self.module_dir, ds)
+                self.logger.debug("Loading module %s", module_path)
+                module = imp.load_source(ds, module_path)
+                module._init(self.client)
+                self.modules[ds] = imp.load_source(ds, module_path)
+
+            except Exception as e:
+                self.logger.exception("Cannot load module %s", module)
+                self.report_error("Cannot load module %s", module) 
+
     def main(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
@@ -179,7 +233,10 @@ class Main(object):
         self.parse_config(args.c)
         self.init_datastore()
         self.init_dispatcher()
-        #self.client_wait_forever()
+        self.init_directory_service_modules() 
+        self.client.resume_service('dsd.configuration')
+        self.logger.info('Started')
+        self.client.wait_forever()
 
 
 if __name__ == '__main__':
