@@ -605,6 +605,7 @@ def serialize_error(err):
 
     if isinstance(err, RpcException):
         ret['code'] = err.code
+        ret['message'] = err.message
         if err.extra:
             ret['extra'] = err.extra
     else:
