@@ -760,7 +760,7 @@ def purge_disk_cache(dispatcher, path):
         ds_disk = dispatcher.datastore.get_by_id('disks', disk['id'])
         ds_disk['delete_at'] = datetime.now() + EXPIRE_TIMEOUT
         dispatcher.datastore.update('disks', ds_disk['id'], ds_disk)
-    # lets emit a 'disks.changed' event
+
     dispatcher.dispatch_event('disks.changed', {
         'operation': 'update',
         'ids': [disk['id']]
