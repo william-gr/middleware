@@ -97,7 +97,7 @@ class IPNetworkField(models.Field):
     def get_prep_value(self, value):
         if isinstance(value, ipaddress._IPAddressBase):
             value = '%s' % value
-        return unicode(value)
+        return str(value)
 
     def formfield(self, **kwargs):
         defaults = {
@@ -202,7 +202,7 @@ class IPAddressFieldBase(models.Field):
     def get_prep_value(self, value):
         if isinstance(value, ipaddress._IPAddressBase):
             value = '%s' % value
-        return unicode(value)
+        return str(value)
 
 
 class IPAddressField(IPAddressFieldBase):
