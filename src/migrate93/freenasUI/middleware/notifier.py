@@ -943,20 +943,6 @@ class notifier:
 
         return True
 
-    def umount_filesystems_within(self, path):
-        """
-        Try to umount filesystems within a certain path
-
-        Raises:
-            MiddlewareError - Could not umount
-        """
-        for mounted in get_mounted_filesystems():
-            if mounted['fs_file'].startswith(path):
-                if not umount(mounted['fs_file']):
-                    raise MiddlewareError('Unable to umount %s' % (
-                        mounted['fs_file'],
-                        ))
-
     def checksum(self, path, algorithm='sha256'):
         algorithm2map = {
             'sha256': '/sbin/sha256 -q',
