@@ -113,6 +113,7 @@ class ClientTransportWS(ClientTransportBase):
             self.parent.opened.clear()
             self.parent.parent.drop_pending_calls()
             if self.parent.parent.error_callback is not None:
+                from dispatcher.client import ClientError
                 self.parent.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
@@ -352,6 +353,7 @@ class ClientTransportSSH(ClientTransportBase):
         self.ssh.close()
         self.parent.drop_pending_calls()
         if self.parent.error_callback is not None:
+            from dispatcher.client import ClientError
             self.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
     def close(self):
