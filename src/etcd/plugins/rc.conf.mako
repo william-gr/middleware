@@ -131,6 +131,7 @@ nfsv4_server_enable="YES"
 nfsv4_server_enable="NO"
 %  endif
 
+rpcbind_enable="YES"
 nfs_server_enable="YES"
 rpc_lockd_enable="YES"
 rpc_statd_enable="YES"
