@@ -32,6 +32,7 @@ import re
 import logging
 import subprocess
 import tempfile
+import paramiko
 from Crypto.PublicKey import RSA
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
@@ -42,6 +43,39 @@ from lib.system import SubprocessException, system
 from fnutils import to_timedelta, first_or_default
 from fnutils.query import wrap
 
+"""
+# Bandwidth Limit.
+if  bandlim != 0:
+    throttle = '/usr/local/bin/throttle -K %d | ' % bandlim
+else:
+    throttle = ''
+
+#
+# Build the SSH command
+#
+
+# Cipher
+if cipher == 'fast':
+    sshcmd = ('/usr/bin/ssh -c arcfour256,arcfour128,blowfish-cbc,'
+              'aes128-ctr,aes192-ctr,aes256-ctr -i /data/ssh/replication'
+              ' -o BatchMode=yes -o StrictHostKeyChecking=yes'
+              # There's nothing magical about ConnectTimeout, it's an average
+              # of wiliam and josh's thoughts on a Wednesday morning.
+              # It will prevent hunging in the status of "Sending".
+              ' -o ConnectTimeout=7'
+             )
+elif cipher == 'disabled':
+    sshcmd = ('/usr/bin/ssh -ononeenabled=yes -ononeswitch=yes -i /data/ssh/replication -o BatchMode=yes'
+              ' -o StrictHostKeyChecking=yes'
+              ' -o ConnectTimeout=7')
+else:
+    sshcmd = ('/usr/bin/ssh -i /data/ssh/replication -o BatchMode=yes'
+              ' -o StrictHostKeyChecking=yes'
+              ' -o ConnectTimeout=7')
+
+# Remote IP/hostname and port.  This concludes the preparation task to build SSH command
+sshcmd = '%s -p %d %s' % (sshcmd, remote_port, remote)
+"""
 
 logger = logging.getLogger(__name__)
 SYSTEM_RE = re.compile('^[^/]+/.system.*')
@@ -49,6 +83,23 @@ AUTOSNAP_RE = re.compile(
     '^(?P<prefix>\w+)-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
     '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])$'
 )
+SSH_OPTIONS = {
+    'NONE': [
+        '-ononeenabled=yes',
+        '-ononeswitch=yes',
+        '-o BatchMode=yes',
+        '-o ConnectTimeout=7'
+    ],
+    'FAST': [
+        '-c arcfour256,arcfour128,blowfish-cbc,aes128-ctr,aes192-ctr,aes256-ctr',
+        '-o BatchMode=yes',
+        '-o ConnectTimeout=7'
+    ],
+    'NORMAL': [
+        '-o BatchMode=yes',
+        '-o ConnectTimeout=7'
+    ]
+}
 
 
 class ReplicationActionType(enum.Enum):
@@ -93,59 +144,63 @@ def compress_pipecmds(compression):
 #
 # Attempt to send a snapshot or increamental stream to remote.
 #
-def sendzfs(remote, fromsnap, tosnap, dataset, remotefs, compression, throttle):
-    templog = '/tmp/templog'
-    sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
-        ' -o StrictHostKeyChecking=yes' \
-        ' -o ConnectTimeout=7 %s ' % remote
+def sendzfs(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle):
+    with tempfile.NamedTemporaryFile('w') as hostsfile:
+        print(hostkey, file=hostsfile.file)
 
-    # progressfile = '/tmp/.repl_progress_%d' % replication.id
-    progressfile = '/tmp/.repl_progress_0' # XXX
-    cmd = ['/sbin/zfs', 'send', '-p']
-    if fromsnap is None:
-        cmd.append("%s@%s" % (dataset, tosnap))
-    else:
-        cmd.extend(['-i', "%s@%s" % (dataset, fromsnap), "%s@%s" % (dataset, tosnap)])
-    # subprocess.Popen does not handle large stream of data between
-    # processes very well, do it on our own
-    readfd, writefd = os.pipe()
-    zproc_pid = os.fork()
-    if zproc_pid == 0:
-        os.close(readfd)
-        os.dup2(writefd, 1)
-        os.close(writefd)
-        os.execv('/sbin/zfs', cmd)
-        # NOTREACHED
-    else:
-        with open(progressfile, 'w') as f2:
-            f2.write(str(zproc_pid))
-        os.close(writefd)
+        templog = '/tmp/templog'
+        sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
+            ' -o UserKnownHostsFile=%s' \
+            ' -o StrictHostKeyChecking=yes' \
+            ' -o ConnectTimeout=7 %s ' % (hostsfile.name, remote)
 
-    compress, decompress = compress_pipecmds(compression)
-    replcmd = '%s%s/bin/dd obs=1m 2> /dev/null | /bin/dd obs=1m 2> /dev/null | %s "%s/sbin/zfs receive -F \'%s\' && echo Succeeded"' % (compress, throttle, sshcmd, decompress, remotefs)
-    with open(templog, 'w+') as f:
-        readobj = os.fdopen(readfd, 'r', 0)
-        proc = subprocess.Popen(
-            replcmd,
-            shell=True,
-            stdin=readobj,
-            stdout=f,
-            stderr=subprocess.STDOUT,
-        )
-        proc.wait()
-        os.waitpid(zproc_pid, os.WNOHANG)
-        readobj.close()
-        os.remove(progressfile)
-        f.seek(0)
-        msg = f.read().strip('\n').strip('\r')
-    os.remove(templog)
-    msg = msg.replace('WARNING: enabled NONE cipher\n', '')
-    logger.debug("Replication result: %s" % (msg))
-    # XXX results[replication.id] = msg
-    # if reached_last and msg == "Succeeded":
-    #    replication.repl_lastsnapshot = tosnap
-    #    replication.save()
-    return msg == "Succeeded"
+        # progressfile = '/tmp/.repl_progress_%d' % replication.id
+        progressfile = '/tmp/.repl_progress_0' # XXX
+        cmd = ['/sbin/zfs', 'send', '-p']
+        if fromsnap is None:
+            cmd.append("%s@%s" % (dataset, tosnap))
+        else:
+            cmd.extend(['-i', "%s@%s" % (dataset, fromsnap), "%s@%s" % (dataset, tosnap)])
+        # subprocess.Popen does not handle large stream of data between
+        # processes very well, do it on our own
+        readfd, writefd = os.pipe()
+        zproc_pid = os.fork()
+        if zproc_pid == 0:
+            os.close(readfd)
+            os.dup2(writefd, 1)
+            os.close(writefd)
+            os.execv('/sbin/zfs', cmd)
+            # NOTREACHED
+        else:
+            with open(progressfile, 'w') as f2:
+                f2.write(str(zproc_pid))
+            os.close(writefd)
+
+        compress, decompress = compress_pipecmds(compression)
+        replcmd = '%s%s/bin/dd obs=1m 2> /dev/null | /bin/dd obs=1m 2> /dev/null | %s "%s/sbin/zfs receive -F \'%s\' && echo Succeeded"' % (compress, throttle, sshcmd, decompress, remotefs)
+        with open(templog, 'w+') as f:
+            readobj = os.fdopen(readfd, 'r', 0)
+            proc = subprocess.Popen(
+                replcmd,
+                shell=True,
+                stdin=readobj,
+                stdout=f,
+                stderr=subprocess.STDOUT,
+            )
+            proc.wait()
+            os.waitpid(zproc_pid, os.WNOHANG)
+            readobj.close()
+            os.remove(progressfile)
+            f.seek(0)
+            msg = f.read().strip('\n').strip('\r')
+        os.remove(templog)
+        msg = msg.replace('WARNING: enabled NONE cipher\n', '')
+        logger.debug("Replication result: %s" % (msg))
+        # XXX results[replication.id] = msg
+        # if reached_last and msg == "Succeeded":
+        #    replication.repl_lastsnapshot = tosnap
+        #    replication.save()
+        return msg == "Succeeded"
 
 
 class ReplicationProvider(Provider):
@@ -239,19 +294,8 @@ class ReplicateDatasetTask(ProgressTask):
         recursive = options.get('recursive', False)
         lifetime = options.get('lifetime', '1y')
 
-
-        """
-        remote = "127.0.0.1"    # Remote IP address
-        remote_port = "22"      # SSH port number
-        cipher = "Normal"       # or "fast", "disabled"
-        remotefs = "tank"       # Receiving dataset
-        localfs = "tank"        # Local dataset
-        compression = ""        # See map_compression
-        bandlim = 0             # Bandwidth limit
-        """
-
         self.join_subtasks(self.run_subtask(
-            'replication.snapshot_dataset',
+            'volume.snapshot_dataset',
             pool,
             localds,
             True,
@@ -265,40 +309,6 @@ class ReplicateDatasetTask(ProgressTask):
         remote_client = Client()
         remote_client.connect(options['remote'])
         remote_client.login_service('replicator')
-
-        """
-        # Bandwidth Limit.
-        if  bandlim != 0:
-            throttle = '/usr/local/bin/throttle -K %d | ' % bandlim
-        else:
-            throttle = ''
-
-        #
-        # Build the SSH command
-        #
-
-        # Cipher
-        if cipher == 'fast':
-            sshcmd = ('/usr/bin/ssh -c arcfour256,arcfour128,blowfish-cbc,'
-                      'aes128-ctr,aes192-ctr,aes256-ctr -i /data/ssh/replication'
-                      ' -o BatchMode=yes -o StrictHostKeyChecking=yes'
-                      # There's nothing magical about ConnectTimeout, it's an average
-                      # of wiliam and josh's thoughts on a Wednesday morning.
-                      # It will prevent hunging in the status of "Sending".
-                      ' -o ConnectTimeout=7'
-                     )
-        elif cipher == 'disabled':
-            sshcmd = ('/usr/bin/ssh -ononeenabled=yes -ononeswitch=yes -i /data/ssh/replication -o BatchMode=yes'
-                      ' -o StrictHostKeyChecking=yes'
-                      ' -o ConnectTimeout=7')
-        else:
-            sshcmd = ('/usr/bin/ssh -i /data/ssh/replication -o BatchMode=yes'
-                      ' -o StrictHostKeyChecking=yes'
-                      ' -o ConnectTimeout=7')
-
-        # Remote IP/hostname and port.  This concludes the preparation task to build SSH command
-        sshcmd = '%s -p %d %s' % (sshcmd, remote_port, remote)
-        """
 
         def is_replicated(snapshot):
             if snapshot.get('properties.org\\.freenas:replicate.value') != 'yes':
@@ -470,7 +480,6 @@ class ReplicateDatasetTask(ProgressTask):
 
 
 def _init(dispatcher, plugin):
-    plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_schema_definition('replication', {
         'type': 'object',
         'properties': {
@@ -494,8 +503,8 @@ def _init(dispatcher, plugin):
     })
 
     plugin.register_provider('replication', ReplicationProvider)
+    plugin.register_task_handler('volume.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_task_handler('replication.scan_hostkey', ScanHostKeyTask)
-    plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_task_handler('replication.replicate_dataset', ReplicateDatasetTask)
 
     # Generate replication key pair on first run
