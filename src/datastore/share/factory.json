@@ -1832,5 +1832,125 @@
         },
         "data": {
         }
+    },
+    {
+        "metadata": {
+            "name": "crypto.certificates",
+            "migration": "keep",
+            "pkey-type": "uuid",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "tunables",
+            "migration": "keep",
+            "pkey-type": "uuid",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "rsyncd-module",
+            "migration": "keep",
+            "pkey-type": "uuid",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "network.interfaces",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "network.routes",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "network.hosts",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "alerts",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "alert-filters",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+        {
+         "metadata": {
+            "name": "directoryservice.ldap",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
+    },
+    {
+         "metadata": {
+            "name": "directoryservice.activedirectory",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "config"
+            }
+        },
+        "data": {
+        }
     }
 ]
