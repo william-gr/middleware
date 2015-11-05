@@ -8,6 +8,8 @@ from django.db import models
 from datastore import get_default_datastore
 from datastore.config import ConfigStore
 
+from freenasUI.middleware.notifier import notifier
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -33,7 +35,11 @@ class Migration(DataMigration):
         if ddns.ddns_domain:
             cs.set('service.dyndns.domains', ddns.ddns_domain.split(','))
         cs.set('service.dyndns.username', ddns.ddns_username)
-        cs.set('service.dyndns.password', ddns.ddns_password)
+        try:
+            pwd = notifier().pwenc_decrypt(ddns.ddns_password)
+        except:
+            pwd = ''
+        cs.set('service.dyndns.password', pwd)
         if ddns.ddns_updateperiod:
             cs.set('service.dyndns.update_period', ddns.ddns_updateperiod)
         if ddns.ddns_fupdateperiod:
