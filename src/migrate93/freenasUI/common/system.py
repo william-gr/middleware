@@ -31,6 +31,7 @@ import sqlite3
 import subprocess
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 RE_MOUNT = re.compile(
@@ -95,7 +96,7 @@ def get_freenas_var(var, default=None):
         val = default
     return val
 
-FREENAS_DATABASE = get_freenas_var("FREENAS_DATABASE", "/data/freenas-v1.db")
+FREENAS_DATABASE = settings.DATABAS_PATH
 
 
 def send_mail(subject=None,
