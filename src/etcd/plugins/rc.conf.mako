@@ -83,9 +83,11 @@ ntpd_sync_on_start="YES"
 ctld_flags="-u"
 
 # Selectively enable services for now
-% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ctl', 'ftp', 'lldp', 'rsyncd', 'smartd', 'snmp', 'sshd', 'tftpd', 'webdav'])):
+% for svc in ds.query("service_definitions", ('name', 'in', ['afp', 'ctl', 'ftp', 'glusterd', 'lldp', 'riak', 'riak_cs', 'rsyncd', 'smartd', 'snmp', 'sshd', 'stanchion', 'tftpd', 'webdav'])):
     % if config.get("service.{0}.enable".format(svc["name"])):
 ${svc['rcng']['rc-scripts']}_enable="YES"
+    % else:
+${svc['rcng']['rc-scripts']}_enable="NO"
     % endif
 % endfor
 % if config.get("service.cifs.enable"):
