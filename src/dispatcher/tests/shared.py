@@ -66,6 +66,20 @@ class BaseTestCase(unittest.TestCase):
         self.conn.disconnect()
 
     def submitTask(self, name, *args):
+        with self.tasks_lock:
+            try:
+                tid = self.conn.call_sync('task.submit', name, args)
+            except RpcException:
+                raise
+            except Exception:
+                raise    
+
+            self.tasks[tid] = self.TaskState()
+            self.tasks[tid].tid = tid
+            self.tasks[tid].name = name
+        return tid
+
+    def submitTaskOrig(self, name, *args):
         self.tasks_lock.acquire()
         try:
             tid = self.conn.call_sync('task.submit', name, args)
@@ -81,14 +95,27 @@ class BaseTestCase(unittest.TestCase):
         self.tasks[tid].tid = tid
         self.tasks[tid].name = name
         self.tasks_lock.release()
-        return tid
+        return tid    
 
     def assertTaskCompletion(self, tid):
         t = self.tasks[tid]
         if not t.ended.wait(self.task_timeout):
             self.fail('Task {0} timed out'.format(tid))
+        #print dir(t)    
+        #print 'Message is ' + str(t.message)  
+        #print 'State is ' + str(t.state)
+        #print 'Result is ' + str(t.result)
 
-        self.assertEqual(t.state, 'FINISHED', msg=t.message)
+        if t.state.count('Executing...'):
+            message = t.error
+        elif t.__getattribute__('message') and t.message.count('Executing...'):
+            message = t.state    
+        else:
+            message = t.message
+        if not message:
+            self.query_task(tid)
+ 
+        self.assertEqual(t.state, 'FINISHED', msg=message)
 
     def assertTaskFailure(self, tid):
         t = self.tasks[tid]
@@ -108,6 +135,36 @@ class BaseTestCase(unittest.TestCase):
         return t.result
 
     def on_event(self, name, args):
+
+        with self.tasks_lock:
+            if name == 'task.updated':
+                #DEBUG
+                #print 'ARGS IS ' + str(args)
+                #print 'TASK LIST IS ' + str(self.tasks)
+                #for pc in self.conn.pending_calls.keys():
+                #    print 'PENDING CALL METHOD ' + str(self.conn.pending_calls[pc].method) + \
+                #    ' and ID ' + str(self.conn.pending_calls[pc].id)
+
+                if args['id'] not in self.tasks.keys():
+                    if args['state'] == 'EXECUTING':
+                        return
+                else:           
+                    t = self.tasks[args['id']]
+                    t.state = args['state']
+                    if t.state in ('FINISHED', 'FAILED'):
+                        t.result = args['result'] if 'result' in args else None
+                        t.ended.set()
+
+            elif name == 'task.progress':
+                if args['id'] not in self.tasks.keys():
+                    if args['state'] == 'EXECUTING':
+                        return
+                else:
+                    t = self.tasks[args['id']]
+                    t.message = args['message']
+
+
+    def on_eventOrig(self, name, args):
 
         self.tasks_lock.acquire()
         if name == 'task.updated':
@@ -138,9 +195,14 @@ class BaseTestCase(unittest.TestCase):
                 t = self.tasks[args['id']]
                 t.message = args['message']
         
-        self.tasks_lock.release()
+        self.tasks_lock.release()    
 
     def pretty_print(self, res):
         if '-v' in sys.argv:
             print json.dumps(res, indent=4, sort_keys=True)
 
+    def query_task(self, tid):
+        # Makes tests very slow, keep as debug
+        query =  self.conn.call_sync('task.query', [('id','=',tid)])    
+        message = query[0]['error']
+        self.pretty_print(message)

@@ -42,7 +42,7 @@ class ServicesTest(BaseTestCase):
 
     def test_sshd_restart(self):
     	sname = str(inspect.stack()[0][3].split('_')[-1])
-        if self.isRunning('sshd'): 
+        if not self.isRunning('sshd'): 
             self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
         self.assertTaskCompletion(self.submitTask('service.manage', 'sshd', 'restart'))
             
@@ -83,7 +83,7 @@ class ServicesTest(BaseTestCase):
     def test_restart_ipfs(self):
     	sname = str(inspect.stack()[0][3].split('_')[-1])
         if self.isRunning(sname): 
-            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+            self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
         self.assertTaskCompletion(self.submitTask('service.manage', sname, 'restart'))
             
     def atest_configure_ipfs(self):
@@ -97,6 +97,7 @@ class ServicesTest(BaseTestCase):
     	if self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
     	self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
+        self.assertTaskCompletion(self.submitTask('service.manage', sname, 'stop'))
 
     def test_restart_afp(self):
     	sname = inspect.stack()[0][3].split('_')[-1]

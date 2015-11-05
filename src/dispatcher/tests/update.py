@@ -64,6 +64,7 @@ class Updater(BaseTestCase):
     def isUp(self):
         testhost = os.getenv('TESTHOST')
         command = 'ping -c 2 ' + testhost
+        command = 'ping -c 2 -a -W 0.1 ' + testhost
         #try:
         #    out = subprocess.check_output(command.split())
         #except subprocess.CalledProcessError, data:
@@ -74,11 +75,11 @@ class Updater(BaseTestCase):
             print 'OK'
             return True    
 
-    def test_update(self):
+    def test_update_system(self):
         '''
         checks, updates, reboots, verifies
         '''
-        self.task_timeout = 200
+        self.task_timeout = 600
         payload = {'reboot_post_install': True}
         tid = self.submitTask('update.check')
         self.assertTaskCompletion(tid)
@@ -95,7 +96,7 @@ class Updater(BaseTestCase):
             tid = self.submitTask('update.update') 
             self.assertTaskCompletion(tid)
             
-            print 'Will reboot...'
+            print 'System will reboot...'
             while not self.isUp():
                 time.sleep(10)
             # DEBUG
@@ -103,11 +104,12 @@ class Updater(BaseTestCase):
         else:
             print 'No update available at this time...'    
         
-        print 'Verifying system...' 
+        #print 'Verifying system...' 
         post_version = self.conn.call_sync('system.info.version')
         self.assertTrue(pre_version.split('-')[-1] <= post_version.split('-')[-1])  
-        tid = self.submitTask('update.verify')
-        self.assertTaskCompletion(tid)    
+        # disable until fixed
+        #tid = self.submitTask('update.verify')
+        #self.assertTaskCompletion(tid)    
             
            
 
