@@ -26,19 +26,28 @@ class Migration(DataMigration):
         if svc:
             cs.set('service.cifs.enable', svc.srv_enable)
 
-        cs.set('service.cifs.netbiosname', cifs.cifs_srv_netbiosname)
+        cs.set('service.cifs.netbiosname', [cifs.cifs_srv_netbiosname])
         cs.set('service.cifs.workgroup', cifs.cifs_srv_workgroup)
         cs.set('service.cifs.description', cifs.cifs_srv_description)
         cs.set('service.cifs.dos_charset', cifs.cifs_srv_doscharset)
         cs.set('service.cifs.unix_charset', cifs.cifs_srv_unixcharset)
-        cs.set('service.cifs.log_level', cifs.cifs_srv_loglevel)
+
+        loglevel_map = {
+            '0': 'NONE',
+            '1': 'MINIMUM',
+            '2': 'NORMAL',
+            '3': 'FULL',
+            '10': 'DEBUG',
+        }
+
+        cs.set('service.cifs.log_level', loglevel_map.get(str(cifs.cifs_srv_loglevel), 'MINIMUM'))
         cs.set('service.cifs.syslog', cifs.cifs_srv_syslog)
         cs.set('service.cifs.local_master', cifs.cifs_srv_localmaster)
         cs.set('service.cifs.domain_logons', cifs.cifs_srv_domain_logons)
         cs.set('service.cifs.time_server', cifs.cifs_srv_timeserver)
         cs.set('service.cifs.guest_user', cifs.cifs_srv_guest)
-        cs.set('service.cifs.filemask', cifs.cifs_srv_filemask)
-        cs.set('service.cifs.dirmask', cifs.cifs_srv_dirmask)
+        cs.set('service.cifs.filemask', cifs.cifs_srv_filemask or None)
+        cs.set('service.cifs.dirmask', cifs.cifs_srv_dirmask or None)
         cs.set('service.cifs.empty_password', cifs.cifs_srv_nullpw)
         cs.set('service.cifs.unixext', cifs.cifs_srv_unixext)
         cs.set('service.cifs.zeroconf', cifs.cifs_srv_zeroconf)
