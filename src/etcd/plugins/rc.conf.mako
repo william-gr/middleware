@@ -63,13 +63,6 @@ dbus_enable="YES"
 mdnsd_enable="YES"
 nginx_enable="YES"
 
-# START - FreeNAS 9.x, remove when rc.conf.local migration completed
-# Add our rc.d scripts to load path
-local_startup="/etc/ix.rc.d /usr/local/etc/rc.d"
-# Make sure ix scripts run early enough
-early_late_divider="*"
-# END
-
 # AppCafe related services
 syscache_enable="YES"
 appcafe_enable="YES"
