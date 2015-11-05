@@ -69,7 +69,7 @@ GELI_RECOVERY_SLOT = 1
 SYSTEMPATH = '/var/db/system'
 PWENC_BLOCK_SIZE = 32
 PWENC_FILE_SECRET = '/data/pwenc_secret'
-PWENC_PADDING = '{'
+PWENC_PADDING = b'{'
 PWENC_CHECK = 'Donuts!'
 BACKUP_SOCK = '/var/run/backupd.sock'
 
@@ -1824,7 +1824,7 @@ class notifier:
             AES.MODE_CTR,
             counter=Counter.new(64, prefix=nonce),
         )
-        return cipher.decrypt(encrypted).rstrip(PWENC_PADDING)
+        return cipher.decrypt(encrypted).rstrip(PWENC_PADDING).decode('utf8')
 
     def bootenv_attach_disk(self, label, devname):
         """Attach a new disk to the pool"""
