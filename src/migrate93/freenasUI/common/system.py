@@ -96,7 +96,7 @@ def get_freenas_var(var, default=None):
         val = default
     return val
 
-FREENAS_DATABASE = settings.DATABAS_PATH
+FREENAS_DATABASE = settings.DATABASE_PATH
 
 
 def send_mail(subject=None,
