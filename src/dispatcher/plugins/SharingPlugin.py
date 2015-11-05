@@ -361,6 +361,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('share', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'id': {'type': 'string'},
             'name': {'type': 'string'},
