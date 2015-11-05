@@ -1909,7 +1909,7 @@
          "metadata": {
             "name": "alerts",
             "migration": "keep",
-            "pkey-type": "native",
+            "pkey-type": "uuid",
             "attributes": {
                 "type": "config"
             }
@@ -1921,7 +1921,7 @@
          "metadata": {
             "name": "alert-filters",
             "migration": "keep",
-            "pkey-type": "native",
+            "pkey-type": "uuid",
             "attributes": {
                 "type": "config"
             }
@@ -1933,7 +1933,7 @@
          "metadata": {
             "name": "directoryservice.ldap",
             "migration": "keep",
-            "pkey-type": "native",
+            "pkey-type": "uuid",
             "attributes": {
                 "type": "config"
             }
@@ -1945,7 +1945,7 @@
          "metadata": {
             "name": "directoryservice.activedirectory",
             "migration": "keep",
-            "pkey-type": "native",
+            "pkey-type": "uuid",
             "attributes": {
                 "type": "config"
             }
