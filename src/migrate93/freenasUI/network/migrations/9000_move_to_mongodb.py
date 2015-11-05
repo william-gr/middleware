@@ -51,9 +51,9 @@ class Migration(SchemaMigration):
         cs.set('network.gateway.ipv6', globalconf.gc_ipv6gateway or None)
         cs.set('network.http_proxy', globalconf.gc_httpproxy or None)
         cs.set('network.dns.addresses', filter(None, [
-            globalconf.gc_nameserver1,
-            globalconf.gc_nameserver2,
-            globalconf.gc_nameserver3
+            globalconf.gc_nameserver1 or None,
+            globalconf.gc_nameserver2 or None,
+            globalconf.gc_nameserver3 or None,
         ]))
 
         cs.set('network.netwait.enable', globalconf.gc_netwait_enabled)
@@ -98,7 +98,7 @@ class Migration(SchemaMigration):
                 'enabled': True,
                 'lagg': {
                     'protocol': LAGG_PROTOCOL_MAP[i.lagg_protocol],
-                    'ports': [m.int_interface for m in lagg_interfacemembers_set.all()]
+                    'ports': [m.int_interface for m in i.lagg_interfacemembers_set.all()]
                 }
             })
 
