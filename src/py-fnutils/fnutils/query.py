@@ -75,7 +75,7 @@ def eval_logic_nor(item, lst):
     return True
 
 
-def eval_logic_operator(item, *t):
+def eval_logic_operator(item, t):
     op, lst = t
     return globals()['eval_logic_{0}'.format(op)](item, lst)
 
