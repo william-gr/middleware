@@ -69,7 +69,12 @@
                     return;
                 }
 
-                term.write(event.data)
+                var reader = new FileReader();
+                reader.onload = function() {
+                    term.write(this.result);
+                };
+
+                reader.readAsBinaryString(event.data);
             };
 
             term.open($("#terminal")[0])
