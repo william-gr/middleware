@@ -536,7 +536,9 @@ class Dispatcher(object):
         return self.rpc.call_sync(name, *args)
 
     def call_task_sync(self, name, *args):
-        return self.balancer.join_subtasks(self.balancer.run_subtask(None, name, args))
+        t = self.balancer.run_subtask(None, name, args)
+        self.balancer.join_subtasks(t)
+        return t.result
 
     def submit_task(self, name, *args):
         self.balancer.run_subtask(None, name, args)

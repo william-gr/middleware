@@ -153,7 +153,22 @@ class ReplicationProvider(Provider):
         return self.configstore.get('replication.key.public')
 
     def scan_keys_on_host(self, hostname):
-        pass
+        return self.dispatcher.call_task_sync('replication.scan_hostkey', hostname)
+
+
+@accepts(str)
+class ScanHostKeyTask(Task):
+    def verify(self, hostname):
+        return []
+
+    def run(self, hostname):
+        transport = paramiko.transport.Transport(hostname)
+        transport.start_client()
+        key = transport.get_remote_server_key()
+        return {
+            'name': key.get_name(),
+            'key': key.get_base64()
+        }
 
 
 @accepts(str, str, bool, str, str, bool)
@@ -479,6 +494,7 @@ def _init(dispatcher, plugin):
     })
 
     plugin.register_provider('replication', ReplicationProvider)
+    plugin.register_task_handler('replication.scan_hostkey', ScanHostKeyTask)
     plugin.register_task_handler('replication.snapshot_dataset', SnapshotDatasetTask)
     plugin.register_task_handler('replication.replicate_dataset', ReplicateDatasetTask)
 
