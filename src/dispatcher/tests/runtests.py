@@ -56,7 +56,7 @@ import HTMLgen
 failed = {}
 errors = {}
 
-logdir = ('htmllogs')
+logdir = ('test_htmllogs')
 if not os.path.isdir(logdir):
     os.mkdir(logdir)
 

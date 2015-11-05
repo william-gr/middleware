@@ -57,13 +57,12 @@ class TestUpdate(BaseTestCase):
 
     def test_obtain_changelog(self):
         check = self.conn.call_sync('update.is_update_available')
-        print check
         changelog = self.conn.call_sync('update.obtain_changelog')
         self.pretty_print(changelog)
         if check:
             self.assertNotEqual(changelog, [u""])
         else:
-            self.assertEqual(changelog, [u""])    
+            self.assertEqual(changelog, None, )    
 
     def test_query_trains(self):
         trains = self.conn.call_sync('update.trains')
