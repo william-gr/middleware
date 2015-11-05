@@ -32,6 +32,7 @@ import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', '-f', help='Path to 9.3 database file', required=True)
+parser.add_argument('--secret', '-s', help='Path to 9.3 password encryption seed', required=False)
 args = parser.parse_args()
 
 sys.path.append('/usr/local/lib')
@@ -48,6 +49,7 @@ ADMINS = (
 MANAGERS = ADMINS
 
 DATABASE_PATH = args.file
+PWENC_FILE_SECRET = args.secret or '/data/pwenc_secret'
 
 SOUTH_DATABASE_ADAPTERS = {
     'default': 'south.db.sqlite3',

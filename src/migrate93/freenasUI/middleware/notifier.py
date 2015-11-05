@@ -68,7 +68,6 @@ GELI_KEY_SLOT = 0
 GELI_RECOVERY_SLOT = 1
 SYSTEMPATH = '/var/db/system'
 PWENC_BLOCK_SIZE = 32
-PWENC_FILE_SECRET = '/data/pwenc_secret'
 PWENC_PADDING = b'{'
 PWENC_CHECK = 'Donuts!'
 BACKUP_SOCK = '/var/run/backupd.sock'
@@ -1759,6 +1758,7 @@ class notifier:
 
     def pwenc_generate_secret(self, reset_passwords=True, _settings=None):
         from Crypto import Random
+        from django.conf import settings
         if _settings is None:
             from freenasUI.system.models import Settings
             _settings = Settings
@@ -1769,8 +1769,8 @@ class notifier:
             settings = _settings.objects.create()
 
         secret = Random.new().read(PWENC_BLOCK_SIZE)
-        with open(PWENC_FILE_SECRET, 'wb') as f:
-            os.chmod(PWENC_FILE_SECRET, 0o600)
+        with open(settings.PWENC_FILE_SECRET, 'wb') as f:
+            os.chmod(settings.PWENC_FILE_SECRET, 0o600)
             f.write(secret)
 
         settings.stg_pwenc_check = self.pwenc_encrypt(PWENC_CHECK)
@@ -1794,7 +1794,8 @@ class notifier:
             return False
 
     def pwenc_get_secret(self):
-        with open(PWENC_FILE_SECRET, 'rb') as f:
+        from django.conf import settings
+        with open(settings.PWENC_FILE_SECRET, 'rb') as f:
             secret = f.read()
         return secret
 
