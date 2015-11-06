@@ -175,7 +175,6 @@ class SystemAdvancedProvider(Provider):
             'serial_speed': cs.get('system.serial.speed'),
             'powerd': cs.get('service.powerd.enable'),
             'swapondrive': cs.get('system.swapondrive'),
-            'autotune': cs.get('system.autotune'),
             'debugkernel': cs.get('system.debug.kernel'),
             'uploadcrash': cs.get('system.upload_crash'),
             'motd': cs.get('system.motd'),
@@ -331,11 +330,6 @@ class SystemAdvancedConfigureTask(Task):
 
             if 'swapondrive' in props:
                 cs.set('system.swapondrive', props['swapondrive'])
-
-            if 'autotune' in props:
-                cs.set('system.autotune', props['autotune'])
-                #self.dispatcher.call_sync('etcd.generation.generate_group', 'autotune')
-                loader = True
 
             if 'debugkernel' in props:
                 cs.set('system.debug.kernel', props['debugkernel'])
@@ -496,7 +490,6 @@ def _init(dispatcher, plugin):
             'serial_speed': {'type': 'integer'},
             'powerd': {'type': 'boolean'},
             'swapondrive': {'type': 'integer'},
-            'autotune': {'type': 'boolean'},
             'debugkernel': {'type': 'boolean'},
             'uploadcrash': {'type': 'boolean'},
             'motd': {'type': 'string'},
