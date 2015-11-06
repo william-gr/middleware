@@ -11,6 +11,10 @@ from datastore import get_default_datastore
 
 class Migration(SchemaMigration):
 
+    depends_on = (
+        ('storage', '9003_disks_to_mongodb'),
+    )
+
     def forwards(self, orm):
 
         # Skip for install time, we only care for upgrades here
@@ -18,8 +22,6 @@ class Migration(SchemaMigration):
             return
 
         ds = get_default_datastore()
-
-        return  # FIXME!!: Depends on disks migration to get id
 
         testtype_map = {
             'L': 'LONG',
@@ -43,11 +45,20 @@ class Migration(SchemaMigration):
 
             testtype = testtype_map.get(smart.smarttest_type, 'LONG')
 
+            disk_ids = []
+            for disk in smart.smarttest_disks.all():
+                if not disk.disk_identifier:
+                    continue
+                disk_ids.append(disk.disk_identifier)
+
+            if not disk_ids:
+                continue
+
             ds.insert('schedulerd.runs', {
                 'id': 'smarttest_{0}'.format(smart.id),
                 'description': 'SMART Test {0}'.format(testtype),
                 'name': 'disks.parallel_test',
-                'args': [[], testtype],
+                'args': [disk_ids, testtype],
                 'enabled': True,
                 'schedule': {
                     'year': '*',
