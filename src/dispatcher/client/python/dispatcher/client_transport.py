@@ -52,6 +52,7 @@ else:
     from threading import RLock
     _thread_type = ClientType.THREADED
 
+
 def debug_log(message, *args):
     global _debug_log_file
 
@@ -74,6 +75,7 @@ class ClientTransportBuilder(object):
             return ClientTransportWS()
         else:
             raise ValueError('Unsupported type of connection scheme.')
+
 
 class ClientTransportBase(with_metaclass(ABCMeta, object)):
 
