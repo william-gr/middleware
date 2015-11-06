@@ -217,9 +217,9 @@ class UserCreateTask(Task):
 
             if password:
                 system(
-                    'smbpasswd', '-D', '0', '-s', '-a', user['username'],
+                    '/usr/local/bin/smbpasswd', '-D', '0', '-s', '-a', user['username'],
                     stdin='{0}\n{1}\n'.format(password, password).encode('utf8'))
-                user['smbhash'] = system('pdbedit', '-d', '0', '-w', user['username'])[0]
+                user['smbhash'] = system('/usr/local/bin/pdbedit', '-d', '0', '-w', user['username'])[0]
                 self.datastore.update('users', uid, user)
 
         except SubprocessException as e:
