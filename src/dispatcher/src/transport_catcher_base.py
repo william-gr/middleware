@@ -31,6 +31,7 @@ from abc import ABCMeta, abstractmethod
 
 _debug_log_file = None
 
+
 def debug_log(message, *args):
     global _debug_log_file
 
@@ -43,6 +44,7 @@ def debug_log(message, *args):
 
         print(message.format(*args), file=_debug_log_file)
         _debug_log_file.flush()
+
 
 class TransportCatcherBase(object):
 
