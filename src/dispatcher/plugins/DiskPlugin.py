@@ -823,6 +823,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('disk', {
         'type': 'object',
         'properties': {
+            'id': {'type': 'string'},
             'name': {'type': 'string'},
             'description': {'type': 'string'},
             'serial': {'type': 'string'},
