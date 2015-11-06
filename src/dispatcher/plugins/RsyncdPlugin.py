@@ -475,11 +475,11 @@ def _init(dispatcher, plugin):
             'remote_path': {'type': 'string'},
             'rsync_direction': {
                 'type': 'string',
-                'enum': ['push', 'pull']
+                'enum': ['PUSH', 'PULL']
             },
             'rsync_mode': {
                 'type': 'string',
-                'enum': ['module', 'ssh']
+                'enum': ['MODULE', 'SSH']
             },
             'remote_ssh_port': {'type': 'integer'},
             'remote_module': {'type': 'string'},
