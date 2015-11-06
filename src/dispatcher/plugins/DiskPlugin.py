@@ -827,7 +827,6 @@ def _init(dispatcher, plugin):
             'name': {'type': 'string'},
             'description': {'type': 'string'},
             'serial': {'type': 'string'},
-            'smart_enabled': {'type': 'boolean'},
             'mediasize': {'type': 'integer'},
             'smart': {'type': 'boolean'},
             'smart_options': {'type': 'string'},
