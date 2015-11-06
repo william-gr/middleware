@@ -202,7 +202,11 @@ class SetPermissionsTask(Task):
         if recursive and not os.path.isdir(path):
             raise VerifyException(errno.EINVAL, 'Recursive specified, but {0} is not directory'.format(path))
 
-        return []
+        try:
+            pool, ds, rest = self.dispatcher.call_sync('volumes.decode_path', path)
+            return ['zfs:{0}'.format(ds)]
+        except RpcException:
+            return []
 
     def run(self, path, permissions, recursive=False):
         if permissions.get('user') or permissions.get('group'):
