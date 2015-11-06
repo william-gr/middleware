@@ -564,7 +564,7 @@ class VolumeUpdateTask(Task):
                     if old_vdev['type'] not in ('disk', 'mirror'):
                         raise TaskException(
                             errno.EINVAL,
-                            'Cannot extend vdev {0} (type is {2}, not mirror or disk'.format(
+                            'Cannot extend vdev {0}, {1} is not mirror or disk'.format(
                                 old_vdev['guid'],
                                 old_vdev['type']
                             )
