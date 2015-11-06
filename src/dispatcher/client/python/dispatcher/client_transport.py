@@ -26,9 +26,7 @@
 #####################################################################
 
 from __future__ import print_function
-import socket
 import os
-import time
 import errno
 import paramiko
 import socket
@@ -41,15 +39,11 @@ _debug_log_file = None
 
 if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
     from ws4py.client.geventclient import WebSocketClient
-    from gevent.lock import RLock
     from gevent.event import Event
-    from gevent.greenlet import Greenlet
     _thread_type = ClientType.GEVENT
 else:
     from ws4py.client.threadedclient import WebSocketClient
-    from threading import Thread
     from threading import Event
-    from threading import RLock
     _thread_type = ClientType.THREADED
 
 
@@ -87,7 +81,7 @@ class ClientTransportBase(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def address(self):
         return
-        
+
     @abstractmethod
     def send(self, message):
         return
@@ -95,7 +89,7 @@ class ClientTransportBase(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def recv(self):
         return
-        
+
     @abstractmethod
     def close(self):
         return
@@ -132,13 +126,13 @@ class ClientTransportWS(ClientTransportBase):
         self.port = None
         self.current_message = None
         self.opened = Event()
-    
+
     def connect(self, url, parent, **kwargs):
         self.scheme_default_port = 5000
         self.parent = parent
         self.username = url.username
         self.port = url.port
-        
+
         if url.hostname:
             self.hostname = url.hostname
         elif url.netloc:
@@ -175,11 +169,11 @@ class ClientTransportWS(ClientTransportBase):
         self.ws = self.WebSocketHandler(ws_url, self)
         self.ws.connect()
         self.opened.wait()
-           
+
     @property
     def address(self):
         return self.ws.local_address
-    
+
     def send(self, message):
         try:
             self.ws.send(message)
@@ -187,13 +181,13 @@ class ClientTransportWS(ClientTransportBase):
             if err.errno == errno.EPIPE:
                 debug_log('Socket is closed. Closing connection')
                 self.close()
- 
+
     def recv(self):
         self.parent.recv(self.current_message)
 
     def close(self):
         self.ws.close()
-    
+
     def wait_forever(self):
         if os.getenv("DISPATCHERCLIENT_TYPE") == "GEVENT":
             import gevent
@@ -201,7 +195,7 @@ class ClientTransportWS(ClientTransportBase):
                 gevent.sleep(60)
         else:
             self.ws.run_forever()
-    
+
     @property
     def connected(self):
         return self.opened.is_set()
@@ -232,7 +226,7 @@ class ClientTransportSSH(ClientTransportBase):
         self.parent = parent
         self.username = url.username
         self.port = url.port
-        
+
         if not self.parent:
             raise RuntimeError('ClientTransportSSH can be only created inside of a class')
 
@@ -266,13 +260,13 @@ class ClientTransportSSH(ClientTransportBase):
         else:
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
-                
+
         self.password = kwargs.get('password', None)
         self.pkey = kwargs.get('pkey', None)
         self.key_filename = kwargs.get('key_filename', None)
         if not self.pkey and not self.password and not self.key_filename:
             raise ValueError('No password, key_filename nor pkey for authentication declared.')
-            
+
         self.host_key = kwargs.get('host_key', None)
         self.host_key_file = kwargs.get('host_key_file', None)
         if self.host_key and self.host_key_file:
@@ -325,7 +319,7 @@ class ClientTransportSSH(ClientTransportBase):
         except paramiko.SSHException as err:
             debug_log('SSH exception: {0}', err)
             raise
-            
+
         except socket.error as err:
             debug_log('Socket exception: {0}', err)
             raise
@@ -371,11 +365,11 @@ class ClientTransportSSH(ClientTransportBase):
         debug_log("Transport connection closed by client.")
         self.terminated = True
         self.ssh.close()
-    
+
     @property
     def address(self):
         return self.hostname
-        
+
     @property
     def host_keys(self):
         return self.ssh.get_host_keys()
