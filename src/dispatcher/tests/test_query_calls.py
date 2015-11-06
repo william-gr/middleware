@@ -148,5 +148,21 @@ class QueryTest(BaseTestCase):
         if len(res):
             self.assertIsInstance(res[0], dict)  
 
+    def test_etcd_generation_get_managed_files(self):
+        '''
+        TODO: testing on server side
+        '''
+        res = self.conn.call_sync('etcd.generation.get_managed_files')
+        self.pretty_print(res)
+        self.assertIsInstance(res, dict)
+
+    def test_shares_query(self):
+        '''
+        '''
+        res = self.conn.call_sync('shares.query')
+        self.pretty_print(res)
+        self.assertIsInstance(res, list)    
+
+
 if __name__ == '__main__':
     unittest.main()

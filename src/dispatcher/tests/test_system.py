@@ -98,7 +98,10 @@ class TestSystem(BaseTestCase):
         self.assertGreater(len(info), 0)
         #print info
         
-    
+    def test_system_session_query(self):
+        info = self.conn.call_sync('system.session.uname_full')
+        self.assertIsInstance(info, list)
+        self.assertGreater(len(info), 0)
 
 
 if __name__ == '__main__':

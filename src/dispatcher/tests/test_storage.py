@@ -51,22 +51,26 @@ class VolumeTest(BaseTestCase):
         '''
         Create, test, destroy
         '''
-        volname = 'testVolumeAuto'
+        volname = 'TestVolumeAuto'
         v =  self.conn.call_sync('volumes.query', [('name', '=', volname)])
-
+        # destroy leftovers so that test do not fail
         if len(v):
             tid = self.submitTask('volume.destroy', volname)
             self.assertTaskCompletion(tid)
-        # try to reuse exported volume if the newly created fails?
-        exported =  self.conn.call_sync('volumes.find')    
-        
         available = self.conn.call_sync('volumes.get_available_disks')    
         if available:
             tid = self.submitTask('volume.create_auto', volname, 'zfs', available[:1])
-            
             self.assertTaskCompletion(tid)
         else:
             raise unittest.SkipTest("No disks are available for creating volume, test did not run")  
+         
+        v =  self.conn.call_sync('volumes.query', [('name', '=', volname)])
+        self.pretty_print(v)
+        self.assertEqual(v[0]['name'], volname)
+        
+
+    def test_volumes_find(self):
+        exported =  self.conn.call_sync('volumes.find')    
 
         
     def test_create_volume_auto_available_disks(self):
@@ -157,15 +161,7 @@ class VolumeTest(BaseTestCase):
             disks =  self.conn.call_sync('volumes.get_volume_disks', volname)
             self.assertEqual(disks, available[:3])
 
-    def get_all_disks(self):
-        # TODO: verify return values
-        '''
-        '''
-        disks = self.conn.call_sync('disks.query')
-        for disk in disks:
-            for d in disk.keys():
-                print str(d) + ':  ' + str(disk[d])
-
+ 
     def atest_get_volume_disks(self):
         pass
 
@@ -202,18 +198,74 @@ class VolumeTest(BaseTestCase):
 
     def test_create_manual_snapshot(self):
         snapshots = self.conn.call_sync('volumes.snapshots.query')
+        self.pretty_print(snapshots)
+        self.assertIsInstance(snapshots, list)
            
 
     def atest_import_disk(self):
         pass
- 
+
+    def test_create_volume2(self):
+        '''
+        Specify different topology
+               "topology": {
+            "cache": [], 
+            "data": [
+                {
+                    "children": [], 
+                    "guid": "10725309058824566037", 
+                    "path": "/dev/da5", 
+                    "stats": {
+                        "bytes": [
+                            0, 
+                            483328, 
+                            1673216, 
+                            8704, 
+                            0
+                        ], 
+                        "checksum_errors": 0, 
+                        "configured_ashift": 9, 
+                        "fragmentation": 18446744073709551615, 
+                        "logical_ashift": 9, 
+                        "ops": [
+                            1, 
+                            7, 
+                            72, 
+                            11, 
+                            0
+                        ], 
+                        "physical_ashift": 0, 
+                        "read_errors": 0, 
+                        "timestamp": 7390003153, 
+                        "write_errors": 0
+                    }, 
+                    "status": "ONLINE", 
+                    "type": "disk"
+                }
+
+        ''' 
+        pass
+        
+
 
 class DatasetTest(BaseTestCase):
+    '''
+    TODO: add setUpClass and tearDownClass
+    '''
+    
     def setUp(self):
         super(DatasetTest, self).setUp()
         self.task_timeout = 200
         self.volname = 'TestDatasetVolume'
         self.createVolume()
+
+
+    @classmethod
+    def tearDownOnce(cls):
+        #v =  self.conn.call_sync('volumes.query', [('name', '`', "*Dataset*")])
+        for v in self.conn.call_sync('volumes.query', [('name', '~', '*Dataset*')]):
+            self.assertTaskCompletion(self.submitTask('volume.destroy', u['name']))
+        super(DatasetTest, self).tearDownOnce()
 
     def tearDown(self):
         # try to delete all volumes created with test
@@ -221,22 +273,28 @@ class DatasetTest(BaseTestCase):
         #    self.assertTaskCompletion(self.submitTask('volume.detach', u['name']))
         super(DatasetTest, self).tearDown()
 
-    def test_query_datasets(self):
-        pass
+    
 
     def test_create_dataset(self):
-        pass
+        payload = {'type': 'FILESYSTEM'}
+        tid = self.submitTask('volume.dataset.create', self.volname, self.volname + '/new_dataset', 'FILESYSTEM')
+        self.assertTaskCompletion(tid)
+
 
     def test_get_dataset_tree(self):
-        tree = self.conn.call_sync('volumes.get_dataset_tree', 'TestAuto')
+        tree = self.conn.call_sync('volumes.get_dataset_tree', self.volname)
         self.pretty_print(tree)
+        self.assertIsInstance(tree, dict)
 
     def test_query_zfs_dataset(self):
         datasets = self.conn.call_sync('zfs.dataset.query')
         self.pretty_print(datasets)
 
     def createVolume(self):
-
+        v =  self.conn.call_sync('volumes.query', [('name', '=', self.volname)])
+        
+        if v:
+            return
         available = self.conn.call_sync('volumes.get_available_disks')
         if not available:
             self.skip("No disks are available for creating volume, test did not run")  
