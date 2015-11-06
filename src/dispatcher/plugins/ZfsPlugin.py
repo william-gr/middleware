@@ -883,6 +883,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-vdev', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'path': {'type': ['string', 'null']},
             'guid': {'type': 'string'},
@@ -909,6 +910,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-topology', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'data': {
                 'type': 'array',
@@ -931,6 +933,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-vdev-extension', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'target_guid': {'type': 'string'},
             'vdev': {'$ref': 'zfs-vdev'}
@@ -1077,6 +1080,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-dataset', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'name': {'type': 'string'},
             'pool': {'type': 'string'},
@@ -1096,6 +1100,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-snapshot', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'pool': {'type': 'string'},
             'dataset': {'type': 'string'},
@@ -1107,6 +1112,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-property', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'source': {
                 'type': 'string',
@@ -1119,6 +1125,7 @@ def _init(dispatcher, plugin):
 
     plugin.register_schema_definition('zfs-pool', {
         'type': 'object',
+        'additionalProperties': False,
         'properties': {
             'status': {
                 'type': 'string',
