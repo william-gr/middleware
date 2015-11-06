@@ -29,6 +29,7 @@ import os
 import errno
 import logging
 import libzfs
+from datetime import datetime
 from threading import Event
 from task import (Provider, Task, TaskStatus, TaskException,
                   VerifyException, TaskAbortException, query)
@@ -187,7 +188,7 @@ class ZfsSnapshotProvider(Provider):
 
 
 @description("Scrubs ZFS pool")
-@accepts(str)
+@accepts(str, int)
 class ZpoolScrubTask(Task):
     def __init__(self, dispatcher, datastore):
         super(ZpoolScrubTask, self).__init__(dispatcher, datastore)
@@ -209,7 +210,12 @@ class ZpoolScrubTask(Task):
     def describe(self, pool):
         return "Scrubbing pool {0}".format(pool)
 
-    def run(self, pool):
+    def verify(self, pool, threshold=None):
+        zfs = libzfs.ZFS()
+        pool = zfs.get(pool)
+        return get_disk_names(self.dispatcher, pool)
+
+    def run(self, pool, threshold=None):
         self.pool = pool
         self.dispatcher.register_event_handler("fs.zfs.scrub.finish", self.__scrub_finished)
         self.dispatcher.register_event_handler("fs.zfs.scrub.abort", self.__scrub_aborted)
@@ -218,6 +224,12 @@ class ZpoolScrubTask(Task):
         try:
             zfs = libzfs.ZFS()
             pool = zfs.get(self.pool)
+            # Skip in case a scrub did already run in the last `threshold` days
+            if threshold:
+                last_run = pool.scrub.end_time
+                if last_run and (datetime.now() - last_run).days < threshold:
+                    self.finish_event.set()
+                    return
             pool.start_scrub()
             self.started = True
         except libzfs.ZFSException as err:
@@ -263,11 +275,6 @@ class ZpoolScrubTask(Task):
         if scrub.state == libzfs.ScanState.FINISHED:
             self.finish_event.set()
             return TaskStatus(100, "Finished")
-
-    def verify(self, pool):
-        zfs = libzfs.ZFS()
-        pool = zfs.get(pool)
-        return get_disk_names(self.dispatcher, pool)
 
 
 @description("Creates new ZFS pool")
