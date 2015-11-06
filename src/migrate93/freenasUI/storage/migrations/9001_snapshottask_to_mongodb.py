@@ -21,6 +21,7 @@ class Migration(SchemaMigration):
 
         for task in orm['storage.Task'].objects.all():
 
+            replication = orm['storage.Replication'].objects.filter(repl_filesystem=task.task_filesystem).exists()
             pool = task.task_filesystem.split('/')[0]
             lifetime = '{0}{1}'.format(task.task_ret_count, task.task_ret_unit[0])
 
@@ -61,7 +62,7 @@ class Migration(SchemaMigration):
                 'id': 'snapshot{0}'.format(task.id),
                 'description': 'Periodic Snapshot Task: {0}'.format(task.task_filesystem),
                 'name': 'volume.snapshot_periodic',
-                'args': [pool, task.task_filesystem, task.task_recursive, lifetime],
+                'args': [pool, task.task_filesystem, task.task_recursive, lifetime, 'auto', replication],
                 'enabled': task.task_enabled,
                 'schedule': {
                     'year': '*',
