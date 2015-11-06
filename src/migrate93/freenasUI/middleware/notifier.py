@@ -438,43 +438,6 @@ class notifier:
             res = True
         return res
 
-    def _started_ldap(self):
-        from freenasUI.common.freenasldap import FreeNAS_LDAP, FLAGS_DBINIT
-        from freenasUI.common.system import ldap_enabled
-
-        if (self._system_nolog('/usr/sbin/service ix-ldap status') != 0):
-            return False
-
-        ret = False
-        try:
-            f = FreeNAS_LDAP(flags=FLAGS_DBINIT)
-            f.open()
-            if f.isOpen():
-                ret = True
-            f.close()
-        except:
-            pass
-
-        return ret
-
-    def _start_ldap(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/LDAP/ctl start"):
-            res = True
-        return res
-
-    def _stop_ldap(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/LDAP/ctl stop"):
-            res = True
-        return res
-
-    def _restart_ldap(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/LDAP/ctl restart"):
-            res = True
-        return res
-
     def _clear_activedirectory_config(self):
         self._system("/bin/rm -f /etc/directoryservice/ActiveDirectory/config")
 
@@ -503,70 +466,6 @@ class notifier:
         res = False
         ret = self._system_nolog("/etc/directoryservice/NT4/ctl stop")
         return res
-
-    def _started_activedirectory(self):
-        from freenasUI.common.freenasldap import (FreeNAS_ActiveDirectory, FLAGS_DBINIT)
-        from freenasUI.common.system import activedirectory_enabled
-
-        for srv in ('kinit', 'activedirectory', ):
-            if (self._system_nolog('/usr/sbin/service ix-%s status' % (srv, ))
-                != 0):
-                return False
-
-        ret = False
-        try:
-            f = FreeNAS_ActiveDirectory(flags=FLAGS_DBINIT)
-            if f.connected():
-                ret = True
-        except:
-            pass
-
-        return ret
-
-    def _start_activedirectory(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/ActiveDirectory/ctl start"):
-            res = True
-        return res
-
-    def _stop_activedirectory(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/ActiveDirectory/ctl stop"):
-            res = True
-        return res
-
-    def _restart_activedirectory(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/ActiveDirectory/ctl restart"):
-            res = True
-        return res
-
-    def _started_domaincontroller(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/DomainController/ctl status"):
-            res = True
-        return res
-
-    def _start_domaincontroller(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/DomainController/ctl start"):
-            res = True
-        return res
-
-    def _stop_domaincontroller(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/DomainController/ctl stop"):
-            res = True
-        return res
-
-    def _restart_domaincontroller(self):
-        res = False
-        if not self._system_nolog("/etc/directoryservice/DomainController/ctl restart"):
-            res = True
-        return res
-
-    def _restart_cron(self):
-        self._system("/usr/sbin/service ix-crontab quietstart")
 
     def start_ataidle(self, what=None):
         if what is not None:
@@ -732,10 +631,6 @@ class notifier:
         Returns:
             True whether the user has been successfully added and False otherwise
         """
-
-        # For domaincontroller mode, rely on RSAT for user modification
-        if domaincontroller_enabled():
-            return 0
 
         command = '/usr/local/bin/smbpasswd -D 0 -s -a "%s"' % (username)
         smbpasswd = self._pipeopen(command)
