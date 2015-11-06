@@ -145,6 +145,7 @@ def _init(dispatcher, plugin):
     def volumes_pre_detach(args):
         disks = dispatcher.call_sync('volumes.get_volume_disks', args['name'])
         remove_swap(dispatcher, disks)
+        return True
 
     def on_volumes_change(args):
         with dispatcher.get_lock('swap'):

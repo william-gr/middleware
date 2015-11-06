@@ -358,6 +358,7 @@ def _init(dispatcher, plugin):
 
     def volume_pre_destroy(args):
         dispatcher.call_task_sync('share.delete_dependent', args['name'])
+        return True
 
     plugin.register_schema_definition('share', {
         'type': 'object',

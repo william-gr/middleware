@@ -262,6 +262,8 @@ def _init(dispatcher, plugin):
         if dispatcher.configstore.get('system.dataset.pool') == args['name']:
             dispatcher.call_task_sync('system_dataset.configure', 'freenas-boot')
 
+        return True
+
     if not dispatcher.configstore.get('system.dataset.id'):
         dsid = uuid.uuid4().hex[:8]
         dispatcher.configstore.set('system.dataset.id', dsid)
