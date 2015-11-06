@@ -886,6 +886,14 @@ def _init(dispatcher, plugin):
         'properties': {
             'path': {'type': ['string', 'null']},
             'guid': {'type': 'string'},
+            'status': {
+                'type': 'string',
+                'readOnly': True
+            },
+            'stats': {
+                'type': 'object',
+                'readOnly': True
+            },
             'type': {
                 'type': 'string',
                 'enum': ['disk', 'file', 'mirror', 'raidz1', 'raidz2', 'raidz3']
