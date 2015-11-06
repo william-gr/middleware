@@ -99,11 +99,11 @@ class Migration(SchemaMigration):
         for disk in orm['storage.Disk'].objects.all():
             dev = self.identifier_to_device(disk.disk_identifier)
             if not dev:
-                print "Identifier to device failed for {0}, skipping".format(disk.disk_identifier)
+                print("Identifier to device failed for {0}, skipping".format(disk.disk_identifier))
                 continue
             newident = self.device_to_identifier(dev, serial=(disk.disk_serial or None))
             if not newident:
-                print "Failed to convert {0} to id, skipping".format(dev)
+                print("Failed to convert {0} to id, skipping".format(dev))
             ds.insert('disks', {
                 'id': newident,
                 'serial': disk.disk_serial,
