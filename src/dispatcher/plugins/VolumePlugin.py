@@ -548,7 +548,11 @@ class VolumeUpdateTask(Task):
             updated_vdevs = []
             params = {}
             subtasks = []
-            old_topology = self.dispatcher.call_sync('zfs.pool.query', ('name', '=', name), {'single': True})
+            old_topology = self.dispatcher.call_sync(
+                'volumes.query',
+                [('name', '=', name)],
+                {'single': True, 'select': 'topology'}
+            )
 
             for group, vdevs in list(updated_params['topology'].items()):
                 for vdev in vdevs:
@@ -560,6 +564,9 @@ class VolumeUpdateTask(Task):
                     old_vdev = first_or_default(lambda v: v['guid'] == vdev['guid'], old_topology[group])
                     if not old_vdev:
                         raise TaskException(errno.EINVAL, 'Cannot extend vdev {0}: not found'.format(vdev['guid']))
+
+                    if compare_vdevs(old_vdev, vdev):
+                        continue
 
                     if old_vdev['type'] not in ('disk', 'mirror'):
                         raise TaskException(
@@ -886,6 +893,23 @@ def flatten_datasets(root):
 
     del root['children']
     yield root
+
+
+def compare_vdevs(vd1, vd2):
+    if vd1['guid'] != vd2['guid']:
+        return False
+
+    if vd1['type'] != vd2['type']:
+        return False
+
+    if vd1.get('path') != vd2.get('path'):
+        return False
+
+    for c1, c2 in zip(vd1.get('children', []), vd2.get('children', [])):
+        if not compare_vdevs(c1, c2):
+            return False
+
+    return True
 
 
 def iterate_vdevs(topology):
