@@ -613,9 +613,18 @@ class VolumeUpdateTask(Task):
                         'swapsize': params.get('swapsize', 2048) if group == 'data' else 0
                     }))
 
-            self.join_subtasks(*subtasks)
+            for vdev in updated_vdevs:
+                subtasks.append(self.run_subtask('disks.format.gpt', vdev['vdev']['path'], 'freebsd-zfs', {
+                    'blocksize': params.get('blocksize', 4096),
+                    'swapsize': params.get('swapsize', 2048)
+                }))
 
+            self.join_subtasks(*subtasks)
             new_vdevs = convert_topology_to_gptids(self.dispatcher, new_vdevs)
+
+            for vdev in updated_vdevs:
+                vdev['vdev']['path'] = get_disk_gptid(self.dispatcher, vdev['vdev']['path'])
+
             self.join_subtasks(self.run_subtask(
                 'zfs.pool.extend',
                 name,
