@@ -1,0 +1,107 @@
+#!/usr/local/bin/python3
+#+
+# Copyright 2015 iXsystems, Inc.
+# All rights reserved
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted providing that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#####################################################################
+
+import sys
+import argparse
+import json
+import datastore
+from bson import json_util
+
+
+DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
+ds = None
+
+
+def arg_indented(index, s):
+    for idx, line in enumerate(s.split('\n')):
+        s = '  {0}. '.format(index) if idx == 0 else '     '
+        print(s + line)
+
+
+def init_datastore(filename):
+    global ds
+
+    try:
+        f = open(filename)
+        conf = json.load(f)
+        f.close()
+    except IOError as err:
+        print("Cannot read config file: {0}".format(str(err)))
+        sys.exit(1)
+    except ValueError as err:
+        print("Cannot read config file: {0}".format(str(err)))
+        sys.exit(1)
+
+    if 'datastore' not in conf:
+        print("Cannot initialize datastore: configuration not found")
+        sys.exit(1)
+
+    try:
+        ds = datastore.get_datastore(conf['datastore']['driver'], conf['datastore']['dsn'])
+    except datastore.DatastoreException as err:
+        print("Cannot initialize datastore: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+
+
+def dump_task(ds, task):
+    print("Task ID: {0}".format(task['id']))
+    print("Task state: {0}".format(task['state']))
+    print("Task name: {0}".format(task['name']))
+    print("Started at: {0}".format(task['started_at']))
+    print("Started by: {0}".format(task['user']))
+    print("Resources assigned: {0}".format(', '.join(task['resources'])))
+    print("Arguments:")
+    for idx, arg in enumerate(task['args']):
+        arg_indented(idx, json.dumps(arg, default=json_util.default, indent=4))
+
+    print()
+    print("Task output:")
+    print(task['output'].strip() or '(none)')
+    print()
+
+
+def main():
+    global ds
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
+    parser.add_argument('tasks', metavar='TASKS', nargs='*', default='all', help='Task ids or "all"')
+
+    args = parser.parse_args()
+    init_datastore(args.c)
+
+    if 'all' in args.tasks:
+        tasks = ds.query('tasks')
+    else:
+        tasks = ds.query('tasks', ('id', 'in', [int(i) for i in args.tasks]))
+
+    for i in tasks:
+        dump_task(ds, i)
+
+
+if __name__ == '__main__':
+    main()

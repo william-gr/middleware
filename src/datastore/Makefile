@@ -7,6 +7,7 @@ install:
 	install -d ${STAGEDIR}${PREFIX}/share/datastore
 	install sbin/dsutil ${STAGEDIR}${PREFIX}/sbin/
 	install sbin/dsdump ${STAGEDIR}${PREFIX}/sbin/
+	install sbin/dsprinttask ${STAGEDIR}${PREFIX}/sbin/
 	install sbin/dsrestore ${STAGEDIR}${PREFIX}/sbin/
 	install sbin/dsmigrate ${STAGEDIR}${PREFIX}/sbin/
 	install sbin/dspasswd ${STAGEDIR}${PREFIX}/sbin/
