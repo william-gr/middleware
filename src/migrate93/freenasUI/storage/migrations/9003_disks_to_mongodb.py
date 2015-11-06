@@ -114,6 +114,8 @@ class Migration(SchemaMigration):
                 'acoustic_level': disk.disk_acousticlevel.upper(),
                 'apm_mode': None if disk.disk_advpowermgmt == 'Disabled' else int(disk.disk_advpowermgmt),
             })
+            disk.disk_identifier = newident
+            disk.save()
 
     def backwards(self, orm):
         pass
