@@ -153,6 +153,7 @@ class ResourceGraph(object):
         for name in names:
             res = self.get_resource(name)
             if not res:
+                self.unlock()
                 return False
 
             if res.busy:
