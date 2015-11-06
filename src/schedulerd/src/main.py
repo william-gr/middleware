@@ -90,6 +90,7 @@ class ManagementService(RpcService):
                 'enabled': job.next_run_time is not None,
                 'status': {
                     'next_run_time': job.next_run_time,
+                    'last_run_time': last_run['created_at'] if last_run else None,
                     'last_run_status': last_task['state'] if last_task else None,
                     'current_run_status': current_task['state'] if current_task else None,
                     'current_run_progress': current_progress
