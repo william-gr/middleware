@@ -30,6 +30,7 @@ import os
 import logging
 import tempfile
 import shutil
+import itertools
 import bsd
 import bsd.kld
 from lib.system import system, SubprocessException
@@ -588,7 +589,7 @@ class VolumeUpdateTask(Task):
                         )
 
                     if old_vdev['type'] == 'mirror' and vdev['type'] == 'mirror' and \
-                       len(old_vdev['children']) != len(vdev['children']) + 1:
+                       len(old_vdev['children']) + 1 != len(vdev['children']):
                         raise TaskException(
                             errno.EINVAL,
                             'Cannot extend mirror vdev {0} by more than one disk at once'.format(vdev['guid'])
@@ -896,6 +897,9 @@ def flatten_datasets(root):
 
 
 def compare_vdevs(vd1, vd2):
+    if vd1 is None or vd2 is None:
+        return False
+
     if vd1['guid'] != vd2['guid']:
         return False
 
@@ -905,7 +909,7 @@ def compare_vdevs(vd1, vd2):
     if vd1.get('path') != vd2.get('path'):
         return False
 
-    for c1, c2 in zip(vd1.get('children', []), vd2.get('children', [])):
+    for c1, c2 in itertools.zip_longest(vd1.get('children', []), vd2.get('children', [])):
         if not compare_vdevs(c1, c2):
             return False
 
