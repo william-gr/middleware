@@ -11,7 +11,7 @@ from datastore.config import ConfigStore
 class Migration(DataMigration):
 
     depends_on = (
-        ('account', '0024_move_to_mongodb'),
+        ('account', '9000_move_to_mongodb'),
     )
 
     def forwards(self, orm):
