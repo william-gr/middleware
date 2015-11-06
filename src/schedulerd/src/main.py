@@ -213,15 +213,15 @@ class Context(object):
                     'type': 'object',
                     'additionalProperties': False,
                     'properties': {
-                        'coalesce': {'type': ['boolean', 'null']},
-                        'year': {'type': ['string', 'null']},
-                        'month': {'type': ['string', 'null']},
-                        'day': {'type': ['string', 'null']},
-                        'week': {'type': ['string', 'null']},
-                        'day_of_week': {'type': ['string', 'null']},
-                        'hour': {'type': ['string', 'null']},
-                        'minute': {'type': ['string', 'null']},
-                        'second': {'type': ['string', 'null']}
+                        'coalesce': {'type': ['boolean', 'integer', 'null']},
+                        'year': {'type': ['string', 'integer', 'null']},
+                        'month': {'type': ['string', 'integer', 'null']},
+                        'day': {'type': ['string', 'integer', 'null']},
+                        'week': {'type': ['string', 'integer', 'null']},
+                        'day_of_week': {'type': ['string', 'integer', 'null']},
+                        'hour': {'type': ['string', 'integer', 'null']},
+                        'minute': {'type': ['string', 'integer', 'null']},
+                        'second': {'type': ['string', 'integer', 'null']}
                     }
                 }
             }
