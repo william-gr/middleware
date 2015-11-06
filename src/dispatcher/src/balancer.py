@@ -616,9 +616,12 @@ def serialize_error(err):
 
 def remove_dots(obj):
     if isinstance(obj, dict):
-        return {k.replace('.', '+'): v for k, v in list(obj.items())}
+        return {k.replace('.', '+'): remove_dots(v) for k, v in obj.items()}
 
     if isinstance(obj, (list, tuple)):
         return [remove_dots(x) for x in obj]
+
+    if isinstance(obj, int) and obj > 2**32:
+        return str(obj)
 
     return obj
