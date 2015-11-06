@@ -28,9 +28,6 @@
 import sys
 import os
 import uuid
-from threading import Thread
-from threading import Event
-from threading import RLock
 from ws4py.exc import HandshakeError
 from dispatcher.jsonenc import dumps
 from dispatcher.spawn_thread import spawn_thread
@@ -39,6 +36,7 @@ from transport_ws_handler import TransportWSHandler
 from transport_catcher_base import TransportCatcherBase, debug_log
 
 _thread_type = ClientType.THREADED
+
 
 class TransportCatcherSSH(TransportCatcherBase):
 
