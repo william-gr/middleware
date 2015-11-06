@@ -321,8 +321,8 @@ class RsyncCopyTask(ProgressTask):
                 remote_user = params.get('remote_user', params.get('user'))
                 remote_address = '"{0}"@{1}'.format(remote_user, remote_host)
 
-            if params.get('rsync_mode') == 'module':
-                if params.get('rsync_direction') == 'push':
+            if params.get('rsync_mode') == 'MODULE':
+                if params.get('rsync_direction') == 'PUSH':
                     line += ' "{0}" {1}::"{2}"'.format(
                         params.get('path'),
                         remote_address,
@@ -338,7 +338,7 @@ class RsyncCopyTask(ProgressTask):
                 line += ' -e "ssh -p {0} -o BatchMode=yes -o StrictHostKeyChecking=yes"'.format(
                     params.get('remote_ssh_port', 22)
                 )
-                if params.get('rsync_direction') == 'push':
+                if params.get('rsync_direction') == 'PUSH':
                     line += ' "{0}" {1}:\\""{2}"\\"'.format(
                         params.get('path'),
                         remote_address,
