@@ -98,6 +98,7 @@ def json_select(obj, selector=None):
 
     return result
 
+
 @argh.arg('--pkey')
 @argh.arg('--type')
 def create(name, pkey='uuid', type='config'):

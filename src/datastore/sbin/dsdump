@@ -30,6 +30,7 @@ import sys
 import argparse
 import json
 import datastore
+from bson import json_util
 from fnutils import exclude
 
 
@@ -103,7 +104,7 @@ def main():
 
     try:
         fd = open(args.o, 'w') if args.o else sys.stdout
-        json.dump(result, fd, indent=4)
+        json.dump(result, fd, indent=4, default=json_util.default)
     except IOError as e:
         print("Could not open output file: {0}".format(str(e)), file=sys.stderr)
         sys.exit(1)
