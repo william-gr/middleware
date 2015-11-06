@@ -34,7 +34,7 @@ class Migration(SchemaMigration):
 
             ds.insert('schedulerd.runs', {
                 'id': 'scrub_{0}_{1}'.format(scrub.scrub_volume.vol_name, scrub.id),
-                'description': scrub.description,
+                'description': scrub.scrub_description,
                 'name': 'zfs.pool.scrub',
                 'args': [scrub.scrub_volume.vol_name, scrub.scrub_threshold],
                 'enabled': scrub.scrub_enabled,
