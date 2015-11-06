@@ -545,9 +545,10 @@ class VolumeUpdateTask(Task):
 
         if 'topology' in updated_params:
             new_vdevs = {}
-            updated_vdevs = {}
+            updated_vdevs = []
             params = {}
             subtasks = []
+            old_topology = self.dispatcher.call_sync('zfs.pool.query', ('name', '=', name), {'single': True})
 
             for group, vdevs in list(updated_params['topology'].items()):
                 for vdev in vdevs:
@@ -555,8 +556,47 @@ class VolumeUpdateTask(Task):
                         new_vdevs.setdefault(group, []).append(vdev)
                         continue
 
-                # look for vdev in existing configuration using guid
-                pass
+                    # look for vdev in existing configuration using guid
+                    old_vdev = first_or_default(lambda v: v['guid'] == vdev['guid'], old_topology[group])
+                    if not old_vdev:
+                        raise TaskException(errno.EINVAL, 'Cannot extend vdev {0}: not found'.format(vdev['guid']))
+
+                    if old_vdev['type'] not in ('disk', 'mirror'):
+                        raise TaskException(
+                            errno.EINVAL,
+                            'Cannot extend vdev {0} (type is {2}, not mirror or disk'.format(
+                                old_vdev['guid'],
+                                old_vdev['type']
+                            )
+                        )
+
+                    if vdev['type'] != 'mirror':
+                        raise TaskException(
+                            errno.EINVAL,
+                            'Cannot change vdev {0} type ({1}) to {2}'.format(
+                                old_vdev['guid'],
+                                old_vdev['type'],
+                                vdev['type']
+                            )
+                        )
+
+                    if old_vdev['type'] == 'mirror' and vdev['type'] == 'mirror' and \
+                       len(old_vdev['children']) != len(vdev['children']) + 1:
+                        raise TaskException(
+                            errno.EINVAL,
+                            'Cannot extend mirror vdev {0} by more than one disk at once'.format(vdev['guid'])
+                        )
+
+                    if old_vdev['type'] == 'disk' and vdev['type'] == 'mirror' and len(vdev['children']) != 2:
+                        raise TaskException(
+                            errno.EINVAL,
+                            'Cannot extend disk vdev {0} by more than one disk at once'.format(vdev['guid'])
+                        )
+
+                    updated_vdevs.append({
+                        'target_guid': vdev['guid'],
+                        'vdev': vdev['children'][-1]
+                    })
 
             for vdev, group in iterate_vdevs(new_vdevs):
                 if vdev['type'] == 'disk':
