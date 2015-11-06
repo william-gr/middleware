@@ -137,11 +137,11 @@ class ClientTransportWS(ClientTransportBase):
         self.port = url.port
         
         if url.hostname:
-           self.hostname = url.hostname
+            self.hostname = url.hostname
         elif url.netloc:
-           self.hostname = url.netloc
-           if '@' in self.hostname:
-               temp, self.hostname = self.hostname.split('@')
+            self.hostname = url.netloc
+            if '@' in self.hostname:
+                temp, self.hostname = self.hostname.split('@')
         elif url.path:
            self.hostname = url.path
 
@@ -264,9 +264,9 @@ class ClientTransportSSH(ClientTransportBase):
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
                 
-        self.password = kwargs.get('password',None)
-        self.pkey = kwargs.get('pkey',None)
-        self.key_filename = kwargs.get('key_filename',None)
+        self.password = kwargs.get('password', None)
+        self.pkey = kwargs.get('pkey', None)
+        self.key_filename = kwargs.get('key_filename', None)
         if not self.pkey and not self.password and not self.key_filename:
             raise ValueError('No password, key_filename nor pkey for authentication declared.')
             
@@ -298,13 +298,17 @@ class ClientTransportSSH(ClientTransportBase):
                 ssh._host_keys.add(key_hostname, key_type, key)
             else:
                 self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh.connect(self.hostname,
-                            port = self.port,
-                            username = self.username,
-                            password = self.password,
-                            pkey = self.pkey,
-                            look_for_keys = self.look_for_keys,
-                            key_filename = self.key_filename)
+
+            self.ssh.connect(
+                self.hostname,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                pkey=self.pkey,
+                look_for_keys=self.look_for_keys,
+                key_filename=self.key_filename
+            )
+
             debug_log('Connected to {0}', self.hostname)
 
         except paramiko.AuthenticationException as err:
@@ -323,7 +327,11 @@ class ClientTransportSSH(ClientTransportBase):
             debug_log('Socket exception: {0}', err)
             raise
 
-        self.stdin, self.stdout, self.stderr = self.ssh.exec_command("sh /usr/local/libexec/dispatcher/ssh_transport_catcher", bufsize = 0)
+        self.stdin, self.stdout, self.stderr = self.ssh.exec_command(
+            "sh /usr/local/libexec/dispatcher/ssh_transport_catcher",
+            bufsize=0
+        )
+
         self.channel = self.ssh.get_transport().open_session()
 
         recv_t = spawn_thread(target = self.recv)
