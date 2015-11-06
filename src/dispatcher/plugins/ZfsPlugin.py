@@ -712,7 +712,7 @@ class ZfsCloneTask(ZfsBaseTask):
 
 def convert_topology(zfs, topology):
     nvroot = {}
-    for group, vdevs in list(topology.items()):
+    for group, vdevs in topology.items():
         nvroot[group] = []
         for i in vdevs:
             vdev = libzfs.ZFSVdev(zfs, "disk")
@@ -884,7 +884,7 @@ def _init(dispatcher, plugin):
     plugin.register_schema_definition('zfs-vdev', {
         'type': 'object',
         'properties': {
-            'path': {'type': 'string'},
+            'path': {'type': ['string', 'null']},
             'guid': {'type': 'string'},
             'type': {
                 'type': 'string',
