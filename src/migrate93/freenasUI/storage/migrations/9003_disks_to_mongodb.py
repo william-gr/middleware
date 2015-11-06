@@ -16,6 +16,7 @@ class Migration(SchemaMigration):
 
     def __init__(self, *args, **kwargs):
         self.__confxml = None
+        self._notifier = notifier()
         super(Migration, self).__init__(*args, **kwargs)
 
     def _geom_confxml(self):
@@ -53,7 +54,7 @@ class Migration(SchemaMigration):
 
         elif tp == 'serial':
             for devname in self.__get_disks():
-                serial = self.serial_from_device(devname)
+                serial = self._notifier.serial_from_device(devname)
                 if serial == value:
                     return devname
             return None
