@@ -41,7 +41,7 @@
         proc = subprocess.Popen(
             "conscontrol | grep Configured | cut -f 2 -d \  | tr , \\\\n | grep -vE 'ttyv[0-9]+' |head -n 1",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sercons = proc.communicate()[0].strip(' ').strip('\n')
+        sercons = proc.communicate()[0].decode('utf8').strip(' ').strip('\n')
         if not sercons:
             sercons = 'ttyu0'
         try:
