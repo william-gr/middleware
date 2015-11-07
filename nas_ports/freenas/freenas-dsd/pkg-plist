@@ -1,0 +1,7 @@
+/usr/local/lib/dsd/modules/activedirectory.py
+/usr/local/lib/dsd/modules/ldap.py
+/usr/local/lib/dsd/modules/dsdns.py
+/usr/local/lib/dsd/modules/kerberos.py
+/usr/local/lib/dsd/src/main.py
+/usr/local/etc/rc.d/dsd
+/usr/local/sbin/dsd
