@@ -8,6 +8,13 @@ from django.db import models
 from datastore import get_default_datastore
 from datastore.config import ConfigStore
 
+
+AUTH_METHOD_TABLE = (
+    ('None', 'NONE'),
+    ('CHAP', 'CHAP'),
+    ('CHAP Mutual', 'CHAP_MUTUAL')
+)
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -29,6 +36,27 @@ class Migration(DataMigration):
         cs.set('service.iscsi.base_name', iscsi.iscsi_basename)
         cs.set('service.iscsi.isns_servers', iscsi.iscsi_isns_servers)
         cs.set('service.iscsi.pool_space_threshold', iscsi.iscsi_pool_avail_threshold)
+
+        # iSCSI Portals
+        iscsi_portals = orm['services.iSCSITargetPortal'].objects.all()
+        for p in iscsi_portals:
+            ds.insert('iscsi.portals', {
+                'id': 'pg{0}'.format(p.id),
+                'tag': p.iscsi_target_portal_tag,
+                'description': p.iscsi_target_portal_comment,
+                'discovery_auth_metod': AUTH_METHOD_TABLE[p.iscsi_target_portal_discoveryauthmethod],
+                'discovery_auth_group': 'ag{0}'.format(p.iscsi_target_portal_discoveryauthgroup),
+                'listen': [{'address': i.iscsi_target_portalip_ip, 'port': i.iscsi_target_portalip_port} for i in p.ips]
+            })
+
+        # iSCSI Targets
+        iscsi_targets = orm['services.iSCSITarget'].objects.all()
+        for t in iscsi_targets:
+            ds.insert('iscsi.targets', {
+                'id': t.iscsi_target_name,
+                'description': t.iscsi_target_alias,
+                'extents': []
+            })
 
     def backwards(self, orm):
         "Write your backwards methods here."
