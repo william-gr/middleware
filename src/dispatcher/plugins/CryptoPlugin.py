@@ -169,7 +169,7 @@ class CertificateInternalCreateTask(Task):
             errors.append(('name', errno.EEXIST, 'Certificate with given name already exists'))
 
         if not self.datastore.exists('crypto.certificates', ('id', '=', certificate['signedby'])):
-            errors.append(('signedby', errno.EEXIST, 'Signing certificate does not exists'))
+            errors.append(('signedby', errno.EEXIST, 'Signing certificate does not exist'))
 
         if '"' in certificate['name']:
             errors.append(
@@ -499,7 +499,7 @@ class CAUpdateTask(Task):
 
         certificate = self.datastore.get_by_id('crypto.certificates', id)
         if certificate is None:
-            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exists'.format(id))
+            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exist'.format(id))
 
         if 'name' in updated_fields and self.datastore.exists(
             'crypto.certificates', ('name', '=', updated_fields['name']), ('id', '!=', id)
@@ -537,7 +537,7 @@ class CertificateDeleteTask(Task):
     def verify(self, id):
         certificate = self.datastore.get_by_id('crypto.certificates', id)
         if certificate is None:
-            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exists'.format(id))
+            raise VerifyException(errno.ENOENT, 'Certificate ID {0} does not exist'.format(id))
 
         return ['system']
 

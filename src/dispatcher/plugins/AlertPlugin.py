@@ -158,7 +158,7 @@ class AlertFilterDeleteTask(Task):
         if alertfilter is None:
             raise VerifyException(
                 errno.ENOENT,
-                'Alert filter with ID {0} does not exists'.format(id)
+                'Alert filter with ID {0} does not exist'.format(id)
             )
 
         return []

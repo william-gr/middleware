@@ -140,7 +140,7 @@ class RsyncdModuleUpdateTask(Task):
 
         rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
         if rsyncmod is None:
-            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exists'.format(uuid))
+            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exist'.format(uuid))
         rsyncmod.update(updated_fields)
 
         errors = []
@@ -182,7 +182,7 @@ class RsyncdModuleDeleteTask(Task):
 
         rsyncmod = self.datastore.get_by_id('rsyncd-module', uuid)
         if rsyncmod is None:
-            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exists'.format(uuid))
+            raise VerifyException(errno.ENOENT, 'Rsync module {0} does not exist'.format(uuid))
 
         return ['system']
 
@@ -238,7 +238,7 @@ class RsyncCopyTask(ProgressTask):
 
         if self.datastore.get_one('users', ('username', '=', params.get('user'))) is None:
             raise VerifyException(
-                errno.ENOENT, 'User {0} does not exists'.format(params.get('user'))
+                errno.ENOENT, 'User {0} does not exist'.format(params.get('user'))
             )
 
         path = params.get('path')

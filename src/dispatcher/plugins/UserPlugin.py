@@ -269,7 +269,7 @@ class UserDeleteTask(Task):
         user = self.datastore.get_by_id('users', uid)
 
         if user is None:
-            raise VerifyException(errno.ENOENT, 'User with UID {0} does not exists'.format(uid))
+            raise VerifyException(errno.ENOENT, 'User with UID {0} does not exist'.format(uid))
 
         if user['builtin']:
             raise VerifyException(errno.EPERM, 'Cannot delete builtin user {0}'.format(user['username']))
@@ -301,7 +301,7 @@ class UserDeleteTask(Task):
 class UserUpdateTask(Task):
     def verify(self, uid, updated_fields):
         if not self.datastore.exists('users', ('id', '=', uid)):
-            raise VerifyException(errno.ENOENT, 'User does not exists')
+            raise VerifyException(errno.ENOENT, 'User does not exist')
 
         user = self.datastore.get_by_id('users', uid)
         errors = []
@@ -452,7 +452,7 @@ class GroupUpdateTask(Task):
         # Check if group exists
         group = self.datastore.get_one('groups', ('id', '=', id))
         if group is None:
-            raise VerifyException(errno.ENOENT, 'Group with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'Group with given ID does not exist')
 
         errors = []
 
@@ -497,7 +497,7 @@ class GroupDeleteTask(Task):
         # Check if group exists
         group = self.datastore.get_one('groups', ('id', '=', id))
         if group is None:
-            raise VerifyException(errno.ENOENT, 'Group with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'Group with given ID does not exist')
 
         if group['builtin'] is True:
             raise VerifyException(

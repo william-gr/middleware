@@ -98,7 +98,7 @@ class NTPServerUpdateTask(Task):
 
         ntp = self.datastore.get_by_id('ntpservers', id)
         if ntp is None:
-            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exist')
 
         errors = []
 
@@ -147,7 +147,7 @@ class NTPServerDeleteTask(Task):
     def verify(self, id):
         ntp = self.datastore.get_by_id('ntpservers', id)
         if ntp is None:
-            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'NTP Server with given ID does not exist')
         return ['system']
 
     def run(self, id):

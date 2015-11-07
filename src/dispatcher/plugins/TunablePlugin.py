@@ -139,7 +139,7 @@ class TunableUpdateTask(Task):
 
         tunable = self.datastore.get_by_id('tunables', id)
         if tunable is None:
-            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exist')
 
         errors = []
 
@@ -201,7 +201,7 @@ class TunableDeleteTask(Task):
 
         tunable = self.datastore.get_by_id('tunables', id)
         if tunable is None:
-            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exists')
+            raise VerifyException(errno.ENOENT, 'Tunable with given ID does not exist')
 
         return ['system']
 

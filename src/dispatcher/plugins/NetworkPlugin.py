@@ -278,7 +278,7 @@ class AddHostTask(Task):
 class UpdateHostTask(Task):
     def verify(self, id, updated_fields):
         if not self.datastore.exists('network.hosts', ('id', '=', id)):
-            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(id))
+            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exist'.format(id))
 
         return ['system']
 
@@ -303,7 +303,7 @@ class UpdateHostTask(Task):
 class DeleteHostTask(Task):
     def verify(self, id):
         if not self.datastore.exists('network.hosts', ('id', '=', id)):
-            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exists'.format(id))
+            raise VerifyException(errno.ENOENT, 'Host entry {0} does not exist'.format(id))
 
         return ['system']
 
@@ -351,7 +351,7 @@ class AddRouteTask(Task):
 class UpdateRouteTask(Task):
     def verify(self, name, updated_fields):
         if not self.datastore.exists('network.routes', ('id', '=', name)):
-            raise VerifyException(errno.ENOENT, 'Route {0} does not exists'.format(name))
+            raise VerifyException(errno.ENOENT, 'Route {0} does not exist'.format(name))
 
         return ['system']
 
@@ -375,7 +375,7 @@ class UpdateRouteTask(Task):
 class DeleteRouteTask(Task):
     def verify(self, name):
         if not self.datastore.exists('network.routes', ('id', '=', name)):
-            raise VerifyException(errno.ENOENT, 'route {0} does not exists'.format(name))
+            raise VerifyException(errno.ENOENT, 'route {0} does not exist'.format(name))
 
         return ['system']
 
