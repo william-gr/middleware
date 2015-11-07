@@ -483,7 +483,7 @@ class ConfigurationService(RpcService):
         for n in addrs:
             print('nameserver {0}'.format(n), file=resolv)
 
-        proc.communicate(resolv.getvalue())
+        proc.communicate(resolv.getvalue().encode('utf8'))
         proc.wait()
         resolv.close()
         self.client.emit_event('network.dns.configured', {
