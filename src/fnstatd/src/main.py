@@ -168,7 +168,7 @@ class DataSource(object):
     def persist(self, timestamp, buffer, bucket):
         count = bucket.interval.total_seconds() / self.config.buckets[0].interval.total_seconds()
         data = self.bucket_buffers[0].data
-        mean = np.mean(zip(*data[-count:])[1])
+        mean = np.mean(list(zip(*data[-count:]))[1])
         buffer.push(timestamp, mean)
 
     def query(self, start, end, frequency):
