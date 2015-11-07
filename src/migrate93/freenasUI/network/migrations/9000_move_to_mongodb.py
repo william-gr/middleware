@@ -176,7 +176,11 @@ class Migration(SchemaMigration):
 
         # Migrate static routes
         for i in orm.StaticRoute.objects.all():
-            net = ipaddress.ip_network(i.sr_destination)
+            try:
+                net = ipaddress.ip_network(i.sr_destination)
+            except ValueError as e:
+                print("Invalid network {0}: {1}".format(i.sr_destination, e))
+                continue
             ds.insert('network.routes', {
                 'network': str(net.network_address),
                 'netmask': net.prefixlen,
