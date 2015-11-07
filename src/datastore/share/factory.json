@@ -1110,7 +1110,8 @@
             },
             "FBBE4258-42E7-46C5-8204-3EBBD3498340": {
                 "dependencies": [
-                    "file:local/smartd.conf"
+                    "group:services",
+                    "plugin:smartd_conf"
                 ],
                 "name": "smartd"
             },

@@ -62,7 +62,7 @@ class SMARTConfigureTask(Task):
         try:
             node = ConfigNode('service.smartd', self.configstore)
             node.update(smartd)
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'smartd')
             self.dispatcher.dispatch_event('service.smartd.changed', {
                 'operation': 'updated',
                 'ids': None,
