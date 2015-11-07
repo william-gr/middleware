@@ -42,7 +42,10 @@ from cam import CamDevice
 from cache import CacheStore
 from lib.geom import confxml
 from lib.system import system, SubprocessException
-from task import Provider, Task, ProgressTask, TaskStatus, TaskException, VerifyException, query
+from task import (
+    Provider, Task, ProgressTask, TaskStatus, TaskException, VerifyException,
+    query, ValidationException
+)
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 
@@ -311,12 +314,21 @@ class DiskEraseTask(Task):
 class DiskConfigureTask(Task):
     def verify(self, id, updated_fields):
         disk = self.datastore.get_by_id('disks', id)
+        errors = []
 
         if not disk:
             raise VerifyException(errno.ENOENT, 'Disk {0} not found'.format(id))
 
         if not self.dispatcher.call_sync('disks.is_online', disk['path']):
             raise VerifyException(errno.EINVAL, 'Cannot configure offline disk')
+
+        if not disk['status']['smart_capable']:
+            if 'smart' in updated_fields:
+                errors.append(('smart', errno.EINVAL, 'Disk is not SMART capable'))
+            if 'smart_options' in updated_fields:
+                erros.append(('smart_options', errno.EINVAL, 'Disk is not SMART capable'))
+        if errors:
+            raise ValidationException(errors)
 
         return ['disk:{0}'.format(disk['path'])]
 
@@ -778,6 +790,12 @@ def persist_disk(dispatcher, disk):
         'data_partition_uuid': disk['data_partition_uuid'],
         'delete_at': None
     })
+
+    if 'smart' not in ds_disk:
+        ds_disk.update({'smart': True if disk['smart_capable'] else False})
+
+    if 'smart_options' not in ds_disk:
+        ds_disk.update({'smart_options': None})
 
     dispatcher.datastore.upsert('disks', disk['id'], ds_disk)
     dispatcher.dispatch_event('disks.changed', {
