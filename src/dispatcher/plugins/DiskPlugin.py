@@ -340,7 +340,7 @@ class DiskConfigureTask(Task):
         if {'standby_mode', 'apm_mode', 'acoustic_level'} & set(updated_fields):
             self.dispatcher.call_sync('disks.configure_disk', id)
 
-        if 'smart' in updated_fields:
+        if 'smart' in updated_fields or 'smart_options' in updated_fields:
             self.dispatcher.call_sync('services.reload', 'smartd')
 
 
