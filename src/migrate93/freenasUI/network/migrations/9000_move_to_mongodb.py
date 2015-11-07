@@ -69,7 +69,6 @@ class Migration(SchemaMigration):
             name = items.pop(0)
             for addr in items:
                 ds.upsert('network.hosts', name, {
-                    'id': name,
                     'address': addr
                 })
 
@@ -110,7 +109,6 @@ class Migration(SchemaMigration):
             iface = ds.get_by_id('network.interfaces', i.int_interface)
             if not iface:
                 iface = {
-                    'id': i.int_interface,
                     'enabled': True,
                 }
 
@@ -172,7 +170,7 @@ class Migration(SchemaMigration):
                     l = iface.setdefault('capabilities', {}).setdefault('add', [])
                     l += v
 
-            ds.upsert('network.interfaces', iface['id'], iface)
+            ds.upsert('network.interfaces', i.int_interface, iface)
 
         # Migrate static routes
         for i in orm.StaticRoute.objects.all():
