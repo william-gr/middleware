@@ -31,6 +31,7 @@ import threading
 import subprocess
 import tempfile
 import errno
+import time
 
 
 class SendZFS(object):
@@ -38,14 +39,33 @@ class SendZFS(object):
     def __init__(self):
         self.buffer = b''
         self.zfs = libzfs.ZFS()
+        self.throttle = 0
+        self.bytes_avaliable = 0
+        self.running = False
+        self.throttle_buffer = threading.Event()
+
+    def zfs_snap_send(self, snap, writefd, fromsnap):
+        snap.send(writefd, fromsnap)
+        os.close(writefd)
+
+    def throttle_timer(self):
+        if self.throttle:
+            while self.running:
+                self.bytes_avaliable = self.throttle
+                self.throttle_buffer.set()
+                time.sleep(1)
+            self.bytes_avaliable = 0
+            self.throttle = 0
 
     def send(self, remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, buffer_size, metrics_cb):
 
+        self.throttle = throttle
         snap = self.zfs.get_snapshot('%s@%s' % (dataset, tosnap))
 
         readfd, writefd = os.pipe()
-        thread = threading.Thread(target=snap.send, args=(writefd,fromsnap))
-        thread.start()
+        snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, writefd, fromsnap))
+        snap_send_thread.setDaemon(True)
+        snap_send_thread.start()
 
         with tempfile.NamedTemporaryFile('w') as hostsfile:
             print(hostkey, file=hostsfile.file)
@@ -63,37 +83,52 @@ class SendZFS(object):
             stdin=subprocess.PIPE,
         )
 
-        while True:
-            new_data = os.read(readfd, (buffer_size - len(buffer)))
+        self.running = True
+        throttle_thread = threading.Thread(target=self.throttle_timer)
+        throttle_thread.setDaemon(True)
+        throttle_thread.start()
 
-            if len(new_data):
-                buffer = buffer + new_data
+        while self.running:
+            if self.throttle:
+                left_buffer_size = buffer_size - len(self.buffer)
+                if left_buffer_size > self.bytes_avaliable:
+                    fetch_size = self.bytes_avaliable
+                else:
+                    fetch_size = left_buffer_size
             else:
-                if metrics_cb:
-                    self.write_pipe(replproc.stdin)
-                    if metrics_cb:
-                        metrics_cb(len(buffer))
+                fetch_size = buffer_size - len(self.buffer)
+
+            if fetch_size:
+                new_data = os.read(readfd, fetch_size)
+                self.bytes_avaliable -= len(new_data)
+
+                if len(new_data):
+                    self.buffer = self.buffer + new_data
+                else:
+                    self.write_pipe(replproc.stdin, metrics_cb)
                     break
 
-            if len(buffer) == buffer_size:
-                self.write_pipe(replproc.stdin)
-                self.buffer = b''
-                if metrics_cb:
-                    metrics_cb(buffer_size)
+                if len(self.buffer) == buffer_size:
+                    self.write_pipe(replproc.stdin, metrics_cb)
+            else:
+                self.write_pipe(replproc.stdin, metrics_cb)
+                self.throttle_buffer.wait()
+                self.throttle_buffer.clear()
 
         replproc.stdin.close()
         replproc.wait()
+        self.running = False
 
-    def write_pipe(self, pipe):
+    def write_pipe(self, pipe, metrics_cb):
         try:
             pipe.write(self.buffer)
             pipe.flush()
         except IOError as e:
             if e.errno == errno.EPIPE or e.errno == errno.EINVAL:
-                # Stop loop on "Invalid pipe" or "Invalid argument".
-                # No sense in continuing with broken pipe.
-                #break????
+                self.running = False
                 raise
             else:
-                # Raise any other error.
                 raise
+        if metrics_cb:
+            metrics_cb(len(self.buffer))
+        self.buffer = b''
