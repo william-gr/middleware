@@ -26,5 +26,26 @@
 #
 #####################################################################
 
-def _init(dispatcher):
-    pass
+import sys
+import logging
+
+logger = logging.getLogger('ldap')
+
+class LDAP(object):
+    def __init__(self, *args,  **kwargs):
+        self.dispatcher = kwargs['dispatcher']
+        self.datastore = kwargs['datastore']
+
+        sys.path.extend(['/usr/local/lib/dsd/modules/'])
+        from dsdns import DSDNS
+
+        self.dsdns = DSDNS(
+            dispatcher=self.dispatcher,
+            datastore=self.datastore,
+        )
+
+def _init(dispatcher, datastore):
+    return LDAP(
+        dispatcher=dispatcher,
+        datastore=datastore
+    ) 

@@ -26,61 +26,59 @@
 #
 #####################################################################
 
-import sys
-import logging
+from dns import resolver
 
-logger = logging.getLogger('kerberos')
-
-class Kerberos(object):
-    def __init__(self, *args,  **kwargs):
+class DSDNS(object):
+    def __init__(self, *args, **kwargs):
         self.dispatcher = kwargs['dispatcher']
         self.datastore = kwargs['datastore']
 
-        sys.path.extend(['/usr/local/lib/dsd/modules/'])
-        from dsdns import DSDNS
+    def get_A_records(self, host):
+        A_records = []
 
-        self.dsdns = DSDNS(
-            dispatcher=self.dispatcher,
-            datastore=self.datastore,
-        )
+        if not host:
+            return A_records
 
-    def get_kerberos_servers(self, domain, site=None):
-        kdcs = []
-        if not domain:
-            return kdcs
-            
-        host = "_kerberos._tcp.%s" % domain
-        if site:
-            host = "_kerberos._tcp.%s._sites.%s" % (site, domain)
-            
-        kdcs = self.dsdns.get_SRV_records(host)
-        return kdcs
+        try:
+            A_records = resolver.query(host, 'A')
 
-    def get_kerberos_domain_controllers(self, domain, site=None):
-        kdcs = []
-        if not domain:
-            return kdcs
+        except:
+            A_records = []
 
-        host = "_kerberos._tcp.dc._msdcs.%s" % domain
-        if site:
-            host = "_kerberos._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
+        return A_records
 
-        kdcs = self.dsdns.get_SRV_records(host)
-        return kdcs
+    def get_AAAA_records(self, host):
+        AAAA_records = []
 
-    def get_kpasswd_servers(self, domain):
-        kpws = []
-        if not domain:
-            return kpws
+        if not host:
+            return AAAA_records
 
-        host = "_kpasswd._tcp.%s" % domain
+        try:
+            AAAA_records = resolver.query(host, 'AAAA')
 
-        kpws = self.dsdns.get_SRV_records(host)
-        return kpws
+        except:
+            AAAA_records = []
 
+        return AAAA_records
+
+    def get_SRV_records(self, host):
+        srv_records = []
+
+        if not host:
+            return srv_records
+
+        try:
+            answers = resolver.query(host, 'SRV')
+            srv_records = sorted(answers, key=lambda a: (int(a.priority),
+                int(a.weight)))
+
+        except:
+            srv_records = []
+
+        return srv_records
 
 def _init(dispatcher, datastore):
-    return Kerberos(
+    return DSDNS(
         dispatcher=dispatcher,
         datastore=datastore
     ) 

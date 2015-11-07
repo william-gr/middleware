@@ -58,65 +58,122 @@ class DSDConfigurationService(RpcService):
         self.config = context.configstore
         self.datastore = context.datastore
         self.client = context.client
+        self.modules = context.modules
+        self.cache = { 
+            'activedirectory': None,
+            'ldap': None
+        }
 
     # Hard coded for now
     def get_supported_directories(self):
         return [ 'activedirectory', 'ldap', 'kerberos' ]
 
-    def configure_hostname(self):
+    def configure_dcs(self, id):
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): directoryservice = %s', directoryservice)
+
+        #
+        # XXX pickle and cache in database, load on start, refresh periodically
+        #
+        ad = self.modules['activedirectory']
+        dcs = ad.get_domain_controllers(directoryservice['domain'])
+
+        if not cache['activedirectory']:
+            self.cache['activedirectory'] = {}
+        self.cache['activedirectory']['dcs'] = dcs
+
+    
+        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): dcs = %s', dcs)
+
+    def configure_gcs(self, id):
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
+        #
+        # XXX pickle and cache in database, load on start, refresh periodically
+        #
+        ad = self.modules['activedirectory']
+        gcs = ad.get_global_catalog_servers(directoryservice['domain'])
+
+        if not cache['activedirectory']:
+            self.cache['activedirectory'] = {}
+        self.cache['activedirectory']['gcs'] = gcs
+    
+        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): gcs = %s', gcs)
+
+    def configure_kdcs(self, id):
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): directoryservice = %s', directoryservice)
+
+        #
+        # XXX pickle and cache in database, load on start, refresh periodically
+        #
+        kc = self.modules['kerberos']
+        kdcs = kc.get_kerberos_servers(directoryservice['domain'])
+
+        if not cache['activedirectory']:
+            self.cache['activedirectory'] = {}
+        self.cache['activedirectory']['kdcs'] = kdcs
+
+        if not cache['ldap']:
+            self.cache['ldap'] = {}
+        self.cache['ldap']['kdcs'] = kdcs
+    
+        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): kdcs = %s', kdcs)
+
+    def configure_hostname(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_hostname()')
         self.client.call_sync('etcd.generation.generate_group', 'hostname')
 
-    def configure_hosts(self):
+    def configure_hosts(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_hosts()')
         self.client.call_sync('etcd.generation.generate_group', 'hosts')
 
-    def configure_kerberos(self):
+    def configure_kerberos(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_kerberos()')
         self.client.call_sync('etcd.generation.generate_group', 'kerberos')
 
-    def get_kerberos_ticket(self):
+    def get_kerberos_ticket(self, id):
         self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket()')
 
-    def configure_nsswitch(self):
+    def configure_nsswitch(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_nsswitch()')
         self.client.call_sync('etcd.generation.generate_group', 'nsswitch')
 
-    def configure_openldap(self):
+    def configure_openldap(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_openldap()')
         self.client.call_sync('etcd.generation.generate_group', 'openldap')
 
-    def configure_nssldap(self):
+    def configure_nssldap(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
         self.client.call_sync('etcd.generation.generate_group', 'nssldap')
 
-    def configure_sssd(self):
+    def configure_sssd(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
         self.client.call_sync('etcd.generation.generate_group', 'sssd')
 
-    def configure_samba(self):
+    def configure_samba(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_samba()')
         #self.client.call_sync('etcd.generation.generate_group', 'samba')
 
-    def join_activedirectory(self):
+    def join_activedirectory(self, id):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
 
-    def configure_pam(self):
+    def configure_pam(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_pam()')
         self.client.call_sync('etcd.generation.generate_group', 'pam')
 
-    def configure_activedirectory(self):
+    def configure_activedirectory(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_activedirectory()')
         self.client.call_sync('etcd.generation.generate_group', 'activedirectory')
 
-    def configure_ldap(self):
+    def configure_ldap(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_ldap()')
         self.client.call_sync('etcd.generation.generate_group', 'ldap')
 
-    def enable(self):
+    def enable(self, id):
         self.logger.debug('DSDConfigurationSerivce.enable()')
 
-    def disable(self):
+    def disable(self, id):
         self.logger.debug('DSDConfigurationSerivce.disable()')
 
 
@@ -210,6 +267,10 @@ class Main(object):
         except:
             pass
 
+    #
+    # XXX implement proper plugin architecture
+    # XXX for now, direct module class calls
+    #
     def init_directory_service_modules(self):
         directoryservices = [ 'activedirectory', 'ldap', 'kerberos' ]
         for ds in directoryservices:
@@ -217,8 +278,7 @@ class Main(object):
                 module_path = "%s/%s.py" % (self.module_dir, ds)
                 self.logger.debug("Loading module %s", module_path)
                 module = imp.load_source(ds, module_path)
-                module._init(self.client)
-                self.modules[ds] = imp.load_source(ds, module_path)
+                self.modules[ds] = module._init(self.client, self.datastore)
 
             except Exception as e:
                 self.logger.exception("Cannot load module %s", module)

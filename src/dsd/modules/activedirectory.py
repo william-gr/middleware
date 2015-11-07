@@ -26,5 +26,85 @@
 #
 #####################################################################
 
-def _init(dispatcher):
-    pass
+import sys
+import logging
+
+logger = logging.getLogger('activedirectory')
+
+class ActiveDirectory(object):
+    def __init__(self, *args,  **kwargs):
+        self.dispatcher = kwargs['dispatcher']
+        self.datastore = kwargs['datastore']
+
+        sys.path.extend(['/usr/local/lib/dsd/modules/'])
+        from dsdns import DSDNS
+
+        self.dsdns = DSDNS(
+            dispatcher=self.dispatcher,
+            datastore=self.datastore,
+        )
+
+    def get_ldap_servers(self, domain, site=None):
+        dcs = []
+        if not domain:
+            return dcs
+
+        host = "_ldap._tcp.%s" % domain
+        if site:
+            host = "_ldap._tcp.%s._sites.%s" % (site, domain)
+
+        dcs = self.dsdns.get_SRV_records(host)
+        return dcs
+
+    def get_domain_controllers(self, domain, site=None):
+        dcs = []
+        if not domain:
+            return dcs
+
+        host = "_ldap._tcp.dc._msdcs.%s" % domain
+        if site:
+            host = "_ldap._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
+
+        dcs = self.dsdns.get_SRV_records(host)
+        return dcs
+
+    def get_primary_domain_controllers(self, domain):
+        pdcs = []
+        if not domain:
+            return pdcs
+
+        host = "_ldap._tcp.pdc._msdcs.%s"
+
+        pdcs = self.dsdns.get_SRV_records(host)
+        return pdcs
+
+    def get_global_catalog_servers(self, domain, site=None):
+        gcs = []
+        if not domain:
+            return gcs
+
+        host = "_gc._tcp.%s" % domain
+        if site:
+            host = "_gc._tcp.%s._sites.%s" % (site, domain)
+
+        gcs = self.dsdns.get_SRV_records(host)
+        return gcs
+
+    def get_forest_global_catalog_servers(self, forest, site=None):
+        fgcs = []
+        if not forest:
+            return fgcs
+
+        host = "_ldap._tcp.gc._msdcs.%s" % forest
+        if site:
+            host = "_ldap._tcp.%s._sites.gc._msdcs.%s" % (site, forest)
+
+        fgcs = self.dsdns.get_SRV_records(host)
+        return fgcs
+
+
+def _init(dispatcher, datastore):
+    return ActiveDirectory(
+        dispatcher=dispatcher,
+        datastore=datastore
+    ) 

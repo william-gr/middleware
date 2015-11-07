@@ -57,6 +57,7 @@ class DirectoryServicesProvider(Provider):
     @query('directoryservice')
     def query(self, filter=None, params=None):
         def extend(directoryservice):
+            logger.debug("XXX: extend: directoryservice = %s", directoryservice)
             return directoryservice
         return self.datastore.query('directoryservices', *(filter or []), 
             callback=extend, **(params or {}))
@@ -93,7 +94,7 @@ class DirectoryServiceCreateTask(Task):
         f = open('/tmp/foo.log', 'a')
 
         try:
-            id = self.datastore.insert('directoryservices', directoryservice)  
+            id = self.datastore.insert('directoryservices', directoryservice, pkey=directoryservice['name'])  
         except Exception as e:
             f.write("XXX: CreateDirectoryServiceTask FAIL: %s" % e)
 
@@ -107,6 +108,8 @@ class DirectoryServiceCreateTask(Task):
 @description("Update directory service")
 class DirectoryServiceUpdateTask(Task):
     def verify(self, id, updated_fields):
+        logger.debug("XXX: DirectoryServiceUpdateTask.verify: id = %s, updated_fields = %s", id, updated_fields)
+
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         if not directoryservice:
             raise VerifyException(errno.ENOENT, 'Directory service not found')
@@ -151,7 +154,7 @@ class DirectoryServiceDeleteTask(Task):
             
             # etcd sync... 
 
-        except DatastoreException, e:
+        except DatastoreException as e:
             raise TaskException(errno.EBADMSG, 'Cannot delete directoryservice: {0}'.format(str(e)))
 
 
@@ -177,7 +180,7 @@ class DirectoryServiceEnableTask(Task):
 
 
         # XXX 
-        self.dispatcher.call_sync('dsd.configuration.enable')
+        self.dispatcher.call_sync('dsd.configuration.enable', id)
 
 
 @description("Disablle directory service")
@@ -198,7 +201,7 @@ class DirectoryServiceDisableTask(Task):
         # DSD disable and etcd sync
 
         # XXX 
-        self.dispatcher.call_sync('dsd.configuration.disable')
+        self.dispatcher.call_sync('dsd.configuration.disable', id)
 
 
 @description("Show directory service servers")
@@ -211,7 +214,7 @@ class DirectoryServiceShowTask(Task):
         return ['directoryservice']
 
     def run(self, args):
-        return [ 'fuck' ]
+        return [ 'fsck' ]
   
 
 @description("Configure a directory service")
@@ -226,12 +229,13 @@ class DirectoryServiceConfigureTask(Task):
     def run(self, args):
         id = args[0] 
         what = args[1]
-        if what not in ['hostname', 'hosts', 'kerberos', 'nsswitch', 'openldap',
-            'nssldap', 'sssd', 'samba', 'pam', 'activedirectory', 'ldap']:
+        if what not in ['dcs', 'gcs', 'kdcs', 'hostname', 'hosts', 
+            'kerberos', 'nsswitch', 'openldap', 'nssldap', 'sssd',
+            'samba', 'pam', 'activedirectory', 'ldap']:
             raise VerifyException(errno.ENOENT, 'No such configuration!')
 
-        self.dispatcher.call_sync('dsd.configuration.configure_%s' % what)
-        return [ 'shit' ]
+        self.dispatcher.call_sync('dsd.configuration.configure_%s' % what, id)
+        return [ 'ship' ]
 
 
 @description("Obtain a Kerberos ticket")
@@ -243,7 +247,7 @@ class DirectoryServiceKerberosTicketTask(Task):
     def run(self, id):
 
         # XXX 
-        self.dispatcher.call_sync('dsd.configuration.get_kerberos_ticket')
+        self.dispatcher.call_sync('dsd.configuration.get_kerberos_ticket', id)
 
         return [ 'stack' ]
 
@@ -257,7 +261,7 @@ class DirectoryServiceJoinActiveDirectoryTask(Task):
     def run(self, id):
 
         # XXX 
-        self.dispatcher.call_sync('dsd.configuration.join_activedirectory')
+        self.dispatcher.call_sync('dsd.configuration.join_activedirectory', id)
 
         return [ 'soup' ]
 
