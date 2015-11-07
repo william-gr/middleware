@@ -79,7 +79,7 @@ class RsyncdConfigureTask(Task):
         try:
             node = ConfigNode('service.rsyncd', self.configstore)
             node.update(rsyncd)
-            self.dispatcher.call_sync('etcd.generation.generate_group', 'services')
+            self.dispatcher.call_sync('etcd.generation.generate_group', 'rsyncd')
             self.dispatcher.call_sync('services.apply_state', 'rsyncd', True)
             self.dispatcher.dispatch_event('service.rsyncd.changed', {
                 'operation': 'updated',
