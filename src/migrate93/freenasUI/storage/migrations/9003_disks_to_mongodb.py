@@ -3,7 +3,7 @@ import os
 import re
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
 from bsd import geom
 from lxml import etree
@@ -12,7 +12,7 @@ from datastore import get_default_datastore
 from freenasUI.middleware.notifier import notifier
 
 
-class Migration(SchemaMigration):
+class Migration(DataMigration):
 
     def __init__(self, *args, **kwargs):
         self.__confxml = None
