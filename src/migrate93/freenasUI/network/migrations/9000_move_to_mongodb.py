@@ -68,7 +68,7 @@ class Migration(SchemaMigration):
             items = line.split()
             name = items.pop(0)
             for addr in items:
-                ds.insert('network.hosts', {
+                ds.upsert('network.hosts', name, {
                     'id': name,
                     'address': addr
                 })
