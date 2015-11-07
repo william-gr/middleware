@@ -50,11 +50,11 @@ class Migration(SchemaMigration):
         cs.set('network.gateway.ipv4', globalconf.gc_ipv4gateway or None)
         cs.set('network.gateway.ipv6', globalconf.gc_ipv6gateway or None)
         cs.set('network.http_proxy', globalconf.gc_httpproxy or None)
-        cs.set('network.dns.addresses', filter(None, [
+        cs.set('network.dns.addresses', list(filter(None, [
             globalconf.gc_nameserver1 or None,
             globalconf.gc_nameserver2 or None,
             globalconf.gc_nameserver3 or None,
-        ]))
+        ])))
 
         cs.set('network.netwait.enable', globalconf.gc_netwait_enabled)
         cs.set('network.netwait.addresses', globalconf.gc_netwait_ip.split())
