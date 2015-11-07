@@ -742,7 +742,7 @@
             "service.collectd.enable": true,
             "service.smartd.enable": true,
             "service.smartd.interval": 30,
-            "service.smartd.power_mode": "NEVER",
+            "service.smartd.power_mode": "never",
             "service.smartd.temp_difference": null,
             "service.smartd.temp_informational": null,
             "service.smartd.temp_critical": null,

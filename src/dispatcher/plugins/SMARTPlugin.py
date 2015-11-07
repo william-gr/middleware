@@ -87,10 +87,10 @@ def _init(dispatcher, plugin):
         'properties': {
             'interval': {'type': 'integer'},
             'power_mode': {'type': 'string', 'enum': [
-                'NEVER',
-                'SLEEP',
-                'STANDBY',
-                'IDLE',
+                'never',
+                'sleep',
+                'standby',
+                'idle',
             ]},
             'temp_difference': {'type': ['integer', 'null']},
             'temp_informational': {'type': ['integer', 'null']},

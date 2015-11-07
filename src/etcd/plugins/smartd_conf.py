@@ -65,13 +65,13 @@ def run(context):
                 continue
 
         if single_disk['smart']:
-            smartd_line = "{0} -a {2}".format(
+            smartd_line = "{0} -a {1}".format(
                 single_disk['path'],
                 smartd_common_line
             )
 
             SMARTD_CONF.append(smartd_line)
-    with open("/usr/local/etc/smartd.conf", "w") as f:
+    with open("/usr/local/etc/smartd.conf", "w+") as f:
         for line in SMARTD_CONF:
             f.write(line)
     context.emit_event('etcd.file_generated', {'filename': "/usr/local/etc/smartd.conf"})
