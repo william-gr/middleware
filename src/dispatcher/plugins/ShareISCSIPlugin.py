@@ -76,7 +76,7 @@ class ISCSISharesProvider(Provider):
     @private
     @returns(str)
     def generate_naa(self):
-        return '0x6589cfc000000{0}'.format(hashlib.sha256(str(uuid.uuid4())).hexdigest()[0:19])
+        return '0x6589cfc000000{0}'.format(hashlib.sha256(uuid.uuid4().bytes).hexdigest()[0:19])
 
 
 class ISCSITargetsProvider(Provider):
