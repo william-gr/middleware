@@ -37,10 +37,24 @@ class Migration(DataMigration):
                 'sudo': g.bsdgrp_sudo,
             })
 
-        for u in orm['account.bsdUsers'].objects.filter(bsdusr_builtin=False):
+        for u in orm['account.bsdUsers'].objects.all():
+
             groups = []
             for bgm in orm['account.bsdGroupMembership'].objects.filter(bsdgrpmember_user=u):
                 groups.append(bgm.bsdgrpmember_group.bsdgrp_gid)
+
+            if u.bsdusr_builtin:
+                user = ds.get_by_id('users', u.bsdusr_uid)
+                if user is None:
+                    continue
+                user.update({
+                    'email': u.bsdusr_email,
+                    'unixhash': u.bsdusr_unixhash,
+                    'smbhash': u.bsdusr_smbhash,
+                    'groups': groups,
+                })
+                ds.upsert('user', user['id'], user)
+                continue
 
             ds.insert('users', {
                 'id': u.bsdusr_uid,
