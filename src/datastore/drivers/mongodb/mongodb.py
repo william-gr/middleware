@@ -181,8 +181,8 @@ class MongodbDatastore(object):
         return [x['_id'] for x in self.db['collections'].find()]
 
     def collection_delete(self, name):
-        self.db['collections'].remove({'_id': name})
         self._get_db(name).drop()
+        self.db['collections'].remove({'_id': name})
 
     def collection_get_pkey_type(self, name):
         item = self.db['collections'].find_one({"_id": name})
