@@ -53,7 +53,7 @@ class Migration(DataMigration):
                     'smbhash': u.bsdusr_smbhash,
                     'groups': groups,
                 })
-                ds.upsert('user', user['id'], user)
+                ds.upsert('users', user['id'], user)
                 continue
 
             ds.insert('users', {
