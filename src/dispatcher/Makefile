@@ -15,5 +15,5 @@ install:
 	cp -R plugins/ ${STAGEDIR}${PREFIX}/lib/dispatcher/plugins/
 	cp -R pydev/ ${STAGEDIR}${PREFIX}/lib/dispatcher/pydev/
 	cp -R libexec/ ${STAGEDIR}${PREFIX}/libexec/dispatcher/
-	${PYTHON} setup.py install
+	${PYTHON} setup.py install --install-lib=${STAGEDIR}${PREFIX}/lib/dispatcher/src/lib/
 	cd client/python && ${PYTHON} setup.py install --root=${STAGEDIR} --prefix=${PREFIX}

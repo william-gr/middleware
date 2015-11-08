@@ -51,10 +51,15 @@ cdef extern from "sys/types.h":
     ctypedef long long hrtime_t
 
 cdef extern from "unistd.h":
-    int write(int fd, uint8_t *buf, int nbytes)
-    int read(int fd, uint8_t *buf, int nbytes)
+    int write(int fd, uint8_t *buf, int nbytes) nogil
+    int read(int fd, uint8_t *buf, int nbytes) nogil
 
 cdef class SendZFS(object):
+    cdef object zfs
+    cdef int throttle
+    cdef int bytes_avaliable
+    cdef int running
+    cdef object throttle_buffer
 
     def __init__(self):
         self.zfs = libzfs.ZFS()
@@ -69,22 +74,17 @@ cdef class SendZFS(object):
     @staticmethod
     cdef int read_fd(int fd, uint8_t *buf, int nbytes, int curr_pos):
         cdef int ret
-        cdef int done = 0
 
-        while done < nbytes:
-            try:
-                ret = read(fd, <uint8_t *>(buf + curr_pos + done), nbytes - done)
-                if ret == 0:
-                    return 0
-            except IOError as e:
-                if e.errno == errno.EINTR or e.errno == errno.EAGAIN:
-                    continue
-                else:
-                    raise
+        try:
+            with nogil:
+                ret = read(fd, <uint8_t *>(buf + curr_pos), nbytes)
+        except IOError as e:
+            if e.errno == errno.EINTR or e.errno == errno.EAGAIN:
+                continue
+            else:
+                raise
 
-            done += ret
-
-        return done
+        return ret
 
     @staticmethod
     cdef int write_fd(int fd, uint8_t *buf, int nbytes):
@@ -93,7 +93,8 @@ cdef class SendZFS(object):
 
         while done < nbytes:
             try:
-                ret = write(fd, <uint8_t *>(buf + done), nbytes - done)
+                with nogil:
+                    ret = write(fd, <uint8_t *>(buf + done), nbytes - done)
             except IOError as e:
                 if e.errno == errno.EINTR or e.errno == errno.EAGAIN:
                     continue
@@ -111,8 +112,8 @@ cdef class SendZFS(object):
         os.close(writefd)
 
     def throttle_timer(self):
-        if self.throttle:
-            while self.running:
+        if self.throttle != 0 :
+            while self.running is True:
                 self.bytes_avaliable = self.throttle
                 self.throttle_buffer.set()
                 time.sleep(1)
@@ -132,74 +133,74 @@ cdef class SendZFS(object):
         snap_send_thread.setDaemon(True)
         snap_send_thread.start()
 
-        hostsfile = tempfile.NamedTemporaryFile('w')
-        hostsfile.write(hostkey)
-        hostsfile.close()
+        with tempfile.NamedTemporaryFile('w') as hostsfile:
+            hostsfile.write(hostkey)
+            hostsfile.flush()
 
-        sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
-            ' -o UserKnownHostsFile=%s' \
-            ' -o StrictHostKeyChecking=yes' \
-            ' -o ConnectTimeout=7 %s ' % (hostsfile.name, remote)
+            sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
+                ' -o UserKnownHostsFile=%s' \
+                ' -o StrictHostKeyChecking=yes' \
+                ' -o ConnectTimeout=7 %s ' % (hostsfile.name, remote)
 
-        replcmd = '%s/sbin/zfs receive -F \'%s\'' % (sshcmd, remotefs)
+            replcmd = '%s/sbin/zfs receive -F \'%s\'' % (sshcmd, remotefs)
 
-        ssh_readfd, ssh_writefd = os.pipe()
-        replproc = subprocess.Popen(
-            replcmd,
-            shell=True,
-            stdin=ssh_readfd,
-        )
+            ssh_readfd, ssh_writefd = os.pipe()
+            replproc = subprocess.Popen(
+                replcmd,
+                shell=True,
+                stdin=ssh_readfd,
+            )
 
-        self.running = True
-        throttle_thread = threading.Thread(target=self.throttle_timer)
-        throttle_thread.setDaemon(True)
-        throttle_thread.start()
+            self.running = True
+            throttle_thread = threading.Thread(target=self.throttle_timer)
+            throttle_thread.setDaemon(True)
+            throttle_thread.start()
 
-        while self.running:
-            if self.throttle:
-                left_buffer_size = buffer_size - self.buffer_position + 1
-                if left_buffer_size > self.bytes_avaliable:
-                    fetch_size = self.bytes_avaliable
+            while self.running:
+                if self.throttle:
+                    left_buffer_size = buffer_size - self.buffer_position
+                    if left_buffer_size > self.bytes_avaliable:
+                        fetch_size = self.bytes_avaliable
+                    else:
+                        fetch_size = left_buffer_size
                 else:
-                    fetch_size = left_buffer_size
-            else:
-                fetch_size = buffer_size - self.buffer_position + 1
+                    fetch_size = buffer_size - self.buffer_position
 
-            if fetch_size:
-                read_size = SendZFS.read_fd(zfs_readfd, self.buffer, fetch_size, self.buffer_position)
-                if read_size > 0:
-                    self.bytes_avaliable -= read_size
-                    self.buffer_position += read_size
-                elif read_size == 0:
-                    write_size = SendZFS.write_fd(ssh_writefd, self.buffer, (self.buffer_position + 1))
+                if fetch_size:
+                    read_size = SendZFS.read_fd(zfs_readfd, self.buffer, fetch_size, self.buffer_position)
+                    if read_size > 0:
+                        self.bytes_avaliable -= read_size
+                        self.buffer_position += read_size
+                    elif read_size == 0:
+                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
+                        if write_size == -1:
+                            self.running = False
+                            break
+                        self.buffer_position -= write_size
+                        if metrics_cb:
+                            metrics_cb(write_size)
+                        break
+
+                    if self.buffer_position == buffer_size:
+                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
+                        if write_size == -1:
+                            self.running = False
+                            break
+                        self.buffer_position -= write_size
+                        if metrics_cb:
+                            metrics_cb(write_size)
+                else:
+                    write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
                     if write_size == -1:
                         self.running = False
                         break
-                    self.buffer_position -= (write_size - 1)
+                    self.buffer_position -= write_size
                     if metrics_cb:
                         metrics_cb(write_size)
-                    break
+                    self.throttle_buffer.wait()
+                    self.throttle_buffer.clear()
 
-                if (self.buffer_position + 1) == buffer_size:
-                    write_size = SendZFS.write_fd(ssh_writefd, self.buffer, (self.buffer_position + 1))
-                    if write_size == -1:
-                        self.running = False
-                        break
-                    self.buffer_position -= (write_size - 1)
-                    if metrics_cb:
-                        metrics_cb(write_size)
-            else:
-                write_size = SendZFS.write_fd(ssh_writefd, self.buffer, (self.buffer_position + 1))
-                if write_size == -1:
-                    self.running = False
-                    break
-                self.buffer_position -= (write_size - 1)
-                if metrics_cb:
-                    metrics_cb(write_size)
-                self.throttle_buffer.wait()
-                self.throttle_buffer.clear()
-
-        replproc.stdin.close()
-        replproc.wait()
-        self.running = False
-        free(self.buffer)
+            os.close(ssh_writefd)
+            replproc.wait()
+            self.running = False
+            free(self.buffer)

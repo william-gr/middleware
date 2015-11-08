@@ -39,7 +39,7 @@ setup(
     ext_modules=[
         Extension(
             "sendzfs",
-            ["sendzfs.pyx"],
+            ["src/lib/sendzfs.pyx"],
             extra_compile_args=["-g", "-O0"],
             cython_compile_time_env={'FREEBSD_VERSION': freebsd_version, 'TRUEOS': os.getenv('TRUEOS')},
             extra_link_args=["-g"],

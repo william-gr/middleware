@@ -37,6 +37,7 @@ lib/dispatcher/src/frontend/static/jquery.jsonview.css
 lib/dispatcher/src/frontend/static/main.css
 libexec/dispatcher/notify-pam
 libexec/dispatcher/ssh_transport_catcher
+lib/dispatcher/src/lib/sendzfs.so
 etc/rc.d/dispatcher
 sbin/dispatcherd
 sbin/dispatcherctl
