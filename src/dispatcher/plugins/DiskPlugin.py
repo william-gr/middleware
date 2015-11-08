@@ -112,6 +112,16 @@ class DiskProvider(Provider):
         return disk['data_partition_path']
 
     @accepts(str)
+    @returns(h.ref('disk-status'))
+    def get_disk_config_by_id(self, id):
+        disk = diskinfo_cache.get(id)
+        if not disk:
+            raise RpcException(errno.ENOENT, "Disk id: {0} not found".format(id))
+
+        return disk
+
+    @accepts(str)
+    @returns(h.ref('disk-status'))
     def get_disk_config(self, name):
         disk = get_disk_by_path(name)
         if not disk:
@@ -326,7 +336,7 @@ class DiskConfigureTask(Task):
             if 'smart' in updated_fields:
                 errors.append(('smart', errno.EINVAL, 'Disk is not SMART capable'))
             if 'smart_options' in updated_fields:
-                erros.append(('smart_options', errno.EINVAL, 'Disk is not SMART capable'))
+                errors.append(('smart_options', errno.EINVAL, 'Disk is not SMART capable'))
         if errors:
             raise ValidationException(errors)
 
@@ -342,6 +352,7 @@ class DiskConfigureTask(Task):
 
         if 'smart' in updated_fields or 'smart_options' in updated_fields:
             self.dispatcher.call_sync('services.reload', 'smartd')
+            self.dispatcher.call_sync('disks.update_disk_cache', disk['path'], timeout=120)
 
 
 @description("Deletes offline disk configuration from database")
@@ -376,15 +387,17 @@ class DiskTestTask(ProgressTask):
         self.set_progress(progress)
 
     def run(self, id, test_type):
-        disk = self.dispatcher.call_sync('disks.query', [('id', '=', id)], {'single': True})
-        if not disk:
+        try:
+            diskinfo = self.dispatcher.call_sync("get_disk_config_by_id", id)
+        except RpcException:
             raise TaskException(errno.ENOENT, 'Disk {0} not found'.format(id))
 
-        dev = Device(disk['path'])
+        dev = Device(diskinfo['gdisk_name'])
         dev.run_selftest_and_wait(
             getattr(SelfTestType, test_type).value,
             progress_handler=self.handle_progress
         )
+        self.dispatcher.call_sync('disks.update_disk_cache', diskinfo['path'], timeout=120)
 
 
 class DiskParallelTestTask(ProgressTask):
@@ -676,6 +689,7 @@ def update_disk_cache(dispatcher, path):
         'data_partition_path': os.path.join("/dev/gptid", data_uuid) if data_uuid else None,
         'swap_partition_uuid': swap_uuid,
         'swap_partition_path': os.path.join("/dev/gptid", swap_uuid) if swap_uuid else None,
+        'gdisk_name': gdisk.name,
     })
 
     if gmultipath:
@@ -897,6 +911,7 @@ def _init(dispatcher, plugin):
             'data_partition_path': {'type': 'string'},
             'swap_partition_uuid': {'type': 'string'},
             'swap_partition_path': {'type': 'string'},
+            'gdisk_name': {'type': 'string'},
         }
     })
 
