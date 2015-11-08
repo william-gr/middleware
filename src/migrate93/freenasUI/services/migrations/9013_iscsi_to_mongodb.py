@@ -46,7 +46,7 @@ class Migration(DataMigration):
                 'description': p.iscsi_target_portal_comment,
                 'discovery_auth_metod': AUTH_METHOD_TABLE[p.iscsi_target_portal_discoveryauthmethod],
                 'discovery_auth_group': 'ag{0}'.format(p.iscsi_target_portal_discoveryauthgroup),
-                'listen': [{'address': i.iscsi_target_portalip_ip, 'port': i.iscsi_target_portalip_port} for i in p.ips]
+                'listen': [{'address': i.iscsi_target_portalip_ip, 'port': i.iscsi_target_portalip_port} for i in p.ips.all()]
             })
 
         # iSCSI Targets
