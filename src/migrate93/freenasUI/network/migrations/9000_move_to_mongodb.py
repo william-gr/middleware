@@ -59,6 +59,9 @@ class Migration(SchemaMigration):
         cs.set('network.netwait.enable', globalconf.gc_netwait_enabled)
         cs.set('network.netwait.addresses', globalconf.gc_netwait_ip.split())
 
+        # Disable autoconfigure since it will be using data from this migration
+        cs.set('network.autoconfigure', False)
+
         # Migrate hosts database
         for line in globalconf.gc_hosts.split('\n'):
             line = line.strip()
