@@ -55,6 +55,10 @@ class AlertsProvider(Provider):
     def dismiss(self, id):
         try:
             self.datastore.delete('alerts', id)
+            self.dispatcher.dispatch_event('alert.change', {
+                'operation': 'delete',
+                'ids': [id]
+            })
         except DatastoreException as e:
             raise TaskException(
                 errno.EBADMSG,
@@ -93,7 +97,11 @@ class AlertsProvider(Provider):
                 emitters = ['UI']
 
         if 'UI' in emitters:
-            self.datastore.insert('alerts', alert)
+            id = self.datastore.insert('alerts', alert)
+            self.dispatcher.dispatch_event('alert.change', {
+                'operation': 'create',
+                'ids': [id]
+            })
 
         if 'EMAIL' in emitters:
             try:
