@@ -972,10 +972,12 @@ def _init(dispatcher, plugin):
         if args['operation'] in ('create', 'update'):
             for i in ids:
                 if args['operation'] == 'update' and dispatcher.datastore.exists('volumes', ('id', '=', i)):
-                    dispatcher.dispatch_event('volumes.changed', {
-                        'operation': 'update',
-                        'ids': [i]
-                    })
+                    # Disable for now to avoid confusing clients with multiple "changed" events
+                    #
+                    # dispatcher.dispatch_event('volumes.changed', {
+                    #     'operation': 'update',
+                    #     'ids': [i]
+                    # })
                     continue
 
                 pool = wrap(dispatcher.call_sync(
