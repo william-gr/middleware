@@ -932,9 +932,12 @@
             "system.shells": [
                 "/bin/sh",
                 "/bin/csh",
+                "/usr/sbin/nologin",
                 "/usr/local/bin/zsh",
                 "/usr/local/bin/bash",
-                "/usr/local/bin/cli"
+                "/usr/local/bin/cli",
+                "/usr/local/bin/scponly",
+                "/usr/local/bin/ksh93"
             ],
             "system.autotune": false,
             "system.boot_pool_name": "freenas-boot",
