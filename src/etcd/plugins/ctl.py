@@ -95,7 +95,7 @@ def generate_luns(context):
         if props.get('tpc'):
             extent['options']['insescure_tpc'] = 'on'
 
-        result[share['id']] = extent
+        result[share['name']] = extent
 
     return result
 
