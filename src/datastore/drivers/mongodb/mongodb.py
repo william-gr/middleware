@@ -181,6 +181,9 @@ class MongodbDatastore(object):
         return [x['_id'] for x in self.db['collections'].find()]
 
     def collection_delete(self, name):
+        if not self.db['collections'].find_one({"_id": name}):
+            return
+
         self._get_db(name).drop()
         self.db['collections'].remove({'_id': name})
 
