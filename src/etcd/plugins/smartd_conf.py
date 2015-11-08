@@ -46,7 +46,7 @@ def run(context):
         device_smart_handle = Device(single_disk['path'])
         # Check if the disk's smart enabled value is the same as that in the database
         # if not try to DTRT it
-        if single_disk['smart'] != single_disk['status']['smart_enabled']:
+        if single_disk['smart'] != device_smart_handle.smart_enabled:
             # toggle_result is a tuple containing:
             # (Action succeded: True/False, Error message if first is False)
             toggle_result = device_smart_handle.smart_toggle(
