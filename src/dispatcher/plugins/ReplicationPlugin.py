@@ -42,6 +42,7 @@ from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
 from fnutils import to_timedelta, first_or_default
 from fnutils.query import wrap
+from lib import sendzfs
 
 """
 # Bandwidth Limit.
@@ -145,62 +146,10 @@ def compress_pipecmds(compression):
 # Attempt to send a snapshot or increamental stream to remote.
 #
 def sendzfs(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle):
-    with tempfile.NamedTemporaryFile('w') as hostsfile:
-        print(hostkey, file=hostsfile.file)
 
-        templog = '/tmp/templog'
-        sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
-            ' -o UserKnownHostsFile=%s' \
-            ' -o StrictHostKeyChecking=yes' \
-            ' -o ConnectTimeout=7 %s ' % (hostsfile.name, remote)
-
-        # progressfile = '/tmp/.repl_progress_%d' % replication.id
-        progressfile = '/tmp/.repl_progress_0' # XXX
-        cmd = ['/sbin/zfs', 'send', '-p']
-        if fromsnap is None:
-            cmd.append("%s@%s" % (dataset, tosnap))
-        else:
-            cmd.extend(['-i', "%s@%s" % (dataset, fromsnap), "%s@%s" % (dataset, tosnap)])
-        # subprocess.Popen does not handle large stream of data between
-        # processes very well, do it on our own
-        readfd, writefd = os.pipe()
-        zproc_pid = os.fork()
-        if zproc_pid == 0:
-            os.close(readfd)
-            os.dup2(writefd, 1)
-            os.close(writefd)
-            os.execv('/sbin/zfs', cmd)
-            # NOTREACHED
-        else:
-            with open(progressfile, 'w') as f2:
-                f2.write(str(zproc_pid))
-            os.close(writefd)
-
-        compress, decompress = compress_pipecmds(compression)
-        replcmd = '%s%s/bin/dd obs=1m 2> /dev/null | /bin/dd obs=1m 2> /dev/null | %s "%s/sbin/zfs receive -F \'%s\' && echo Succeeded"' % (compress, throttle, sshcmd, decompress, remotefs)
-        with open(templog, 'w+') as f:
-            readobj = os.fdopen(readfd, 'r', 0)
-            proc = subprocess.Popen(
-                replcmd,
-                shell=True,
-                stdin=readobj,
-                stdout=f,
-                stderr=subprocess.STDOUT,
-            )
-            proc.wait()
-            os.waitpid(zproc_pid, os.WNOHANG)
-            readobj.close()
-            os.remove(progressfile)
-            f.seek(0)
-            msg = f.read().strip('\n').strip('\r')
-        os.remove(templog)
-        msg = msg.replace('WARNING: enabled NONE cipher\n', '')
-        logger.debug("Replication result: %s" % (msg))
-        # XXX results[replication.id] = msg
-        # if reached_last and msg == "Succeeded":
-        #    replication.repl_lastsnapshot = tosnap
-        #    replication.save()
-        return msg == "Succeeded"
+    zfs = sendzfs.SendZFS()
+    zfs.send(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, 1024*1024, None)
+    return msg == "Succeeded"
 
 
 class ReplicationProvider(Provider):
