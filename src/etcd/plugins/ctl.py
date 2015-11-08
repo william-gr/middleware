@@ -113,7 +113,7 @@ def generate_targets(context):
 
         result['naa.5000c50006815e48'] = {
             'port': 'camsim',
-            'lun': map(generate_lun, enumerate(context.datastore.query('simulator.disks', ('online', '=', True))))
+            'lun': list(map(generate_lun, enumerate(context.datastore.query('simulator.disks', ('online', '=', True)))))
         }
 
     for i in context.datastore.query('iscsi.targets'):
@@ -147,8 +147,8 @@ def generate_auth_groups(context):
             continue
 
         if i.get('users'):
-            group['chap'] = map(generate_chap_user, i['users'])
-            group['chap-mutual'] = map(generate_chap_user, i['users'])
+            group['chap'] = list(map(generate_chap_user, i['users']))
+            group['chap-mutual'] = list(map(generate_chap_user, i['users']))
 
         if i.get('initiators'):
             group['initiator-name'] = i['initiators']
@@ -169,7 +169,7 @@ def generate_portal_groups(context):
 
     for i in context.datastore.query('iscsi.portals'):
         portal = {
-            'listen': map(lambda l: '{0}:{1}'.format(l['address'], l['port']), i['listen']),
+            'listen': list(map(lambda l: '{0}:{1}'.format(l['address'], l['port']), i['listen'])),
         }
 
         if i.get('discovery_auth_group'):
