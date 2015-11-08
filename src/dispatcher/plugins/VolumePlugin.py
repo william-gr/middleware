@@ -785,7 +785,7 @@ class DatasetCreateTask(Task):
             })
 
         if type == 'VOLUME':
-            params['properties']['volsize'] = {'value': params['volsize']}
+            params['properties']['volsize'] = {'value': str(params['volsize'])}
 
         self.join_subtasks(self.run_subtask(
             'zfs.create_dataset',
