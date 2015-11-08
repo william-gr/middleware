@@ -207,9 +207,15 @@ class UpdateISCSITargetTask(Task):
             raise VerifyException(errno.ENOENT, 'Target {0} does not exist'.format(id))
 
         if 'extents' in updated_params:
+            seen_numbers = []
             for i in updated_params['extents']:
                 if not self.datastore.exists('shares', ('type', '=', 'iscsi'), ('name', '=', i['name'])):
                     raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
+
+                if i['number'] in seen_numbers:
+                    raise VerifyException(errno.EEXIST, "LUN nubmer {0} used twice".format(i['number']))
+
+                seen_numbers.append(i['number'])
 
         return ['service:ctl']
 
