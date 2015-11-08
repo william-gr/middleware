@@ -77,6 +77,9 @@ class DSDConfigurationService(RpcService):
     def get_supported_directories(self):
         return [ 'activedirectory', 'ldap', 'kerberos' ]
 
+    def get_directory_services(self):
+        return self.datastore.query('directoryservices')
+
     def configure_dcs(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): id = %s', id)
 
@@ -185,6 +188,15 @@ class DSDConfigurationService(RpcService):
 
     def get_kerberos_ticket(self, id):
         self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket()')
+
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+
+        realm = directoryservice['domain'].upper()
+        binddn = directoryservice['binddn'].split('@')[0]
+        bindpw = directoryservice['bindpw']
+
+        kc = self.modules['kerberos']
+        kc.get_ticket(realm, binddn, bindpw)
 
     def configure_nsswitch(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_nsswitch()')

@@ -26,10 +26,18 @@
 #
 #####################################################################
 
-import sys
 import logging
+import os
+import sys
+import tempfile
+import time
 
-logger = logging.getLogger('kerberos')
+from fnutils.pipesubr import (
+    pipeopen,
+    run
+)
+
+logger = logging.getLogger("kerberos")
 
 class Kerberos(object):
     def __init__(self, *args,  **kwargs):
@@ -78,6 +86,79 @@ class Kerberos(object):
         kpws = self.dsdns.get_SRV_records(host)
         return kpws
 
+    def cache_has_ticket(self):
+        res = False
+
+        p = pipeopen("/usr/bin/klist -t")
+        p.communicate()
+        if p.returncode == 0:
+            res = True
+
+        return res
+
+    def get_principal_from_cache(self):
+        principal = None
+
+        p = pipeopen("klist")
+        klist_out = p.communicate()
+        if p.returncode != 0:
+            return None
+
+        klist_out = klist_out[0]
+        lines = klist_out.splitlines()
+        for line in lines:
+            line = line.strip()
+            if line.startswith(bytes("Principal", "UTF-8")):
+                parts = line.split(bytes(":", "UTF-8"))
+                if len(parts) > 1:
+                    principal = parts[1].strip()
+
+        return principal
+
+    def get_ticket(self, realm, binddn, bindpw):
+        krb_principal = self.get_principal_from_cache()
+        principal = "%s@%s" % (binddn, realm)
+
+        res = kinit = False
+
+        if krb_principal and krb_principal.upper() == principal.upper():
+            return True
+
+        (fd, tmpfile) = tempfile.mkstemp(dir="/tmp")
+        os.fchmod(fd, 600)
+        os.write(fd, bytes(bindpw, "UTF-8"))
+        os.close(fd)
+
+        args = [
+            "/usr/bin/kinit",
+            "--renewable",
+            "--password-file=%s" % tmpfile,
+            "%s" % principal
+        ]
+
+        # XXX this needs to be configurable
+        timeout = 30
+
+        (returncode, stdout, stderr) = run(' '.join(args), timeout=timeout)
+        if returncode == 0:
+            res = True
+
+        if res != False:
+            kinit = True
+
+        #os.unlink(tmpfile)
+
+        if kinit:
+            i = 0
+            while i < timeout:
+                if self.cache_has_ticket():
+                    res = True
+                    break
+
+                time.sleep(1)
+                i += 1
+
+        return res
 
 def _init(dispatcher, datastore):
     return Kerberos(
