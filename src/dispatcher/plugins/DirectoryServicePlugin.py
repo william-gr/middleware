@@ -46,18 +46,17 @@ from task import (
 
 logger = logging.getLogger('DirectoryServicePlugin')
 
-DIRECTORY_TYPES = {
-    'activedirectory': { 
-    },
-    'ldap': { 
-    }
-}
 
 class DirectoryServicesProvider(Provider):
     @query('directoryservice')
     def query(self, filter=None, params=None):
         def extend(directoryservice):
             return directoryservice
+
+        # XXX Not sure why this won't work
+        #return self.dispatcher.call_sync('dsd.configuration.query',
+        #    *(filter or []), callback=extend, **(params or {}))
+
         return self.datastore.query('directoryservices', *(filter or []), 
             callback=extend, **(params or {}))
 

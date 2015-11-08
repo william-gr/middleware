@@ -102,17 +102,20 @@ class DSDConfigurationService(RpcService):
     def get_directory_services(self):
         return self.datastore.query('directoryservices')
 
+    def query(self, *args, **kwargs):
+        return self.datastore.query('directoryservices', *args, **kwargs)
+
     def create(self, directoryservice):
-        self.datastore.insert('directoryservices', directoryservice,
+        return self.datastore.insert('directoryservices', directoryservice,
             pkey=directoryservice['name'])
 
     def update(self, id, updated_fields):
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         directoryservice.update(updated_fields)
-        self.datastore.update('directoryservices', id, directoryservice)
+        return self.datastore.update('directoryservices', id, directoryservice)
 
     def delete(self, id):
-        self.datastore.delete('directoryservices', id)
+        return self.datastore.delete('directoryservices', id)
 
     def verify(self, id):
         return self.datastore.get_by_id('directoryservices', id)
