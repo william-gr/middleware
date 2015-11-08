@@ -149,7 +149,6 @@ def sendzfs(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, t
 
     zfs = sendzfs.SendZFS()
     zfs.send(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, 1024*1024, None)
-    return msg == "Succeeded"
 
 
 class ReplicationProvider(Provider):
