@@ -251,6 +251,12 @@ class SetPermissionsTask(Task):
                 for n in dirs:
                     a.apply(file=os.path.join(root, n))
 
+        self.dispatcher.dispatch_event('file.permissions.changed', {
+            'path': path,
+            'recursive': recursive,
+            'permissions': permissions
+        })
+
 
 def modes_to_oct(modes):
     modes = wrap(modes)
