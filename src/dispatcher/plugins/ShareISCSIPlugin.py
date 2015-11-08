@@ -431,7 +431,8 @@ def _init(dispatcher, plugin):
                     'properties': {
                         'name': {'type': 'string'},
                         'number': {'type': 'integer'}
-                    }
+                    },
+                    'required': ['name', 'number']
                 },
             }
         }
