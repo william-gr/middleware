@@ -146,7 +146,7 @@ class Kerberos(object):
         if res != False:
             kinit = True
 
-        #os.unlink(tmpfile)
+        os.unlink(tmpfile)
 
         if kinit:
             i = 0
