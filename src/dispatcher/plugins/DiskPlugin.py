@@ -106,12 +106,6 @@ class DiskProvider(Provider):
         return part['disk']
 
     @accepts(str)
-    @returns(str)
-    def disk_to_data_partition(self, disk_name):
-        disk = diskinfo_cache.get(disk_name)
-        return disk['data_partition_path']
-
-    @accepts(str)
     @returns(h.ref('disk-status'))
     def get_disk_config_by_id(self, id):
         disk = diskinfo_cache.get(id)
