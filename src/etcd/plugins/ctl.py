@@ -125,7 +125,11 @@ def generate_targets(context):
         if i.get('description'):
             target['alias'] = i['description']
 
-        result[i['id']] = target
+        name = i['id']
+        if not name.startswith(('iqn.', 'naa.', 'eui.')):
+            name = '.'.join([context.configstore.get('service.iscsi.base_name'), name])
+
+        result[name] = target
 
     return result
 
