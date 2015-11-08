@@ -213,7 +213,7 @@ class UpdateISCSITargetTask(Task):
                     raise VerifyException(errno.ENOENT, "Share {0} not found".format(i['name']))
 
                 if i['number'] in seen_numbers:
-                    raise VerifyException(errno.EEXIST, "LUN nubmer {0} used twice".format(i['number']))
+                    raise VerifyException(errno.EEXIST, "LUN number {0} used twice".format(i['number']))
 
                 seen_numbers.append(i['number'])
 
