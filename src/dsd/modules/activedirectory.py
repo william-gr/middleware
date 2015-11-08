@@ -26,8 +26,9 @@
 #
 #####################################################################
 
-import sys
+#import ldap
 import logging
+import sys
 
 logger = logging.getLogger('activedirectory')
 
@@ -43,6 +44,15 @@ class ActiveDirectory(object):
             dispatcher=self.dispatcher,
             datastore=self.datastore,
         )
+
+    def get_directory_type(self):
+        return "activedirectory"
+
+#    def get_connection_handle(self, host, binddn, bindpw):
+#        uri = "ldap://%s" % host
+#        handle = ldap.initialize(uri)
+#        res = handle.simple_bind_s(binddn, bindpw) 
+#        return (res, handle)
 
     def get_ldap_servers(self, domain, site=None):
         dcs = []

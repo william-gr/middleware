@@ -57,7 +57,6 @@ class DirectoryServicesProvider(Provider):
     @query('directoryservice')
     def query(self, filter=None, params=None):
         def extend(directoryservice):
-            logger.debug("XXX: extend: directoryservice = %s", directoryservice)
             return directoryservice
         return self.datastore.query('directoryservices', *(filter or []), 
             callback=extend, **(params or {}))
@@ -73,142 +72,67 @@ class DirectoryServicesProvider(Provider):
 )
 class DirectoryServiceCreateTask(Task):
     def verify(self, directoryservice):
-        logger.debug("XXX: DirectoryServiceCreateTask.verify: 111 directoryservice= %s", directoryservice)
-
-        type = directoryservice['type']
         dstypes = self.dispatcher.call_sync('dsd.configuration.get_supported_directories')
+        type = directoryservice['type']
         if type not in dstypes:
             raise VerifyException(errno.ENXIO, 'Unknown directory service type {0}'.format(directoryservice[type]))
-
-        if self.datastore.exists(
-            'directoryservices', ('name', '=', directoryservice['name'])):
-            raise VerifyException(errno.EEXIST, 'directoryservice {0} exists'.format(directoryservice['name']))
 
         return ['directoryservice']
 
     def run(self, directoryservice):
-        #type = directoryservice['type']
-        #name = directoryservice['name']
-        #domain = directoryservice['domain']
+        return self.dispatcher.call_sync('dsd.configuration.create', directoryservice)
 
-        f = open('/tmp/foo.log', 'a')
-
-        try:
-            id = self.datastore.insert('directoryservices', directoryservice, pkey=directoryservice['name'])  
-        except Exception as e:
-            f.write("XXX: CreateDirectoryServiceTask FAIL: %s" % e)
-
-        # If valid config, sync with dsd
-
-        f.write("XXX: CreateDirectoryServiceTask.run(): directoryservice = %s\n" % directoryservice)
-        f.close()
-
-        # etcd sync... 
 
 @description("Update directory service")
 class DirectoryServiceUpdateTask(Task):
     def verify(self, id, updated_fields):
-        logger.debug("XXX: DirectoryServiceUpdateTask.verify: id = %s, updated_fields = %s", id, updated_fields)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice = self.dispatcher.call_sync('dsd.configuration.verify', id)
         if not directoryservice:
             raise VerifyException(errno.ENOENT, 'Directory service not found')
-
-        logger.debug("XXX: DirectoryServiceUpdateTask.verify: id = %s, updated_fields = %s", id, updated_fields)
-
-        # Other verifications ?
-
         return ['directoryservice']
 
     def run(self, id, updated_fields):
-
-        f = open('/tmp/foo.log', 'a')
-        f.write("XXX: UpdateDirectoryServiceTask.run(): id = %s, updated_fields = %s\n" % (id, updated_fields))
-
-        try: 
-            directoryservice = self.datastore.get_by_id('directoryservices', id)
-            directoryservice.update(updated_fields)
-            self.datastore.update('directoryservices', id, directoryservice)
-
-        except Exception as e:
-            f.write("XXX: UpdateDirectoryServiceTask FAIL: %s" % e)
-    
-
-        f.close()
-
-        # etcd sync... 
+        return self.dispatcher.call_sync('dsd.configuration.update', id, updated_fields)
 
 
 @description("Delete directory service")
 class DirectoryServiceDeleteTask(Task):
     def verify(self, id):
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice = self.dispatcher.call_sync('dsd.configuration.verify', id)
         if not directoryservice:
             raise VerifyException(errno.ENOENT, 'Directory service not found')
-
         return ['directoryservice']
 
     def run(self, id):
-        try:
-            self.datastore.delete('directoryservices', id) 
-            
-            # etcd sync... 
-
-        except DatastoreException as e:
-            raise TaskException(errno.EBADMSG, 'Cannot delete directoryservice: {0}'.format(str(e)))
-
+        return self.dispatcher.call_sync('dsd.configuration.delete', id)
 
 @description("Enable directory service")
 class DirectoryServiceEnableTask(Task):
     def verify(self, id):
-        logger.debug("XXX: DirectoryServiceEnableTask.verify: id = %s", id)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice = self.dispatcher.call_sync('dsd.configuration.verify', id)
         if not directoryservice:
             raise VerifyException(errno.ENOENT, 'Directory service not found')
-
-        logger.debug("XXX: directoryservice = %s", directoryservice)
-
         return ['directoryservice']
 
     def run(self, id):
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-
-        # DSD enable and etcd sync
-        #  self.dispatcher.call_sync('dsd.configuration.)
-        #dstypes = self.dispatcher.call_sync('dsd.configuration.get_supported_directories')
-
-
-        # XXX 
-        self.dispatcher.call_sync('dsd.configuration.enable', id)
+        return self.dispatcher.call_sync('dsd.configuration.enable', id)
 
 
 @description("Disablle directory service")
 class DirectoryServiceDisableTask(Task):
     def verify(self, id):
-        logger.debug("XXX: DirectoryServiceDisableTask.verify: id = %s", id)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice = self.dispatcher.call_sync('dsd.configuration.verify', id)
         if not directoryservice:
             raise VerifyException(errno.ENOENT, 'Directory service not found')
-
-        logger.debug("XXX: directoryservice = %s", directoryservice)
-
         return ['directoryservice']
 
     def run(self, id):
-
-        # DSD disable and etcd sync
-
-        # XXX 
-        self.dispatcher.call_sync('dsd.configuration.disable', id)
+        return self.dispatcher.call_sync('dsd.configuration.disable', id)
 
 
 @description("Get directory service servers")
 class DirectoryServiceGetTask(Task):
     def verify(self, args):
-        logger.debug("XXX: DirectoryServiceGetTask.verify: args = %s", args)
-
         id = args[0] 
         what = args[1]
 
@@ -231,7 +155,6 @@ class DirectoryServiceConfigureTask(Task):
         what = args[1]
         enable = args[2]
 
-        logger.debug("XXX: DirectoryServiceConfigureTask.verify: args = %s, id = %s, what = %s, enable = %s", args, id, what, enable)
         return ['directoryservice']
 
     def run(self, args):
@@ -251,7 +174,6 @@ class DirectoryServiceConfigureTask(Task):
 @description("Obtain a Kerberos ticket")
 class DirectoryServiceKerberosTicketTask(Task):
     def verify(self, id):
-        logger.debug("XXX: DirectoryServiceKerberosTicketTask.verify: id = %s", id)
         return ['directoryservice']
 
     def run(self, id):
@@ -265,7 +187,6 @@ class DirectoryServiceKerberosTicketTask(Task):
 @description("Join an Active Directory")
 class DirectoryServiceJoinActiveDirectoryTask(Task):
     def verify(self, id):
-        logger.debug("XXX: DirectoryServiceJoinActiveDirectory.verify: id = %s", id)
         return ['directoryservice']
 
     def run(self, id):
@@ -289,7 +210,7 @@ def _init(dispatcher, plugin):
         }
     })
 
-    dispatcher.require_collection('directoryservices')
+#    dispatcher.require_collection('directoryservices')
     dispatcher.register_resource(Resource('directoryservice'))
 
     plugin.register_provider('directoryservices', DirectoryServicesProvider)

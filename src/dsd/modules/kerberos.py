@@ -52,6 +52,9 @@ class Kerberos(object):
             datastore=self.datastore,
         )
 
+    def get_directory_type(self):
+        return "kerberos"
+
     def get_kerberos_servers(self, domain, site=None):
         kdcs = []
         if not domain:

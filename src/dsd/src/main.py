@@ -51,6 +51,15 @@ from fnutils.debug import DebugService
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
+#
+# values we care about for AD
+#
+# the netbios name
+# the group name
+# the machine name
+# the base DN
+#
+
 class DSDConfigurationService(RpcService):
     def __init__(self, context):
         self.context = context
@@ -63,6 +72,9 @@ class DSDConfigurationService(RpcService):
             'activedirectory': None,
             'ldap': None
         }
+
+        self.datastore.collection_create(
+            'directoryservices', pkey_type='name')
 
     def __cache_empty(self, cache, key):
         if not self.cache[cache]:
@@ -78,12 +90,32 @@ class DSDConfigurationService(RpcService):
         directoryservice[name] = enable
         self.datastore.update('directoryservices', id, directoryservice)
 
-    # Hard coded for now
     def get_supported_directories(self):
-        return [ 'activedirectory', 'ldap', 'kerberos' ]
+        supported_directories = []
+        for m in self.modules:
+            module = self.modules[m]
+            if hasattr(module, "get_directory_type"):
+                supported_directories.append(module.get_directory_type())
+
+        return supported_directories
 
     def get_directory_services(self):
         return self.datastore.query('directoryservices')
+
+    def create(self, directoryservice):
+        self.datastore.insert('directoryservices', directoryservice,
+            pkey=directoryservice['name'])
+
+    def update(self, id, updated_fields):
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice.update(updated_fields)
+        self.datastore.update('directoryservices', id, directoryservice)
+
+    def delete(self, id):
+        self.datastore.delete('directoryservices', id)
+
+    def verify(self, id):
+        return self.datastore.get_by_id('directoryservices', id)
 
     def configure_dcs(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): id = %s', id)
@@ -296,9 +328,7 @@ class Main(object):
                 self.client.login_service('dsd')
                 self.client.enable_server()
                 self.register_schemas()
-                self.logger.debug("XXX: before register_service dsd.configuration")
                 self.client.register_service('dsd.configuration', DSDConfigurationService(self))
-                self.logger.debug("XXX: after register_service dsd.configuration")
                 self.client.register_service('dsd.debug', DebugService())
                 if resume:
                     self.client.resume_service('dsd.configuration')

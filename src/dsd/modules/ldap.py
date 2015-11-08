@@ -44,6 +44,9 @@ class LDAP(object):
             datastore=self.datastore,
         )
 
+    def get_directory_type(self):
+        return "ldap"
+
 def _init(dispatcher, datastore):
     return LDAP(
         dispatcher=dispatcher,
