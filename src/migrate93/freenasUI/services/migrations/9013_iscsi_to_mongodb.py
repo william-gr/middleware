@@ -9,11 +9,11 @@ from datastore import get_default_datastore
 from datastore.config import ConfigStore
 
 
-AUTH_METHOD_TABLE = (
+AUTH_METHOD_TABLE = dict((
     ('None', 'NONE'),
     ('CHAP', 'CHAP'),
     ('CHAP Mutual', 'CHAP_MUTUAL')
-)
+))
 
 class Migration(DataMigration):
 
