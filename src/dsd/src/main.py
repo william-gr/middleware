@@ -73,6 +73,11 @@ class DSDConfigurationService(RpcService):
             return True
         return False 
 
+    def __toggle_enable(self, id, name, enable):
+        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        directoryservice[name] = enable
+        self.datastore.update('directoryservices', id, directoryservice)
+
     # Hard coded for now
     def get_supported_directories(self):
         return [ 'activedirectory', 'ldap', 'kerberos' ]
@@ -80,7 +85,7 @@ class DSDConfigurationService(RpcService):
     def get_directory_services(self):
         return self.datastore.query('directoryservices')
 
-    def configure_dcs(self, id):
+    def configure_dcs(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): id = %s', id)
 
         directoryservice = self.datastore.get_by_id('directoryservices', id)
@@ -111,7 +116,7 @@ class DSDConfigurationService(RpcService):
 
         return dcs 
 
-    def configure_gcs(self, id):
+    def configure_gcs(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
 
         directoryservice = self.datastore.get_by_id('directoryservices', id)
@@ -140,7 +145,7 @@ class DSDConfigurationService(RpcService):
 
         return gcs 
 
-    def configure_kdcs(self, id):
+    def configure_kdcs(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): id = %s', id)
 
         directoryservice = self.datastore.get_by_id('directoryservices', id)
@@ -174,16 +179,19 @@ class DSDConfigurationService(RpcService):
 
         return kdcs
 
-    def configure_hostname(self, id):
+    def configure_hostname(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_hostname()')
+        self.__toggle_enable(id, 'configure_hostname', enable)
         self.client.call_sync('etcd.generation.generate_group', 'hostname')
 
-    def configure_hosts(self, id):
+    def configure_hosts(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_hosts()')
+        self.__toggle_enable(id, 'configure_hosts', enable)
         self.client.call_sync('etcd.generation.generate_group', 'hosts')
 
-    def configure_kerberos(self, id):
+    def configure_kerberos(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_kerberos()')
+        self.__toggle_enable(id, 'configure_kerberos', enable)
         self.client.call_sync('etcd.generation.generate_group', 'kerberos')
 
     def get_kerberos_ticket(self, id):
@@ -198,39 +206,47 @@ class DSDConfigurationService(RpcService):
         kc = self.modules['kerberos']
         kc.get_ticket(realm, binddn, bindpw)
 
-    def configure_nsswitch(self, id):
+    def configure_nsswitch(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_nsswitch()')
+        self.__toggle_enable(id, 'configure_nsswitch', enable)
         self.client.call_sync('etcd.generation.generate_group', 'nsswitch')
 
-    def configure_openldap(self, id):
+    def configure_openldap(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_openldap()')
+        self.__toggle_enable(id, 'configure_openldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'openldap')
 
-    def configure_nssldap(self, id):
+    def configure_nssldap(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
+        self.__toggle_enable(id, 'configure_nssldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'nssldap')
 
-    def configure_sssd(self, id):
+    def configure_sssd(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
+        self.__toggle_enable(id, 'configure_sssd', enable)
         self.client.call_sync('etcd.generation.generate_group', 'sssd')
 
-    def configure_samba(self, id):
+    def configure_samba(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_samba()')
+        self.__toggle_enable(id, 'configure_samba', enable)
         #self.client.call_sync('etcd.generation.generate_group', 'samba')
 
     def join_activedirectory(self, id):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
 
-    def configure_pam(self, id):
+    def configure_pam(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_pam()')
+        self.__toggle_enable(id, 'configure_pam', enable)
         self.client.call_sync('etcd.generation.generate_group', 'pam')
 
-    def configure_activedirectory(self, id):
+    def configure_activedirectory(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_activedirectory()')
+        self.__toggle_enable(id, 'configure_activedirectory', enable)
         self.client.call_sync('etcd.generation.generate_group', 'activedirectory')
 
-    def configure_ldap(self, id):
+    def configure_ldap(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_ldap()')
+        self.__toggle_enable(id, 'configure_ldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'ldap')
 
     def enable(self, id):

@@ -229,19 +229,22 @@ class DirectoryServiceConfigureTask(Task):
     def verify(self, args):
         id = args[0] 
         what = args[1]
+        enable = args[2]
 
-        logger.debug("XXX: DirectoryServiceConfigureTask.verify: args = %s, id = %s, what = %s", args, id, what)
+        logger.debug("XXX: DirectoryServiceConfigureTask.verify: args = %s, id = %s, what = %s, enable = %s", args, id, what, enable)
         return ['directoryservice']
 
     def run(self, args):
         id = args[0] 
         what = args[1]
+        enable = args[2]
+
         if what not in ['dcs', 'gcs', 'kdcs', 'hostname', 'hosts', 
             'kerberos', 'nsswitch', 'openldap', 'nssldap', 'sssd',
             'samba', 'pam', 'activedirectory', 'ldap']:
             raise VerifyException(errno.ENOENT, 'No such configuration!')
 
-        self.dispatcher.call_sync('dsd.configuration.configure_%s' % what, id)
+        self.dispatcher.call_sync('dsd.configuration.configure_%s' % what, id, enable)
         return [ 'ship' ]
 
 
