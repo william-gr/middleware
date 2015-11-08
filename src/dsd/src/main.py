@@ -64,11 +64,22 @@ class DSDConfigurationService(RpcService):
             'ldap': None
         }
 
+    def __cache_empty(self, cache, key):
+        if not self.cache[cache]:
+            return True
+        if key not in self.cache[cache]:
+            return True
+        if not self.cache[cache][key]:
+            return True
+        return False 
+
     # Hard coded for now
     def get_supported_directories(self):
         return [ 'activedirectory', 'ldap', 'kerberos' ]
 
     def configure_dcs(self, id):
+        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): id = %s', id)
+
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): directoryservice = %s', directoryservice)
 
@@ -78,14 +89,28 @@ class DSDConfigurationService(RpcService):
         ad = self.modules['activedirectory']
         dcs = ad.get_domain_controllers(directoryservice['domain'])
 
-        if not cache['activedirectory']:
+        if self.__cache_empty('activedirectory', 'dcs'):
             self.cache['activedirectory'] = {}
         self.cache['activedirectory']['dcs'] = dcs
 
     
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): dcs = %s', dcs)
 
+    def get_dcs(self, id):
+        self.logger.debug('DSDConfigurationService.get_dcs(): id = %s', id)
+
+        if self.__cache_empty('activedirectory', 'dcs'):
+            self.configure_dcs(id)
+
+        dcs = []
+        if not self.__cache_empty('activedirectory', 'dcs'):
+            dcs = self.cache['activedirectory']['dcs']
+
+        return dcs 
+
     def configure_gcs(self, id):
+        self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
+
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
         #
@@ -94,13 +119,27 @@ class DSDConfigurationService(RpcService):
         ad = self.modules['activedirectory']
         gcs = ad.get_global_catalog_servers(directoryservice['domain'])
 
-        if not cache['activedirectory']:
+        if self.__cache_empty('activedirectory', 'gcs'):
             self.cache['activedirectory'] = {}
         self.cache['activedirectory']['gcs'] = gcs
     
         self.logger.debug('DSDConfigurationSerivce.configure_dcs(): gcs = %s', gcs)
 
+    def get_gcs(self, id):
+        self.logger.debug('DSDConfigurationService.get_gcs(): id = %s', id)
+
+        if self.__cache_empty('activedirectory', 'gcs'):
+            self.configure_gcs(id)
+
+        gcs = []
+        if not self.__cache_empty('activedirectory', 'gcs'):
+            gcs = self.cache['activedirectory']['gcs']
+
+        return gcs 
+
     def configure_kdcs(self, id):
+        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): id = %s', id)
+
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): directoryservice = %s', directoryservice)
 
@@ -110,15 +149,27 @@ class DSDConfigurationService(RpcService):
         kc = self.modules['kerberos']
         kdcs = kc.get_kerberos_servers(directoryservice['domain'])
 
-        if not cache['activedirectory']:
+        if self.__cache_empty('activedirectory', 'kdcs'):
             self.cache['activedirectory'] = {}
         self.cache['activedirectory']['kdcs'] = kdcs
 
-        if not cache['ldap']:
+        if self.__cache_empty('ldap', 'kdcs'):
             self.cache['ldap'] = {}
         self.cache['ldap']['kdcs'] = kdcs
     
         self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): kdcs = %s', kdcs)
+
+    def get_kdcs(self, id):
+        self.logger.debug('DSDConfigurationService.get_kdcs(): id = %s', id)
+
+        if self.__cache_empty('activedirectory', 'kdcs'):
+            self.configure_kdcs(id)
+
+        kdcs = []
+        if not self.__cache_empty('activedirectory', 'kdcs'):
+            kdcs = self.cache['activedirectory']['kdcs']
+
+        return kdcs
 
     def configure_hostname(self, id):
         self.logger.debug('DSDConfigurationSerivce.configure_hostname()')

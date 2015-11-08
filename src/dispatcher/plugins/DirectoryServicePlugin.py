@@ -204,17 +204,24 @@ class DirectoryServiceDisableTask(Task):
         self.dispatcher.call_sync('dsd.configuration.disable', id)
 
 
-@description("Show directory service servers")
-class DirectoryServiceShowTask(Task):
+@description("Get directory service servers")
+class DirectoryServiceGetTask(Task):
     def verify(self, args):
+        logger.debug("XXX: DirectoryServiceGetTask.verify: args = %s", args)
+
         id = args[0] 
         what = args[1]
 
-        logger.debug("XXX: DirectoryServiceShowTask.verify: args = %s, id = %s, what = %s", args, id, what)
+        if what not in ['dcs', 'gcs', 'kdcs']:
+            raise VerifyException(errno.ENOENT, 'No such configuration!')
+
         return ['directoryservice']
 
     def run(self, args):
-        return [ 'fsck' ]
+        id = args[0] 
+        what = args[1]
+
+        return self.dispatcher.call_sync('dsd.configuration.get_%s' % what, id)
   
 
 @description("Configure a directory service")
@@ -290,7 +297,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('directoryservice.enable', DirectoryServiceEnableTask)
     plugin.register_task_handler('directoryservice.disable', DirectoryServiceDisableTask)
 
-    plugin.register_task_handler('directoryservice.show', DirectoryServiceShowTask)
+    plugin.register_task_handler('directoryservice.get', DirectoryServiceGetTask)
     plugin.register_task_handler('directoryservice.configure', DirectoryServiceConfigureTask)
     plugin.register_task_handler('directoryservice.kerberosticket', DirectoryServiceKerberosTicketTask)
     plugin.register_task_handler('directoryservice.join', DirectoryServiceJoinActiveDirectoryTask)
