@@ -367,7 +367,7 @@ class ConfigurationService(RpcService):
             try:
                 self.configure_interface(i['id'])
             except BaseException as e:
-                self.logger.warning('Cannot configure {0}: {1}'.format(i['id'], str(e)))
+                self.logger.warning('Cannot configure {0}: {1}'.format(i['id'], str(e)), exc_info=True)
 
         # Are there any orphaned interfaces?
         for name, iface in list(netif.list_interfaces().items()):
