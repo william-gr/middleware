@@ -70,10 +70,6 @@ GROUP_TYPE_APP_BASIC_GROUP     = 0x00000010
 GROUP_TYPE_APP_QUERY_GROUP     = 0x00000020
 GROUP_TYPE_SECURITY_ENABLED    = 0x80000000
 
-def _v(mydict, key):
-    if key in mydict and mydict[key]:
-        return mydict[key]
-    return None
 
 class ActiveDirectory(object):
     class ActiveDirectoryHandle(object):
@@ -209,11 +205,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        rootDN = _v(attributes, 'rootDomainNamingContext')
+        rootDN = attributes.get('rootDomainNamingContext', None)
         if not rootDN:
             return None
 
@@ -224,11 +220,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        baseDN = _v(attributes, 'defaultNamingContext')
+        baseDN = attributes.get('defaultNamingContext', None)
         if not baseDN:
             return None
 
@@ -239,11 +235,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        configurationDN = _v(attributes, 'configurationNamingContext')
+        configurationDN = attributes.get('configurationNamingContext', None)
         if not configurationDN:
             return None
 
@@ -254,11 +250,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        forest_functionality = _v(attributes, 'forestFunctionality')
+        forest_functionality = attributes.get('forestFunctionality', None)
         if not forest_functionality:
             return None
 
@@ -269,11 +265,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        domain_functionality = _v(attributes, 'domainFunctionality')
+        domain_functionality = attributes.get('domainFunctionality', None)
         if not domain_functionality:
             return None
 
@@ -284,11 +280,11 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = _v(rootDSE, 'attributes')
+        attributes = rootDSE.get('attributes', None)
         if not attributes:
             return None
 
-        domain_controller_functionality = _v(attributes, 'domainControllerFunctionality')
+        domain_controller_functionality = attributes.get('domainControllerFunctionality', None)
         if not domain_controller_functionality:
             return None
 
@@ -310,11 +306,11 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return None
 
-        attributes = _v(dchandle.response[0], 'attributes')
+        attributes = dchandle.response[0].get('attributes', None)
         if not attributes:
             return None
 
-        netbiosname = _v(attributes, 'nETBIOSName')
+        netbiosname = attributes.get('nETBIOSName', None)
         if not netbiosname:
             return None
 
@@ -347,7 +343,7 @@ class ActiveDirectory(object):
 
         partitions = []
         for result in dchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 continue
             partitions.append(attributes)
@@ -398,7 +394,7 @@ class ActiveDirectory(object):
 
         domains = []
         for result in gchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 continue
  
@@ -410,7 +406,7 @@ class ActiveDirectory(object):
         haskey = False
         keys = ['netbiosname', 'name', 'cn', 'dn', 'distinguishedname', 'ncname']
         for domain in domains:
-            dn = _v(domain, 'distinguishedName')
+            dn = domain.get('distinguishedName', None)
             if not dn:
                 continue
             dn = dn.strip()
@@ -437,7 +433,7 @@ class ActiveDirectory(object):
                 continue
 
             for result in dchandle.response:
-                attributes = _v(result, 'attributes')
+                attributes = result.get('attributes', None)
                 if not attributes: 
                     continue
 
@@ -472,7 +468,7 @@ class ActiveDirectory(object):
             return subnets
 
         for result in dchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 return subnets
 
@@ -504,7 +500,7 @@ class ActiveDirectory(object):
             return sites
 
         for result in dchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 return sites
 
@@ -529,7 +525,7 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return None
 
-        attributes = _v(dchandle.response[0], 'attributes')
+        attributes = dchandle.response[0].get('attributes', None)
         if not attributes: 
             return None
 
@@ -559,7 +555,7 @@ class ActiveDirectory(object):
             filter_func = kwargs['filter']
 
         for result in dchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 continue
 
@@ -595,7 +591,7 @@ class ActiveDirectory(object):
             filter_func = kwargs['filter']
 
         for result in dchandle.response:
-            attributes = _v(result, 'attributes')
+            attributes = result.get('attributes', None)
             if not attributes: 
                 continue
 
@@ -624,7 +620,7 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return []
 
-        attributes = _v(dchandle.response[0], 'attributes')
+        attributes = dchandle.response[0].get('attributes', None)
         if not attributes: 
             return []
 
@@ -647,7 +643,7 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return []
 
-        attributes = _v(dchandle.response[0], 'attributes')
+        attributes = dchandle.response[0].get('attributes', None)
         if not attributes: 
             return []
 
