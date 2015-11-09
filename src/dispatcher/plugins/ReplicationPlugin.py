@@ -145,8 +145,7 @@ def compress_pipecmds(compression):
 #
 # Attempt to send a snapshot or increamental stream to remote.
 #
-def sendzfs(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle):
-
+def send_dataset(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle):
     zfs = sendzfs.SendZFS()
     zfs.send(remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, 1024*1024, None)
 
@@ -406,9 +405,9 @@ class ReplicateDatasetTask(ProgressTask):
                 ))
 
                 if not action.incremental:
-                    sendzfs(remote, None, action.snapshot, action.localfs, action.remotefs, '', '')
+                    send_dataset(remote, options['remote_hostkey'], None, action.snapshot, action.localfs, action.remotefs, '', 0)
                 else:
-                    sendzfs(remote, action.anchor, action.snapshot, action.localfs, action.remotefs, '', '')
+                    send_dataset(remote, options['remote_hostkey'], action.anchor, action.snapshot, action.localfs, action.remotefs, '', 0)
 
             if action.type == ReplicationActionType.DELETE_DATASET:
                 self.set_progress(progress, 'Removing remote dataset {0}'.format(action.remotefs))
@@ -461,3 +460,5 @@ def _init(dispatcher, plugin):
         dispatcher.configstore.set('replication.key.private', key.exportKey('PEM'))
         pubkey = key.publickey()
         dispatcher.configstore.set('replication.key.public', pubkey.exportKey('OpenSSH'))
+
+    dispatcher.call_sync('etcd.generation.generate_group', 'replication')
