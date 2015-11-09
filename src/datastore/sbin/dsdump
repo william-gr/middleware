@@ -89,7 +89,7 @@ def main():
     args = parser.parse_args()
     init_datastore(args.c)
 
-    types = args.t.split(',')
+    types = list(filter(None, args.t.split(',')))
     result = []
 
     if 'all' in args.collections:
@@ -97,7 +97,7 @@ def main():
 
     for cname in args.collections:
         attrs = ds.collection_get_attrs(cname)
-        if 'type' in attrs.keys() and attrs['type'] not in types:
+        if types and 'type' in attrs.keys() and attrs['type'] not in types:
             continue
 
         result.append(dump_collection(ds, cname))
