@@ -125,14 +125,14 @@ class Migration(SchemaMigration):
                 aliases.append({
                     'type': 'INET',
                     'address': str(i.int_ipv4address),
-                    'prefixlen': int(i.int_v4netmaskbit)
+                    'netmask': int(i.int_v4netmaskbit)
                 })
 
             if i.int_ipv6address:
                 aliases.append({
                     'type': 'INET6',
                     'address': str(i.int_ipv6address),
-                    'prefixlen': int(i.int_v6netmaskbit)
+                    'netmask': int(i.int_v6netmaskbit)
                 })
 
             for alias in i.alias_set.all():
@@ -140,14 +140,14 @@ class Migration(SchemaMigration):
                     aliases.append({
                         'type': 'INET',
                         'address': str(alias.alias_v4address),
-                        'prefixlen': int(alias.alias_v4netmaskbit)
+                        'netmask': int(alias.alias_v4netmaskbit)
                     })
 
                 if alias.alias_v6address:
                     aliases.append({
                         'type': 'INET6',
                         'address': str(alias.alias_v6address),
-                        'prefixlen': int(alias.alias_v6netmaskbit)
+                        'netmask': int(alias.alias_v6netmaskbit)
                     })
 
             m = re.search(r'mtu (\d+)', i.int_options)
