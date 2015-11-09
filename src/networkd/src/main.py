@@ -379,7 +379,7 @@ class ConfigurationService(RpcService):
 
         self.configure_routes()
         self.configure_dns()
-        self.client.call_sync('service.restart', 'rtsold')
+        self.client.call_sync('services.restart', 'rtsold')
         self.client.emit_event('network.changed', {
             'operation': 'update'
         })
