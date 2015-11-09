@@ -9,6 +9,7 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS middleware daemon
 
+BUILD_DEPENDS=	cython>0:${PORTSDIR}/lang/cython
 RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh \
 		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil \
@@ -26,8 +27,7 @@ RUN_DEPENDS=	\
 		${PYTHON_PKGNAMEPREFIX}setproctitle>0:${PORTSDIR}/devel/py-setproctitle \
 		${PYTHON_PKGNAMEPREFIX}simplejson>0:${PORTSDIR}/devel/py-simplejson \
 		${PYTHON_PKGNAMEPREFIX}texttable>0:${PORTSDIR}/textproc/py-texttable \
-		${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py \
-		${LOCALBASE}/bin/cython:${PORTSDIR}/lang/cython
+		${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py
 
 USES=		python
 USE_PYTHON=	py3kplist
