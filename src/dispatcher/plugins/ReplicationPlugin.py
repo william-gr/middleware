@@ -255,7 +255,7 @@ class ReplicateDatasetTask(ProgressTask):
         datasets = [localds]
         actions = []
         remote_client = Client()
-        remote_client.connect(options['remote'])
+        remote_client.connect('ws+ssh://{0}'.format(options['remote']))
         remote_client.login_service('replicator')
 
         def is_replicated(snapshot):
