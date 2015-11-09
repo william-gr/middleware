@@ -188,6 +188,7 @@ class CreateISCSITargetTask(Task):
         normalize(target, {
             'description': None,
             'auth_group': 'no-authentication',
+            'poral_group': 'default',
             'extents': []
         })
 
@@ -445,11 +446,7 @@ def _init(dispatcher, plugin):
             'id': {'type': 'string'},
             'tag': {'type': 'integer'},
             'description': {'type': 'string'},
-            'discovery_auth_metod': {
-                'type': 'string',
-                'enum': ['NONE', 'CHAP', 'CHAP_MUTUAL']
-            },
-            'discovery_auth_group': {'type': ['integer', 'null']},
+            'discovery_auth_group': {'type': 'string'},
             'listen': {
                 'type': 'array',
                 'items': {
