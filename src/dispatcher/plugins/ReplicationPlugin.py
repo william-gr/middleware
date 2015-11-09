@@ -237,7 +237,7 @@ class ReplicateDatasetTask(ProgressTask):
 
     def run(self, pool, localds, options, dry_run=False):
         remote = options['remote']
-        remoteds = options['remotefs']
+        remoteds = options['remote_dataset']
         followdelete = options.get('followdelete', False)
         recursive = options.get('recursive', False)
         lifetime = options.get('lifetime', '1y')
