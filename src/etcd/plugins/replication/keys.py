@@ -46,6 +46,7 @@ def run(context):
     os.chmod(private_key_file, 0o600)
 
     with open(public_key_file, 'w') as fd:
+        fd.write('ssh-rsa ')
         fd.write(public_key)
 
     context.emit_event('etcd.file_generated', {
