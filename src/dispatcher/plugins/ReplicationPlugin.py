@@ -27,13 +27,14 @@
 
 import enum
 import os
+import io
 import errno
 import re
 import logging
 import subprocess
 import tempfile
 import paramiko
-from Crypto.PublicKey import RSA
+from paramiko import RSAKey
 from datetime import datetime
 from dateutil.parser import parse as parse_datetime
 from task import Provider, Task, ProgressTask, VerifyException, TaskException
@@ -456,9 +457,10 @@ def _init(dispatcher, plugin):
 
     # Generate replication key pair on first run
     if not dispatcher.configstore.get('replication.key.private'):
-        key = RSA.generate(2048)
-        dispatcher.configstore.set('replication.key.private', key.exportKey('PEM'))
-        pubkey = key.publickey()
-        dispatcher.configstore.set('replication.key.public', pubkey.exportKey('OpenSSH'))
+        key = RSAKey.generate(bits=2048)
+        buffer = io.StringIO()
+        key.write_private_key(buffer)
+        dispatcher.configstore.set('replication.key.private', buffer.getvalue())
+        dispatcher.configstore.set('replication.key.public', key.get_base64())
 
     dispatcher.call_sync('etcd.generation.generate_group', 'replication')
