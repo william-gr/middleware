@@ -136,13 +136,27 @@ class ServicesTest(BaseTestCase):
     	'''
         Tests that the afp service 
         restart and configure working. 
-        Not a functional test, 
+        Not a functional test, yet
+        TODO: check on server side?
+        {
+           "enable": false,
+           "v3_password": "abcd1234",
+           "community": "public",
+           "v3": false,
+           "location": null,
+           "v3_auth_type": "SHA",
+           "auxiliary": null,
+           "v3_privacy_protocol": "AES",
+           "v3_username": null,
+           "v3_privacy_passphrase": "abcd1234",
+           "contact": "nobody"
+        }
     	'''
     	sname = inspect.stack()[0][3].split('_')[-1]
         if not self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
         self.assertTaskCompletion(self.submitTask('service.configure', sname, \
-    		{'contact': 'nobody', 'v3_password': 'abcd1234', 'v3_privacy_passphrase': 'abcd1234'}))	
+    		{'enable': True, 'contact': 'nobody', 'v3_password': 'abcd1234', 'v3_privacy_passphrase': 'abcd1234'}))	
 
     ################# CIFS
     def test_start_stop_cifs(self):
@@ -178,7 +192,7 @@ class ServicesTest(BaseTestCase):
     		{"zeroconf": False, 'log_level': 'mininum', 'netbiosname': ['freenas']}))
 	
     
-############# riak
+############# riak_cs
     def test_start_stop_riak_cs(self):
     	#sname = inspect.stack()[0][3].split('_')[-1]
     	if self.isRunning('riak_cs'): 
@@ -191,6 +205,39 @@ class ServicesTest(BaseTestCase):
     	if not self.isRunning('riak_cs'):
            self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'start')) 
         self.assertTaskCompletion(self.submitTask('service.manage', 'riak_cs', 'restart'))    
+
+    def test_configure_riak_cs(self):
+        pass
+
+
+################# riak
+
+    def test_start_stop_restart_riak(self):
+        sname = inspect.stack()[0][3].split('_')[-1]
+
+        if self.isRunning('riak'):
+            tid = self.submitTask('service.manage', 'riak', 'stop')
+            self.assertTaskCompletion(tid)
+        tid = self.submitTask('service.manage', 'riak', 'start')
+        self.assertTaskCompletion(tid)
+        tid = self.submitTask('service.manage', 'riak', 'restart')
+        self.assertTaskCompletion(tid)
+
+        
+    def test_configure_riak(self):
+         pass
+
+###################  stanchion
+
+    def test_start_stop_stanchion(self):
+        sname  = inspect.stack()[0][3].split('_')[-1]
+        if self.isRunning(sname):
+            tid = self.submitTask('service.manage', sname, 'stop')
+            self.assertTaskCompletion(tid)
+        tid = self.submitTask('service.manage', sname, 'start')
+        self.assertTaskCompletion(tid)
+        tid = self.submitTask('service.manage', sname, 'restart')
+        self.assertTaskCompletion(tid)
 
 ###################### FTP
     def test_start_stop_ftp(self):

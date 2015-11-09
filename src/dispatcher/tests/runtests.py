@@ -3,9 +3,7 @@ import sys
 import os
 import inspect
 import traceback
-
-def getTestBody(method_pypath):
-    return inspect.getsource(method_pypath).split()
+import time
 
 
 loader = unittest.TestLoader()
@@ -19,18 +17,13 @@ complete_list = []
 
 
 for suite in r._tests:
-    #print 'Test in suite ' + str(suite.__dict__)
     for tests in suite._tests:
-        #print dir(tests)
-        #print 'Type of the class in suite ' + str(type(tests))
         if isinstance(tests, list):
             for unit in tests:
-                #print type(unit)
                 complete_list.append(unit)
-        else:
+        
+        elif isinstance(tests, unittest.TestSuite):
             for t in tests._tests:
-                #print dir(t)
-                #print t._testMethodDoc()
                 complete_list.append(t)
 
 r.run(results)
@@ -38,6 +31,9 @@ overall = results.wasSuccessful()
 
 
 # OUTPUT
+
+
+'''
 print '============================='
 print "Total tests discovered:  " + str(r.countTestCases())
 print "Total tests ran: " + str(results.testsRun)
@@ -63,6 +59,7 @@ if not overall:
         print '========================================='
         print  failure[1]
         print '========================================='
+'''
 
 def header(r, results):
     overall = results.wasSuccessful()
@@ -92,6 +89,7 @@ def header(r, results):
         output += '=========================================' + os.linesep    
     return output
 
+print header(r, results)
 #==========================
 # HTML 
 #====================
@@ -101,54 +99,70 @@ failed = {}
 errors = {}
 skipped = {}
 
-logdir = ('htmllogs')
+# HTML LOG DIRECTORY
+if os.getenv("HTML_LOGS"):
+    logdir = os.getenv("HTML_LOGS")
+else:    
+    logdir = ('htmllogs')
 if not os.path.isdir(logdir):
     os.mkdir(logdir)
 
 ##############
 def html_output(results, struct):
+    '''
+    stack traces
+    '''
     for info in results:
         struct[info[0].id()]=info
         doc = HTMLgen.SimpleDocument(title=info[0])
         make_header(info[0].id(), doc)
-
+        
         for line in info[1].split('\n'):
+            #print line
             text = HTMLgen.Text(line)
             doc.append(HTMLgen.Paragraph(text))
         doc.write(os.path.join(logdir, info[0].id()+'.html'))
 
 def make_header(info, doc):
+    '''
+    Report header
+    '''
+    print info
+    text = HTMLgen.Paragraph('Time : %s' % time.strftime('%c'))
+    doc.append(text)
+    text = HTMLgen.Paragraph('Server: %s' % os.getenv('TESTHOST'))
+    doc.append(text)
+    text = HTMLgen.Paragraph('Test Mmodule/Class/Name: %s' % info)
+    doc.append(text)
+    text = HTMLgen.Paragraph('###################')
+    doc.append(text)
 
-    mod = str(info.split('.')[0])
-    
-    obj = __import__(mod)
-    print dir(obj)
-    #import mod
-    name = info
-    #print name
-    body = inspect.getsourcelines(obj)
-    #print body 
-    #(name, suffix, mode, mtype)  = inspect.getmoduleinfo(filename)
-    #print name, suffix, mode, mtype
+    return doc
+
+
 
 def append_to_table(table, test_id, group, text='FAILED'):
+    '''
+    hyperlink Reference to error
+    '''
     f = group[test_id]
     filename = test_id + '.html'
     href = HTMLgen.Href(filename, HTMLgen.Text(text))
     l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, '']
     t.body.append(l)
 
-def file_to_html(f_path, html_root):
+def file_to_htmliREMOVE(f_path, html_root):
     '''
-    Generates html file
+    html file
     from a text file
     '''
     doc = HTMLgen.SimpleDocument(title=f_path)
-    lst = HTMLgen.List()
+    lst = HTMLgen.NonBulletList()
+    txt = ''
     if os.path.exists(f_path):
         for line in open(f_path, 'r').readlines():
-            lst.append(line)
-    doc.append(lst)
+            txt +=line
+    doc.append(HTMLgen.Text(txt))
     new_path = os.path.join(html_root, os.path.split(f_path)[1] + '.html')
     doc.write(new_path) 
     return os.path.join(new_path)       
@@ -162,64 +176,81 @@ html_output(results.skipped, skipped)
 # Write the files to html for referral
 def testfiles_to_html(complete_list, html_root):
     '''
-    Constructs test unit-html file structure
+    Construct {test_id: [source file, html file] } structure
     '''
-    modules = []
+    
     units = {}
+    modules = []
+    html_root = os.path.realpath(html_root)
+
     for test in complete_list:
         test_id = test.id()
+        units[test_id] = []
         (module, cls, method) = test_id.split('.')
         testfile = os.path.realpath(module + '.py')
+        htmlfile = os.path.realpath(os.path.join(html_root, module + '.py.html'))
+        units[test_id].append(testfile)
+        units[test_id].append(htmlfile)
         modules.append(testfile)
         
-        
-    module_list = set(modules)
-    for mod in module_list:
-        file_to_html(mod, html_root)
+    modules = set(modules)
+    for mod in modules:
+        pth = txt2html(mod, html_root)
+    return units
+
+def txt2html(py_path, html_root):
+    newpath = os.path.join(html_root, os.path.split(py_path)[1] + '.html')
+    command = 'txt2html --outfile ' + newpath + ' ' + py_path
+    res = os.system(command)
+    if res:
+        raise Exception, "Could not create html file"
+    return newpath
 
 
-
-
+# HTML STRUCTS
 # top report html file
 doc = HTMLgen.SimpleDocument(title="index")
+text = HTMLgen.Text('Test Date: ' + str(time.strftime("%c")))
+doc.append(HTMLgen.Paragraph(text))
+
 
 # table of tests
 t = HTMLgen.Table('Unit Test Run Results')
-h = ['Module', 'Class', 'Method', 'Result', 'Code']
+h = ['Test Locaion/Module', 'Test Class/Group', 'Test Method Name', 'Test Result', 'Source File']
 t.heading = h
+
+# Bookkeeping structure
+units = testfiles_to_html(complete_list, logdir)
 
 # fill in the table
 try:
   for test in complete_list:
     test_id = test.id()
-    #(module, cls, method) = test_id.split('.')
-    #testfile = os.path.realpath(module + '.py')
-    #print testfile
+    srcref = HTMLgen.Href(units[test_id][1], HTMLgen.Text(units[test_id][0]))        
 
     if test_id not in failed.keys() + errors.keys() + skipped.keys():
-        l = [test_id.split('.')[0], test_id.split('.')[1], test_id.split('.')[2], 'OK', '']  
+        l = [test_id.split('.')[0], test_id.split('.')[1], test_id.split('.')[2], 'OK', srcref]  
         t.body.append(l)
         
     elif test_id in failed.keys():
-        #test_id = test.id()
         f = failed[test_id]
         filename = test_id + '.html'
         href = HTMLgen.Href(filename, HTMLgen.Text('FAILED'))
-        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, '']
+        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, srcref]
         t.body.append(l)
 
     elif test.id() in errors.keys():
         f = errors[test_id]
         filename = test_id + '.html'
         href = HTMLgen.Href(filename, HTMLgen.Text('ERROR'))
-        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, '']
+        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, srcref]
         t.body.append(l)
 
     elif test.id() in skipped.keys():
         f = skipped[test_id]
         filename = test_id + '.html'
         href = HTMLgen.Href(filename, HTMLgen.Text('SKIPPED'))
-        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, '']
+        l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, srcref]
         t.body.append(l)    
     
     else:
