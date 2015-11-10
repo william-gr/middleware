@@ -70,7 +70,7 @@ from services import ManagementService, DebugService, EventService, TaskService,
 from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
-from auth import PasswordAuthenticator, TokenStore, Token, TokenException
+from auth import PasswordAuthenticator, TokenStore, Token, TokenException, User, Service
 from fnutils import FaultTolerantLogHandler
 
 
@@ -350,6 +350,7 @@ class Dispatcher(object):
         self.register_event_type('server.client_login')
         self.register_event_type('server.client_logout')
         self.register_event_type('server.service_login')
+        self.register_event_type('server.service_logout')
         self.register_event_type('server.plugin.load_error')
         self.register_event_type('server.plugin.loaded')
         self.register_event_type('server.ready')
@@ -1134,12 +1135,22 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         session['ended-at'] = time.time()
         self.dispatcher.datastore.update('sessions', self.session_id, session)
 
-        self.dispatcher.dispatch_event('server.client_logout', {
-            'address': client_addr,
-            'port': client_port,
-            'username': self.user.name,
-            'description': "Client {0} logged out".format(self.user.name)
-        })
+        if isinstance(self.user, User):
+            self.dispatcher.dispatch_event('server.client_logout', {
+                'address': client_addr,
+                'port': client_port,
+                'username': self.user.name,
+                'description': "Client {0} logged out".format(self.user.name)
+            })
+
+        elif isinstance(self.user, Service):
+            self.dispatcher.dispatch_event('server.service_logout', {
+                'address': client_addr,
+                'port': client_port,
+                'name': self.user.name,
+                'description': "Client {0} logged out".format(self.user.name)
+            })
+
 
     def broadcast_event(self, event, args):
         for i in self.server.connections:
