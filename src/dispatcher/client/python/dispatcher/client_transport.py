@@ -34,6 +34,7 @@ from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
+from ws4py.messaging import BinaryMessage
 
 _debug_log_file = None
 
