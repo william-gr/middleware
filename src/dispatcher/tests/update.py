@@ -96,6 +96,8 @@ class Updater(BaseTestCase):
             tid = self.submitTask('update.update') 
             self.assertTaskCompletion(tid)
             
+            tid = self.submitTask('system.reboot')
+            self.assertTaskCompletion(tid)
             print 'System will reboot...'
             while not self.isUp():
                 time.sleep(10)
