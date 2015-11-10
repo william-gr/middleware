@@ -30,11 +30,15 @@ import errno
 import os
 import random
 import string
+import re
 from task import Provider, Task, TaskException, ValidationException, VerifyException, query
 from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
 from lib.system import SubprocessException, system
 
+
+
+EMAIL_REGEX = r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}\b"
 
 def check_unixname(name):
     """Helper method to check if a given name is a valid unix name
@@ -175,6 +179,14 @@ class UserCreateTask(Task):
 
         if 'full_name' in user and ':' in user['full_name']:
             errors.append(('full_name', errno.EINVAL, 'The character ":" is not allowed'))
+
+        if 'email' in user:
+            if not re.match(EMAIL_REGEX , user['email']):
+                errors.append((
+                    'email',
+                    errno.EINVAL,
+                    "{0} is an invalid email address".format(user['email'])
+                ))
 
         if errors:
             raise ValidationException(errors)
@@ -321,6 +333,14 @@ class UserUpdateTask(Task):
 
         if 'full_name' in updated_fields and ':' in updated_fields['full_name']:
             errors.append(('full_name', errno.EINVAL, 'The character ":" is not allowed'))
+
+        if 'email' in updated_fields:
+            if not re.match(EMAIL_REGEX , updated_fields['email']):
+                errors.append((
+                    'email',
+                    errno.EINVAL,
+                    "{0} is an invalid email address".format(updated_fields['email'])
+                ))
 
         if errors:
             raise ValidationException(errors)
