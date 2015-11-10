@@ -124,7 +124,11 @@ cdef class SendZFS(object):
 
     def zfs_snap_send(self, snap, term_writefd, writefd, fromsnap):
         try:
-            snap.send(writefd, fromsnap)
+            snap.send(writefd, fromname=fromsnap, flags={
+                libzfs.SendFlag.PROGRESS,
+                libzfs.SendFlag.PROPS
+            })
+
         except libzfs.ZFSException:
             self.running = False
             os.write(term_writefd, b'1')
