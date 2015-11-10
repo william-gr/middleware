@@ -155,7 +155,7 @@ cdef class SendZFS(object):
         os.write(term_writefd, b'1')
         os.close(term_writefd)
         self.ssh_proc_exit_code = proc.poll()
-        self.ssh_proc_exit_status = output.decode('utf-8'))
+        self.ssh_proc_exit_status = output.decode('utf-8')
 
     def send(self, remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, buffer_size, metrics_cb):
 
