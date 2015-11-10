@@ -254,8 +254,12 @@ class ReplicateDatasetTask(ProgressTask):
 
         datasets = [localds]
         actions = []
+
+        with open('/etc/replication/key') as f:
+            pkey = RSAKey.from_private_key(f)
+
         remote_client = Client()
-        remote_client.connect('ws+ssh://{0}'.format(options['remote']))
+        remote_client.connect('ws+ssh://{0}'.format(options['remote']), pkey=pkey)
         remote_client.login_service('replicator')
 
         def is_replicated(snapshot):
@@ -393,7 +397,7 @@ class ReplicateDatasetTask(ProgressTask):
                     action.snapshots
                 )
 
-                if result['status'] != 'FINISHED':
+                if result['state'] != 'FINISHED':
                     raise TaskException(errno.EFAULT, 'Failed to destroy snapshots on remote end: {0}'.format(
                         result['error']['message']
                     ))
@@ -406,9 +410,9 @@ class ReplicateDatasetTask(ProgressTask):
                 ))
 
                 if not action.incremental:
-                    send_dataset(remote, options['remote_hostkey'], None, action.snapshot, action.localfs, action.remotefs, '', 0)
+                    send_dataset(remote, options.get('remote_hostkey'), None, action.snapshot, action.localfs, action.remotefs, '', 0)
                 else:
-                    send_dataset(remote, options['remote_hostkey'], action.anchor, action.snapshot, action.localfs, action.remotefs, '', 0)
+                    send_dataset(remote, options.get('remote_hostkey'), action.anchor, action.snapshot, action.localfs, action.remotefs, '', 0)
 
             if action.type == ReplicationActionType.DELETE_DATASET:
                 self.set_progress(progress, 'Removing remote dataset {0}'.format(action.remotefs))
@@ -456,7 +460,7 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('replication.replicate_dataset', ReplicateDatasetTask)
 
     # Generate replication key pair on first run
-    if not dispatcher.configstore.get('replication.key.private'):
+    if not dispatcher.configstore.get('replication.key.private') or not dispatcher.configstore.get('replication.key.public'):
         key = RSAKey.generate(bits=2048)
         buffer = io.StringIO()
         key.write_private_key(buffer)
