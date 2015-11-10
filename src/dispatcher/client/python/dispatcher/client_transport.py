@@ -88,10 +88,6 @@ class ClientTransportBase(with_metaclass(ABCMeta, object)):
         return
 
     @abstractmethod
-    def recv(self):
-        return
-
-    @abstractmethod
     def close(self):
         return
 
@@ -115,8 +111,7 @@ class ClientTransportWS(ClientTransportBase):
                 self.parent.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
-            self.parent.current_message = message
-            self.parent.recv()
+            self.parent.parent.recv(message)
 
     def __init__(self):
         self.parent = None
@@ -125,7 +120,6 @@ class ClientTransportWS(ClientTransportBase):
         self.hostname = None
         self.username = None
         self.port = None
-        self.current_message = None
         self.opened = Event()
 
     def connect(self, url, parent, **kwargs):
@@ -182,9 +176,6 @@ class ClientTransportWS(ClientTransportBase):
             if err.errno == errno.EPIPE:
                 debug_log('Socket is closed. Closing connection')
                 self.close()
-
-    def recv(self):
-        self.parent.recv(self.current_message)
 
     def close(self):
         self.ws.close()
