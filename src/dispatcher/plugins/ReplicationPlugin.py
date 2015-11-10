@@ -119,7 +119,9 @@ class ReplicationAction(object):
             setattr(self, k, v)
 
     def __getstate__(self):
-        return self.__dict__
+        d = dict(self.__dict__)
+        d['type'] = d['type'].name
+        return d
 
 
 #
