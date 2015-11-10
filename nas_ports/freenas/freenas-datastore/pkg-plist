@@ -23,6 +23,7 @@ sbin/dsutil
 sbin/dsdump
 sbin/dsrestore
 sbin/dspasswd
+sbin/dsprinttask
 sbin/dsmigrate
 sbin/dsinit
 @dir /data/freenas.db
