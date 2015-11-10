@@ -137,7 +137,7 @@ class DevdEventSource(EventSource):
 
     def __tokenize(self, line):
         try:
-            return {i.split("=")[0]: i.split("=")[1] for i in line.split()
+            return {i.split("=")[0]: i.split("=")[1] for i in line.split()}
         except IndexError:
             pass
 
