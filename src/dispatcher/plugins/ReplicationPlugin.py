@@ -83,7 +83,7 @@ logger = logging.getLogger(__name__)
 SYSTEM_RE = re.compile('^[^/]+/.system.*')
 AUTOSNAP_RE = re.compile(
     '^(?P<prefix>\w+)-(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})'
-    '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])$'
+    '.(?P<hour>\d{2})(?P<minute>\d{2})-(?P<lifetime>\d+[hdwmy])(-(?P<sequence>\d+))?$'
 )
 SSH_OPTIONS = {
     'NONE': [
@@ -202,6 +202,19 @@ class SnapshotDatasetTask(Task):
         snapshots = list(filter(is_expired, wrap(self.dispatcher.call_sync('zfs.dataset.get_snapshots', dataset))))
         snapname = '{0}-{1:%Y%m%d.%H%M}-{2}'.format(prefix, datetime.now(), lifetime)
         params = {'org.freenas:replicate': {'value': 'yes'}} if replicable else None
+        base_snapname = snapname
+
+        # Pick another name in case snapshot already exists
+        for i in range(1, 99):
+            if self.dispatcher.call_sync(
+                'zfs.snapshot.query',
+                [('name', '=', '{0}@{1}'.format(dataset, snapname))],
+                {'count': True}
+            ):
+                snapname = '{0}-{1}'.format(base_snapname, i)
+                continue
+
+            break
 
         self.join_subtasks(
             self.run_subtask('zfs.create_snapshot', pool, dataset, snapname, recursive, params),
