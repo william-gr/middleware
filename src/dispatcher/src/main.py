@@ -940,6 +940,9 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         client_addr, client_port = self.real_client_address[:2]
         service_name = data['name']
 
+        if client_addr not in ('127.0.0.1', '::1') and not self.has_external_transport:
+            return
+
         self.send_json({
             'namespace': 'rpc',
             'name': 'response',
