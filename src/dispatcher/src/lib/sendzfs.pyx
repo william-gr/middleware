@@ -62,6 +62,8 @@ cdef class SendZFS(object):
     cdef int bytes_avaliable
     cdef int running
     cdef object throttle_buffer
+    cdef int ssh_proc_exit_code
+    cdef object ssh_proc_exit_status
 
     def __init__(self):
         self.zfs = libzfs.ZFS()
@@ -152,8 +154,8 @@ cdef class SendZFS(object):
         proc.wait()
         os.write(term_writefd, b'1')
         os.close(term_writefd)
-        if proc.poll() != 0:
-            raise ChildProcessError(output.decode('utf-8'))
+        self.ssh_proc_exit_code = proc.poll()
+        self.ssh_proc_exit_status = output.decode('utf-8'))
 
     def send(self, remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, buffer_size, metrics_cb):
 
@@ -264,3 +266,6 @@ cdef class SendZFS(object):
 
             self.running = False
             free(self.buffer)
+            check_ssh_stat_thread.join()
+            if self.ssh_proc_exit_code != 0:
+                raise ChildProcessError(self.ssh_proc_exit_status)
