@@ -76,6 +76,11 @@ class DirectoryServiceCreateTask(Task):
         if type not in dstypes:
             raise VerifyException(errno.ENXIO, 'Unknown directory service type {0}'.format(directoryservice[type]))
 
+        directoryservices = self.dispatcher.call_sync('dsd.configuration.get_directory_services')
+        for ds in directoryservices:
+            if ds['type'] == type:
+                raise VerifyException(errno.EEXIST, 'THERE CAN ONLY BE ONE!')
+
         return ['directoryservice']
 
     def run(self, directoryservice):
@@ -161,8 +166,8 @@ class DirectoryServiceConfigureTask(Task):
         what = args[1]
         enable = args[2]
 
-        if what not in ['dcs', 'gcs', 'kdcs', 'hostname', 'hosts', 
-            'kerberos', 'nsswitch', 'openldap', 'nssldap', 'sssd',
+        if what not in ['hostname', 'hosts', 'kerberos',
+            'nsswitch', 'openldap', 'nssldap', 'sssd',
             'samba', 'pam', 'activedirectory', 'ldap']:
             raise VerifyException(errno.ENOENT, 'No such configuration!')
 

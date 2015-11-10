@@ -27,11 +27,14 @@
 #####################################################################
 
 import argparse
+import copy
 import datetime
+import glob
 import imp
 import json
 import logging
 import os
+import smbconf
 import setproctitle
 import socket
 import subprocess
@@ -42,23 +45,23 @@ import time
 import traceback
 
 from datastore import get_datastore, DatastoreException
-from datastore.config import ConfigStore
+from datastore.config import ConfigNode, ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
-
 from fnutils import configure_logging
 from fnutils.debug import DebugService
 
+sys.path.extend(['/usr/local/lib/dsd/src'])
+
+from context import (
+    ActiveDirectoryContext,
+    KerberosContext,
+    LDAPContext
+)
+from module import DSDModule
+
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
-#
-# values we care about for AD
-#
-# the netbios name
-# the group name
-# the machine name
-# the base DN
-#
 
 class DSDConfigurationService(RpcService):
     def __init__(self, context):
@@ -67,14 +70,19 @@ class DSDConfigurationService(RpcService):
         self.config = context.configstore
         self.datastore = context.datastore
         self.client = context.client
-        self.modules = context.modules
-        self.cache = { 
-            'activedirectory': None,
-            'ldap': None
-        }
+        self.module_dir = '/usr/local/lib/dsd/modules'
+        self.modules = {}
+        self.directoryservices = {}
+        self.state = {}
 
-        self.datastore.collection_create(
-            'directoryservices', pkey_type='name')
+        self.load_modules()
+
+        for ds in self.get_supported_directories():
+            self.directoryservices[ds] = None
+        self.load_directoryservices()
+
+        self.directory_context_init()
+        #self.configure_samba(1)
 
     def __cache_empty(self, cache, key):
         if not self.cache[cache]:
@@ -90,10 +98,110 @@ class DSDConfigurationService(RpcService):
         directoryservice[name] = enable
         self.datastore.update('directoryservices', id, directoryservice)
 
+    #
+    # XXX implement proper plugin architecture
+    # XXX for now, direct module class calls
+    #
+    def load_modules(self):
+        for f in glob.glob1(self.module_dir, "*.py"):
+            module_path = "%s/%s" % (self.module_dir, f)
+            self.logger.debug("Loading module %s", module_path)
+
+            try:
+                ds = f.split('.')[0]
+                module = imp.load_source(ds, module_path)
+                instance = module._init(self.client, self.datastore)
+                self.modules[ds] = DSDModule(
+                    self.context,
+                    name=ds,
+                    instance=instance
+                )
+
+            except Exception as e:
+                self.logger.exception("Cannot load module %s", module_path)
+                #self.report_error("Cannot load module %s", module_path)
+
+    def directory_context_init(self):
+        if self.directoryservices.get('activedirectory'):
+            self.activedirectory_context_init()
+
+        if self.directoryservices.get('kerberos'):
+            self.kerberos_context_init()
+
+        if self.directoryservices.get('ldap'):
+            self.ldap_context_init()
+
+    def directory_context_update(self, updated_fields):
+        if self.directoryservices.get('activedirectory'):
+            self.activedirectory_context_update(updated_fields)
+
+        if self.directoryservices.get('kerberos'):
+            self.kerberos_context_update(updated_fields)
+
+        if self.directoryservices.get('ldap'):
+            self.ldap_context_update(updated_fields)
+
+    def directory_context_fini(self):
+        if not self.directoryservices.get('activedirectory'):
+            self.activedirectory_context_finis()
+
+        if not self.directoryservices.get('kerberos'):
+            self.kerberos_context_fini()
+
+        if not self.directoryservices.get('ldap'):
+            self.ldap_context_fini()
+
+    def activedirectory_context_init(self):
+        ds = self.directoryservices['activedirectory']
+
+        self.modules['activedirectory'].context = ActiveDirectoryContext(
+            self.context,
+            ds['domain'],
+            ds['binddn'],
+            ds['bindpw'],
+            self.modules
+        )
+
+        self.modules['activedirectory'].context.context_init()
+
+    def activedirectory_context_update(self, updated_fields):
+        self.modules['activedirectory'].context.context_update(updated_fields)
+
+    def activedirectory_context_fini(self):
+        self.modules['activedirectory'].context.context_fini()
+        self.modules['activedirectory'].context = None
+
+    def kerberos_context_init(self):
+        pass
+
+    def kerberos_context_update(self, updated_fields):
+        self.modules['kerberos'].context.context_update(updated_fields)
+
+    def kerberos_context_fini(self):
+        self.modules['kerberos'].context.context_fini()
+        self.modules['kerberos'].context = None
+
+    def ldap_context_init(self):
+        pass
+
+    def ldap_context_update(self, updated_fields):
+        self.modules['ldap'].context.context_update(updated_fields)
+
+    def ldap_context_fini(self):
+        self.modules['ldap'].context.context_fini()
+        self.modules['ldap'].context = None
+
+    def load_directoryservices(self):
+        self.datastore.collection_create(
+            'directoryservices', pkey_type='name')
+        directoryservices = self.datastore.query('directoryservices')
+        for ds in directoryservices:
+            self.directoryservices[ds['type']] = ds
+
     def get_supported_directories(self):
         supported_directories = []
         for m in self.modules:
-            module = self.modules[m]
+            module = self.modules[m].instance
             if hasattr(module, "get_directory_type"):
                 supported_directories.append(module.get_directory_type())
 
@@ -106,111 +214,62 @@ class DSDConfigurationService(RpcService):
         return self.datastore.query('directoryservices', *args, **kwargs)
 
     def create(self, directoryservice):
-        return self.datastore.insert('directoryservices', directoryservice,
+        res = self.datastore.insert('directoryservices', directoryservice,
             pkey=directoryservice['name'])
+
+        self.load_directoryservices()
+        self.directory_context_init()
+
+        return res
 
     def update(self, id, updated_fields):
         directoryservice = self.datastore.get_by_id('directoryservices', id)
         directoryservice.update(updated_fields)
-        return self.datastore.update('directoryservices', id, directoryservice)
+        res = self.datastore.update('directoryservices', id, directoryservice)
+
+        self.load_directoryservices()
+        self.directory_context_update(updated_fields)
+
+        return res
 
     def delete(self, id):
-        return self.datastore.delete('directoryservices', id)
+        res = self.datastore.delete('directoryservices', id)
+
+        self.load_directoryservices()
+        self.directory_context_fini()
+
+        return res
 
     def verify(self, id):
         return self.datastore.get_by_id('directoryservices', id)
 
-    def configure_dcs(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): id = %s', id)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): directoryservice = %s', directoryservice)
-
-        #
-        # XXX pickle and cache in database, load on start, refresh periodically
-        #
-        ad = self.modules['activedirectory']
-        dcs = ad.get_domain_controllers(directoryservice['domain'])
-
-        if self.__cache_empty('activedirectory', 'dcs'):
-            self.cache['activedirectory'] = {}
-        self.cache['activedirectory']['dcs'] = dcs
-
-    
-        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): dcs = %s', dcs)
-
     def get_dcs(self, id):
         self.logger.debug('DSDConfigurationService.get_dcs(): id = %s', id)
 
-        if self.__cache_empty('activedirectory', 'dcs'):
-            self.configure_dcs(id)
-
         dcs = []
-        if not self.__cache_empty('activedirectory', 'dcs'):
-            dcs = self.cache['activedirectory']['dcs']
+        ad_context = self.modules['activedirectory'].context
+        if ad_context:
+            dcs = ad_context.dcs
 
         return dcs 
-
-    def configure_gcs(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-        self.logger.debug('DSDConfigurationSerivce.configure_gcs(): id = %s', id)
-        #
-        # XXX pickle and cache in database, load on start, refresh periodically
-        #
-        ad = self.modules['activedirectory']
-        gcs = ad.get_global_catalog_servers(directoryservice['domain'])
-
-        if self.__cache_empty('activedirectory', 'gcs'):
-            self.cache['activedirectory'] = {}
-        self.cache['activedirectory']['gcs'] = gcs
-    
-        self.logger.debug('DSDConfigurationSerivce.configure_dcs(): gcs = %s', gcs)
 
     def get_gcs(self, id):
         self.logger.debug('DSDConfigurationService.get_gcs(): id = %s', id)
 
-        if self.__cache_empty('activedirectory', 'gcs'):
-            self.configure_gcs(id)
-
         gcs = []
-        if not self.__cache_empty('activedirectory', 'gcs'):
-            gcs = self.cache['activedirectory']['gcs']
+        ad_context = self.modules['activedirectory'].context
+        if ad_context:
+            gcs = ad_context.gcs
 
         return gcs 
-
-    def configure_kdcs(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): id = %s', id)
-
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): directoryservice = %s', directoryservice)
-
-        #
-        # XXX pickle and cache in database, load on start, refresh periodically
-        #
-        kc = self.modules['kerberos']
-        kdcs = kc.get_kerberos_servers(directoryservice['domain'])
-
-        if self.__cache_empty('activedirectory', 'kdcs'):
-            self.cache['activedirectory'] = {}
-        self.cache['activedirectory']['kdcs'] = kdcs
-
-        if self.__cache_empty('ldap', 'kdcs'):
-            self.cache['ldap'] = {}
-        self.cache['ldap']['kdcs'] = kdcs
-    
-        self.logger.debug('DSDConfigurationSerivce.configure_kdcs(): kdcs = %s', kdcs)
 
     def get_kdcs(self, id):
         self.logger.debug('DSDConfigurationService.get_kdcs(): id = %s', id)
 
-        if self.__cache_empty('activedirectory', 'kdcs'):
-            self.configure_kdcs(id)
-
         kdcs = []
-        if not self.__cache_empty('activedirectory', 'kdcs'):
-            kdcs = self.cache['activedirectory']['kdcs']
+        ad_context = self.modules['activedirectory'].context
+        if ad_context:
+            kdcs = ad_context.kdcs
 
         return kdcs
 
@@ -238,7 +297,7 @@ class DSDConfigurationService(RpcService):
         binddn = directoryservice['binddn'].split('@')[0]
         bindpw = directoryservice['bindpw']
 
-        kc = self.modules['kerberos']
+        kc = self.modules['kerberos'].instance
         kc.get_ticket(realm, binddn, bindpw)
 
     def configure_nsswitch(self, id, enable=True):
@@ -261,10 +320,56 @@ class DSDConfigurationService(RpcService):
         self.__toggle_enable(id, 'configure_sssd', enable)
         self.client.call_sync('etcd.generation.generate_group', 'sssd')
 
+    # XXX Fucking Samba...
     def configure_samba(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_samba()')
-        self.__toggle_enable(id, 'configure_samba', enable)
+        #self.logger.debug('DSDConfigurationSerivce.configure_samba()')
+        #self.__toggle_enable(id, 'configure_samba', enable)
         #self.client.call_sync('etcd.generation.generate_group', 'samba')
+
+        ad_context = self.modules['activedirectory'].context
+        if not ad_context:
+            return False
+
+        # beat me with a horse dildo please
+        node = ConfigNode('service.cifs',
+            ConfigStore(self.datastore)).__getstate__()
+        self.logger.debug("XXX: NODE = %s", node)
+
+        conf = smbconf.SambaConfig('registry')
+        #self.state['samba'] = copy.deepcopy(conf)
+
+        conf['idmap config *: backend'] = 'tdb'
+        conf['idmap config *: range'] = '90000001-100000000'
+
+        conf['server role'] = 'member server'
+        conf['local master'] = 'no'
+        conf['domain master'] = 'no'
+        conf['preferred master'] = 'no'
+        conf['domain logons'] = 'no'
+
+        conf['workgroup'] = ad_context.netbiosname
+        conf['realm'] = ad_context.realm
+        conf['security'] = 'ads'
+
+        conf['winbind cache time'] = '7200'
+        conf['winbind offline logon'] = 'yes'
+        conf['winbind enum users'] = 'yes'
+        conf['winbind enum groups'] = 'yes'
+        conf['winbind nested groups'] = 'yes'
+        conf['winbind use default domain'] = 'yes'
+        conf['winbind refresh tickets'] = 'yes'
+
+        conf['idmap config %s: backend' % ad_context.netbiosname] = 'rid'
+        conf['idmap config %s: range' % ad_context.netbiosname] = '10000-90000000'
+
+        conf['client use spnego'] = 'yes'
+        conf['allow trusted domains'] = 'no'
+        conf['client ldap sasl wrapping'] = 'plain'
+        conf['template shell'] = '/bin/sh'
+        conf['template homedir'] = '/home/%U'
+
+        #conf = copy.deepcopy(self.state['samba'])
+
 
     def join_activedirectory(self, id):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
@@ -286,9 +391,13 @@ class DSDConfigurationService(RpcService):
 
     def enable(self, id):
         self.logger.debug('DSDConfigurationSerivce.enable()')
+        self.__toggle_enable(id, 'enable', True)
+        self.load_directoryservices()
 
     def disable(self, id):
         self.logger.debug('DSDConfigurationSerivce.disable()')
+        self.__toggle_enable(id, 'enable', False)
+        self.load_directoryservices()
 
 
 class Main(object):
@@ -297,9 +406,6 @@ class Main(object):
         self.client = None
         self.datastore = None
         self.configstore = None
-        self.rstock_thread = None
-        self.module_dir = '/usr/local/lib/dsd/modules'
-        self.modules = {}
         self.logger = logging.getLogger('dsd')
 
     def parse_config(self, filename):
@@ -379,23 +485,6 @@ class Main(object):
         except:
             pass
 
-    #
-    # XXX implement proper plugin architecture
-    # XXX for now, direct module class calls
-    #
-    def init_directory_service_modules(self):
-        directoryservices = [ 'activedirectory', 'ldap', 'kerberos' ]
-        for ds in directoryservices:
-            try:
-                module_path = "%s/%s.py" % (self.module_dir, ds)
-                self.logger.debug("Loading module %s", module_path)
-                module = imp.load_source(ds, module_path)
-                self.modules[ds] = module._init(self.client, self.datastore)
-
-            except Exception as e:
-                self.logger.exception("Cannot load module %s", module)
-                self.report_error("Cannot load module %s", module) 
-
     def main(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Middleware config file')
@@ -405,7 +494,6 @@ class Main(object):
         self.parse_config(args.c)
         self.init_datastore()
         self.init_dispatcher()
-        self.init_directory_service_modules() 
         self.client.resume_service('dsd.configuration')
         self.logger.info('Started')
         self.client.wait_forever()

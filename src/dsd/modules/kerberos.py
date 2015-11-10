@@ -64,7 +64,12 @@ class Kerberos(object):
         if site:
             host = "_kerberos._tcp.%s._sites.%s" % (site, domain)
             
+        logger.debug("get_kerberos_servers: host = %s", host)
         kdcs = self.dsdns.get_SRV_records(host)
+
+        for kdc in kdcs:
+            logger.debug("get_kerberos_servers: found %s", kdc)
+
         return kdcs
 
     def get_kerberos_domain_controllers(self, domain, site=None):
@@ -76,7 +81,12 @@ class Kerberos(object):
         if site:
             host = "_kerberos._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
 
+        logger.debug("get_kerberos_domain_controllers: host = %s", host)
         kdcs = self.dsdns.get_SRV_records(host)
+
+        for kdc in kdcs:
+            logger.debug("get_kerberos_domain_controllers: found %s", kdc)
+
         return kdcs
 
     def get_kpasswd_servers(self, domain):
@@ -85,8 +95,13 @@ class Kerberos(object):
             return kpws
 
         host = "_kpasswd._tcp.%s" % domain
+        logger.debug("get_kpasswd_servers: host = %s", host)
 
         kpws = self.dsdns.get_SRV_records(host)
+
+        for kpw in kpws:
+            logger.debug("get_kpasswd_servers: found %s", kpwd)
+
         return kpws
 
     def cache_has_ticket(self):

@@ -70,7 +70,6 @@ GROUP_TYPE_APP_BASIC_GROUP     = 0x00000010
 GROUP_TYPE_APP_QUERY_GROUP     = 0x00000020
 GROUP_TYPE_SECURITY_ENABLED    = 0x80000000
 
-
 class ActiveDirectory(object):
     class ActiveDirectoryHandle(object):
         def __init__(self, host, binddn, bindpw):
@@ -137,7 +136,12 @@ class ActiveDirectory(object):
         if site:
             host = "_ldap._tcp.%s._sites.%s" % (site, domain)
 
+        logger.debug("get_ldap_servers: host = %s", host)
         dcs = self.dsdns.get_SRV_records(host)
+
+        for dc in dcs:
+            logger.debug("get_ldap_servers: found %s", dc)
+
         return dcs
 
     def get_domain_controllers(self, domain, site=None):
@@ -149,7 +153,12 @@ class ActiveDirectory(object):
         if site:
             host = "_ldap._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
 
+        logger.debug("get_domain_controllers: host = %s", host)
         dcs = self.dsdns.get_SRV_records(host)
+
+        for dc in dcs:
+            logger.debug("get_domain_controllers: found %s", dc)
+
         return dcs
 
     def get_primary_domain_controllers(self, domain):
@@ -159,7 +168,12 @@ class ActiveDirectory(object):
 
         host = "_ldap._tcp.pdc._msdcs.%s"
 
+        logger.debug("get_primary_domain_controllers: host = %s", host)
         pdcs = self.dsdns.get_SRV_records(host)
+
+        for pdc in pdcs:
+            logger.debug("get_primary_domain_controllers: found %s", pdc)
+
         return pdcs
 
     def get_global_catalog_servers(self, domain, site=None):
@@ -171,7 +185,12 @@ class ActiveDirectory(object):
         if site:
             host = "_gc._tcp.%s._sites.%s" % (site, domain)
 
+        logger.debug("get_global_catalog_servers: host = %s", host)
         gcs = self.dsdns.get_SRV_records(host)
+
+        for gc in gcs:
+            logger.debug("get_global_catalog_servers: found %s", gc)
+
         return gcs
 
     def get_forest_global_catalog_servers(self, forest, site=None):
@@ -183,7 +202,12 @@ class ActiveDirectory(object):
         if site:
             host = "_ldap._tcp.%s._sites.gc._msdcs.%s" % (site, forest)
 
+        logger.debug("get_forest_global_catalog_servers: host = %s", host)
         fgcs = self.dsdns.get_SRV_records(host)
+
+        for fgc in fgcs:
+            logger.debug("get_forest_global_catalog_servers: found %s", fgc)
+
         return fgcs
 
     def get_rootDSE(self, handle):
@@ -198,7 +222,8 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return None
 
-        return dchandle.response[0]
+        rootDSE = dchandle.response[0]
+        return rootDSE
 
     def get_rootDN(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -213,7 +238,10 @@ class ActiveDirectory(object):
         if not rootDN:
             return None
 
-        return rootDN[0].strip()
+        rootDN = rootDN[0].strip()
+        logger.debug("get_rootDN: rootDN = %s", rootDN)
+
+        return rootDN
         
     def get_baseDN(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -228,7 +256,10 @@ class ActiveDirectory(object):
         if not baseDN:
             return None
 
-        return baseDN[0].strip()
+        baseDN = baseDN[0].strip()
+        logger.debug("get_baseDN: baseDN = %s", baseDN)
+
+        return baseDN
 
     def get_configurationDN(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -243,7 +274,10 @@ class ActiveDirectory(object):
         if not configurationDN:
             return None
 
-        return configurationDN[0].strip()
+        configurationDN = configurationDN[0].strip()
+        logger.debug("get_configurationDN: configurationDN = %s", configurationDN)
+
+        return configurationDN
 
     def get_forest_functionality(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -258,7 +292,10 @@ class ActiveDirectory(object):
         if not forest_functionality:
             return None
 
-        return int(forest_functionality[0].strip())
+        forest_functionality = int(forest_functionality[0].strip())
+        logger.debug("get_forest_functionality: forest_functionality = %d", forest_functionality)
+
+        return forest_functionality
 
     def get_domain_functionality(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -273,7 +310,10 @@ class ActiveDirectory(object):
         if not domain_functionality:
             return None
 
-        return int(domain_functionality[0].strip())
+        domain_functionality = int(domain_functionality[0].strip())
+        logger.debug("get_domain_functionality: domain_functionality = %d", domain_functionality)
+
+        return domain_functionality
 
     def get_domain_controller_functionality(self, handle):
         rootDSE = self.get_rootDSE(handle)
@@ -288,7 +328,10 @@ class ActiveDirectory(object):
         if not domain_controller_functionality:
             return None
 
-        return int(domain_controller_functionality[0].strip())
+        domain_controller_functionality = int(domain_controller_functionality[0].strip())
+        logger.debug("get_domain_controller_functionality: domain_controller_functionality = %d", domain_controller_functionality)
+
+        return domain_controller_functionality
 
     def get_domain_netbiosname(self, handle):
         dchandle = handle.dchandle
@@ -296,7 +339,9 @@ class ActiveDirectory(object):
         baseDN = self.get_baseDN(handle)
         configurationDN = self.get_configurationDN(handle)
 
-        filter = "(&(objectcategory=crossref)(nCName=%s))" % baseDN.encode('utf-8')
+        filter = "(&(objectcategory=crossref)(nCName=%s))" % baseDN
+        logger.debug("get_domain_netbiosname: filter = %s", filter)
+
         dchandle.search(configurationDN,
             filter,
             search_scope=ldap3.SUBTREE,
@@ -314,7 +359,10 @@ class ActiveDirectory(object):
         if not netbiosname:
             return None
 
-        return netbiosname.strip()
+        netbiosname = netbiosname.strip()
+        logger.debug("get_domain_netbiosname: netbiosname = %s", netbiosname)
+
+        return netbiosname
 
     def get_partitions(self, handle, **kwargs):
         dchandle = handle.dchandle
@@ -326,11 +374,13 @@ class ActiveDirectory(object):
         keys = ['netbiosname', 'name', 'cn', 'dn', 'distinguishedname', 'ncname']
         for k in keys:
             if kwargs.has_key(k) and kwargs[k]:
-                filter = "(%s=%s)" % (k, kwargs[k].encode('utf-8'))
+                filter = "(%s=%s)" % (k, kwargs[k])
                 break
 
         if filter is None:
             filter = "(cn=*)"
+
+        logger.debug("get_partitions: filter = %s", filter)
 
         dchandle.search(baseDN,
             filter, 
@@ -363,7 +413,10 @@ class ActiveDirectory(object):
         except: 
             return None
 
-        return domain.strip()
+        domain = domain.strip()
+        logger.debug("get_root_domain: domain = %s", domain)
+
+        return domain
 
     def get_domain(self, handle, **kwargs):
         partitions = self.get_partitions(handle, **kwargs)
@@ -377,7 +430,10 @@ class ActiveDirectory(object):
         except:
             return None
 
-        return domain.strip()
+        domain = domain.strip()
+        logger.debug("get_domain: domain = %s", domain)
+
+        return domain
 
     def get_domains(self, handle, **kwargs):
         dchandle = handle.dchandle
@@ -416,11 +472,13 @@ class ActiveDirectory(object):
                 haskey = True
                 for k in keys: 
                     if kwargs.has_key(k) and kwargs[k]:
-                        filter = "(&(objectcategory=crossref)(%s=%s))" % (k, kwargs[k].encode('utf-8'))
+                        filter = "(&(objectcategory=crossref)(%s=%s))" % (k, kwargs[k])
                         break
 
             if filter is None:
-                filter = "(&(objectcategory=crossref)(nCName=%s))" % dn.encode('utf-8')
+                filter = "(&(objectcategory=crossref)(nCName=%s))" % dn
+
+            logger.debug("get_domains: filter = %s", filter)
 
             dchandle.search(
                 configurationDN,
@@ -448,15 +506,17 @@ class ActiveDirectory(object):
         dchandle = handle.dchandle
 
         configurationDN = self.get_configurationDN(handle)
-        baseDN = "CN=Subnets,CN=Sites,%s" % configurationDN.encode('utf-8')
+        baseDN = "CN=Subnets,CN=Sites,%s" % configurationDN
         filter = '(objectClass=subnet)'
 
         keys = ['distinguishedname', 'cn', 'name', 'siteobjectbl']
         for k in keys:
             if kwargs.has_key(k) and kwargs[k]:
-                filter = "(&%s(%s=%s))" % (filter, k, kwargs[k].encode('utf-8'))
+                filter = "(&%s(%s=%s))" % (filter, k, kwargs[k])
 
         subnets = []
+        logger.debug("get_subnets: filter = %s", filter)
+
         dchandle.search(
             configurationDN,
             filter,
@@ -480,15 +540,17 @@ class ActiveDirectory(object):
         dchandle = handle.dchandle
 
         configurationDN = self.get_configurationDN(handle)
-        baseDN = "CN=Sites,%s" % configurationDN.encode('utf-8')
+        baseDN = "CN=Sites,%s" % configurationDN
         filter = '(objectClass=site)'
 
         keys = ['distinguishedname', 'cn', 'name', 'siteobjectbl']
         for k in keys:
             if kwargs.has_key(k) and kwargs[k]:
-                filter = "(&%s(%s=%s))" % (filter, k, kwargs[k].encode('utf-8'))
+                filter = "(&%s(%s=%s))" % (filter, k, kwargs[k])
 
         sites = []
+        logger.debug("get_sites: filter = %s", filter)
+
         dchandle.search(
             configurationDN,
             filter,
@@ -513,7 +575,9 @@ class ActiveDirectory(object):
 
         hostname = hostname.split('.')[0]
         baseDN = self.get_baseDN(handle) 
-        filter = '(&(objectClass=computer)(sAMAccountName=%s$))' % hostname.encode('utf-8')
+
+        filter = '(&(objectClass=computer)(sAMAccountName=%s$))' % hostname
+        logger.debug("get_machine_account: filter = %s", filter)
 
         dchandle.search(
             baseDN,
@@ -536,6 +600,7 @@ class ActiveDirectory(object):
 
         baseDN = self.get_baseDN(handle) 
         filter = '(&(|(objectclass=user)(objectclass=person))(sAMAccountName=*))'
+        logger.debug("get_users: filter = %s", filter)
 
         dchandle.search(
             baseDN,
@@ -572,6 +637,7 @@ class ActiveDirectory(object):
 
         baseDN = self.get_baseDN(handle) 
         filter = '(&(objectclass=group)(sAMAccountName=*))'
+        logger.debug("get_groups: filter = %s", filter)
 
         dchandle.search(
             baseDN,
@@ -608,7 +674,8 @@ class ActiveDirectory(object):
 
         baseDN = self.get_baseDN(handle)
         filter = '(&(|(objectclass=user)(objectclass=person))' \
-            '(sAMAccountName=%s))' % user.encode('utf-8')
+            '(sAMAccountName=%s))' % user
+        logger.debug("get_user: filter = %s", filter)
 
         dchandle.search(
             baseDN,
@@ -630,8 +697,8 @@ class ActiveDirectory(object):
         dchandle = handle.dchandle
 
         baseDN = self.get_baseDN(handle)
-        filter = '(&(objectclass=group)(sAMAccountName=%s))' % \
-            group.encode('utf-8')
+        filter = '(&(objectclass=group)(sAMAccountName=%s))' % group
+        logger.debug("get_group: filter = %s", filter)
 
         dchandle.search(
             baseDN,
@@ -654,18 +721,24 @@ class ActiveDirectory(object):
         if not user: 
             return None
 
-        return user['distinguishedName'].strip()
+        userDN = user['distinguishedName'].strip()
+        logger.debug("get_userDN: userDN = %s", userDN)
+
+        return userDN
 
     def get_groupDN(self, handle, group):
         group = self.get_group(handle, group)
         if not group: 
             return None
 
-        return group['distinguishedName'].strip()
+        groupDN = group['distinguishedName'].strip()
+        logger.debug("get_groupDN: groupDN = %s", groupDN)
+
+        return groupDN
 
 
 def _init(dispatcher, datastore):
     return ActiveDirectory(
         dispatcher=dispatcher,
         datastore=datastore
-    ) 
+    )
