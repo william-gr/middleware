@@ -33,6 +33,8 @@ import tempfile
 import errno
 import time
 import cython
+import select
+import fcntl
 from libc.stdlib cimport malloc, free
 
 cdef extern from "sys/types.h":
@@ -87,28 +89,45 @@ cdef class SendZFS(object):
         return ret
 
     @staticmethod
-    cdef int write_fd(int fd, uint8_t *buf, int nbytes):
+    cdef int write_fd(int fd, uint8_t *buf, int nbytes, int term_readfd):
         cdef int ret
         cdef int done = 0
 
-        while done < nbytes:
-            try:
-                with nogil:
-                    ret = write(fd, <uint8_t *>(buf + done), nbytes - done)
-            except IOError as e:
-                if e.errno == errno.EINTR or e.errno == errno.EAGAIN:
-                    continue
-                elif e.errno == errno.EPIPE or e.errno == errno.EINVAL:
+        try:
+            while True:
+                input = [term_readfd]
+                output = [fd]
+                inputready,outputready,exceptready = select.select(input, output, [])
+
+                if outputready:
+                    try:
+                        with nogil:
+                            ret = write(fd, <uint8_t *>(buf + done), nbytes - done)
+                    except IOError as e:
+                        if e.errno == errno.EINTR or e.errno == errno.EAGAIN:
+                            continue
+                        elif e.errno == errno.EPIPE or e.errno == errno.EINVAL:
+                            return -1
+                        else:
+                            raise
+
+                    done += ret
+
+                    if done == nbytes:
+                        return done
+                if inputready:
                     return -1
-                else:
-                    raise
+        except OSError:
+            return -1
 
-            done += ret
-
-        return done
-
-    def zfs_snap_send(self, snap, writefd, fromsnap):
-        snap.send(writefd, fromsnap)
+    def zfs_snap_send(self, snap, term_writefd, writefd, fromsnap):
+        try:
+            snap.send(writefd, fromsnap)
+        except libzfs.ZFSException:
+            self.running = False
+            os.write(term_writefd, b'1')
+            os.close(term_writefd)
+            raise
         os.close(writefd)
 
     def throttle_timer(self):
@@ -120,6 +139,22 @@ cdef class SendZFS(object):
             self.bytes_avaliable = 0
             self.throttle = 0
 
+    def check_ssh_output(self, term_writefd, ssh_writefd, proc):
+        output = b''
+        while True:
+            newline = proc.stdout.readline()
+            if newline == b'':
+                break
+            output += newline
+        self.running = False
+        os.close(ssh_writefd)
+        proc.stdout.close()
+        proc.wait()
+        os.write(term_writefd, b'1')
+        os.close(term_writefd)
+        if proc.poll() != 0:
+            raise ChildProcessError(output.decode('utf-8'))
+
     def send(self, remote, hostkey, fromsnap, tosnap, dataset, remotefs, compression, throttle, buffer_size, metrics_cb):
 
         self.buffer = <uint8_t *>malloc(buffer_size * sizeof(uint8_t))
@@ -128,33 +163,55 @@ cdef class SendZFS(object):
         self.throttle = throttle
         snap = self.zfs.get_snapshot('%s@%s' % (dataset, tosnap))
 
+        term_readfd, term_writefd = os.pipe()
+
         zfs_readfd, zfs_writefd = os.pipe()
-        snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, zfs_writefd, fromsnap))
+        snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, term_writefd, zfs_writefd, fromsnap))
         snap_send_thread.setDaemon(True)
         snap_send_thread.start()
 
         with tempfile.NamedTemporaryFile('w') as hostsfile:
-            hostsfile.write(hostkey)
-            hostsfile.flush()
+
+            if hostkey is None:
+                h_file = '/dev/null'
+                h_check = 'no'
+            else:
+                hostsfile.write(hostkey)
+                hostsfile.flush()
+                h_file = hostsfile.name
+                h_check = 'yes'
 
             sshcmd = '/usr/bin/ssh -i /etc/replication/key -o BatchMode=yes' \
                 ' -o UserKnownHostsFile=%s' \
-                ' -o StrictHostKeyChecking=yes' \
-                ' -o ConnectTimeout=7 %s ' % (hostsfile.name, remote)
+                ' -o StrictHostKeyChecking=%s' \
+                ' -o ConnectTimeout=7 %s ' % (h_file, h_check, remote)
 
             replcmd = '%s/sbin/zfs receive -F \'%s\'' % (sshcmd, remotefs)
 
             ssh_readfd, ssh_writefd = os.pipe()
-            replproc = subprocess.Popen(
-                replcmd,
-                shell=True,
-                stdin=ssh_readfd,
-            )
+            fl = fcntl.fcntl(ssh_writefd, fcntl.F_GETFL)
+            fcntl.fcntl(ssh_writefd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
-            self.running = True
+            try:
+                replproc = subprocess.Popen(
+                    replcmd,
+                    shell=True,
+                    stdin=ssh_readfd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+                self.running = True
+            except (OSError, ValueError):
+                self.running = False
+                raise
+
             throttle_thread = threading.Thread(target=self.throttle_timer)
             throttle_thread.setDaemon(True)
             throttle_thread.start()
+
+            check_ssh_stat_thread = threading.Thread(target=self.check_ssh_output,
+                                                    args=(term_writefd, ssh_writefd, replproc))
+            check_ssh_stat_thread.start()
 
             while self.running:
                 if self.throttle:
@@ -172,7 +229,7 @@ cdef class SendZFS(object):
                         self.bytes_avaliable -= read_size
                         self.buffer_position += read_size
                     elif read_size == 0:
-                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
+                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position, term_readfd)
                         if write_size == -1:
                             self.running = False
                             break
@@ -182,7 +239,7 @@ cdef class SendZFS(object):
                         break
 
                     if self.buffer_position == buffer_size:
-                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
+                        write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position, term_readfd)
                         if write_size == -1:
                             self.running = False
                             break
@@ -190,7 +247,7 @@ cdef class SendZFS(object):
                         if metrics_cb:
                             metrics_cb(write_size)
                 else:
-                    write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position)
+                    write_size = SendZFS.write_fd(ssh_writefd, self.buffer, self.buffer_position, term_readfd)
                     if write_size == -1:
                         self.running = False
                         break
@@ -200,7 +257,5 @@ cdef class SendZFS(object):
                     self.throttle_buffer.wait()
                     self.throttle_buffer.clear()
 
-            os.close(ssh_writefd)
-            replproc.wait()
             self.running = False
             free(self.buffer)
