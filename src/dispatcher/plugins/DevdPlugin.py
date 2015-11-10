@@ -136,7 +136,10 @@ class DevdEventSource(EventSource):
         self.register_event_type("fs.zfs.dataset.renamed")
 
     def __tokenize(self, line):
-        return {i.split("=")[0]: i.split("=")[1] for i in line.split()}
+        try:
+            return {i.split("=")[0]: i.split("=")[1] for i in line.split()
+        except IndexError:
+            pass
 
     def __process_devfs(self, args):
         if args["subsystem"] == "CDEV":
@@ -223,6 +226,10 @@ class DevdEventSource(EventSource):
                         raise
 
                     args = self.__tokenize(line[1:].strip())
+                    if not args:
+                        # WTF
+                        continue
+                        
                     if "system" not in args:
                         # WTF
                         continue
