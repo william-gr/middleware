@@ -394,7 +394,7 @@ class ReplicateDatasetTask(ProgressTask):
                     'zfs.delete_multiple_snapshots',
                     action.remotefs.split('/')[0],
                     action.remotefs,
-                    action.snapshots
+                    list(action.snapshots)
                 )
 
                 if result['state'] != 'FINISHED':
