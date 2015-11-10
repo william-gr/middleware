@@ -834,7 +834,7 @@ def zfsprop_schema_creator(**kwargs):
 def _init(dispatcher, plugin):
     def on_pool_create(args):
         guid = args['guid']
-        zpool_sync_resources(dispatcher, args['pool'])
+        zpool_sync_resources(dispatcher, args['pool'], datasets=True)
         dispatcher.dispatch_event('zfs.pool.changed', {
             'operation': 'create',
             'ids': [guid]
