@@ -62,7 +62,7 @@ def call(method, args, server=DEFAULT_SERVER, timeout=DEFAULT_TIMEOUT, j=False):
         sys.exit(e.code)
 
     if result is not None:
-        print(result)
+        json.dump(result, sys.stdout, indent=4)
 
 
 @argh.arg('--server')
