@@ -752,14 +752,17 @@ class CheckFectchUpdateTask(ProgressTask):
             if mail:
                 changelog = self.dispatcher.call_sync('update.obtain_changelog')
                 train = self.dispatcher.call_sync('update.get_config').get('train')
+                mailconfig = self.dispatcher.call_sync('mail.get_config')
 
-                self.dispatcher.call_sync('mail.send', {
-                    'subject': 'Update Available',
-                    'message': 'A new update is available for the {0} train.\n\nChangelog:\n{1}'.format(
-                        train,
-                        '\n'.join(changelog),
-                    ),
-                })
+                # Do a brief check on mail's config (not all exhaustive)
+                if mailconfig['from'].strip() and mailconfig['server'].strip():
+                    self.dispatcher.call_sync('mail.send', {
+                        'subject': 'Update Available',
+                        'message': 'A new update is available for the {0} train.\n\nChangelog:\n{1}'.format(
+                            train,
+                            '\n'.join(changelog),
+                        ),
+                    })
 
             self.set_progress(100, 'Updates successfully Downloaded')
 
