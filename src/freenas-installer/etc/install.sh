@@ -789,7 +789,7 @@ menu_install()
 	if [ -d /tmp/modules ]; then
             for i in `ls /tmp/modules`
             do
-		cp -np /tmp/modules/$i /tmp/data/boot/modules
+		cp -np /tmp/modules/$i /tmp/data/boot/modules || echo "$i already exists as a module, not copying" 1>&2
             done
 	fi
 	if [ -d /tmp/fusionio ]; then
