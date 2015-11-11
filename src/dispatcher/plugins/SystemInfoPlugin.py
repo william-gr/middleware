@@ -43,7 +43,8 @@ from dispatcher.rpc import (
     SchemaHelper as h,
     accepts,
     description,
-    returns
+    returns,
+    private
 )
 from lib.system import SubprocessException, system, system_bg
 from lib.freebsd import get_sysctl
@@ -158,6 +159,12 @@ class SystemGeneralProvider(Provider):
                     ZONEINFO_DIR + '/', '')
                 )
         return result
+
+    @private
+    @accepts(str)
+    @returns(str)
+    def cowsay(self, line):
+        return system('/usr/local/bin/cowsay', line)
 
 
 @description("Provides informations about advanced system settings")
