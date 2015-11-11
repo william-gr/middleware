@@ -14,6 +14,7 @@ Packages to install prior to running the tests:
  sudo pkg install py27-ws4py-0.3.4
  sudo pkg install py27-HTMLgen-2.2.2
  sudo pkg install py27-paramiko-1.15.2
+ sudo pkg install txt2html
  
 
 To run individual tests:

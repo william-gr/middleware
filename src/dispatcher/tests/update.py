@@ -28,6 +28,7 @@
 import unittest
 import subprocess
 import os
+import re
 
 from dispatcher.rpc import RpcException
 from shared import BaseTestCase
@@ -60,23 +61,10 @@ class Updater(BaseTestCase):
         tid = self.submitTask('update.verify')
         self.assertTaskCompletion(tid)
 
-    def isUpOld(self):
-        testhost = os.getenv('TESTHOST')
-        command = 'ping -c 2 ' + testhost
-        command = 'ping -c 2 -a -W 0.1 ' + testhost
-        #try:
-        #    out = subprocess.check_output(command.split())
-        #except subprocess.CalledProcessError, data:
-        res = os.system(command)
-        if res:
-            return False
-        else:
-            print 'OK'
-            return True    
-
     def isUp(self):
         msg = re.compile('Connection refused')
         try:
+            print 'Calling a query'
             res = self.conn.call_sync('volumes.query')
         except Exception, data:
             print data
@@ -96,8 +84,7 @@ class Updater(BaseTestCase):
         self.assertTaskCompletion(tid)
         train = self.conn.call_sync('update.get_current_train')
         pre_version = self.conn.call_sync('system.info.version')
-        print pre_version
-        max_sleep = 600
+        print 'Version before update ' + str(pre_version)
         if self.conn.call_sync('update.is_update_available'):
             print 'Update available, downloading...'
             tid = self.submitTask('update.download') 
@@ -105,30 +92,14 @@ class Updater(BaseTestCase):
             
             print 'Applying update with following reboot...'
             tid = self.submitTask('update.update', True) 
-            self.assertTaskCompletion(tid)
-            
-            #tid = self.submitTask('system.reboot')
-            #self.assertTaskCompletion(tid)
-            #print 'System will reboot...'
-        while not self.isUp():
-            print "CHeck if system is up"
-            if max_sleep > 0:
-                print 'Wait 10 seconds...'
-                time.sleep(10)
-
-            #max_sleep = max_sleep - 10
-            else: 
-                result = False
-                break
-            max_sleep = max_sleep - 10
-            # DEBUG
+            time.sleep(300)
             print self.conn.call_sync('update.update_info')     
         else:
             print 'No update available at this time...'    
         
         #print 'Verifying system...' 
         post_version = self.conn.call_sync('system.info.version')
-        print post_version
+        print 'Version after update ' + str(post_version)
         self.assertTrue(pre_version.split('-')[-1] <= post_version.split('-')[-1])  
         # disable until fixed
         #tid = self.submitTask('update.verify')
