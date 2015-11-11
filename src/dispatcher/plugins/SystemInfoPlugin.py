@@ -164,7 +164,7 @@ class SystemGeneralProvider(Provider):
     @accepts(str)
     @returns(str)
     def cowsay(self, line):
-        return system('/usr/local/bin/cowsay', line)
+        return system('/usr/local/bin/cowsay', '-s', line)
 
 
 @description("Provides informations about advanced system settings")
