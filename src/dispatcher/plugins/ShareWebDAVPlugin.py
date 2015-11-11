@@ -78,6 +78,7 @@ class UpdateWebDAVShareTask(Task):
         share.update(updated_fields)
         self.datastore.update('shares', name, share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'webdav')
+        self.dispatcher.call_sync('services.reload', 'webdav')
         self.dispatcher.dispatch_event('shares.webdav.changed', {
             'operation': 'update',
             'ids': [name]
