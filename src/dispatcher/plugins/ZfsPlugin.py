@@ -161,6 +161,9 @@ class ZfsDatasetProvider(Provider):
             snaps.sort(key=lambda s: int(s.properties['creation'].rawvalue))
             return snaps
         except libzfs.ZFSException as err:
+            if err.code == libzfs.Error.NOENT:
+                raise RpcException(errno.ENOENT, str(err))
+
             raise RpcException(errno.EFAULT, str(err))
 
     @returns(int)
