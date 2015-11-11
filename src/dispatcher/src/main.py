@@ -43,10 +43,12 @@ import signal
 import time
 import uuid
 import errno
+import socket
 import setproctitle
 import traceback
 import tempfile
 import pty
+import struct
 import termios
 
 import gevent
@@ -770,6 +772,78 @@ class Server(WebSocketServer):
             i.emit_event(event, args)
 
 
+class UnixSocketServer(object):
+    class UnixSocketHandler(object):
+        def __init__(self, server, dispatcher, connfd, address):
+            import types
+            self.dispatcher = dispatcher
+            self.fd = connfd.makefile('rwb')
+            self.address = address
+            self.handler = types.SimpleNamespace()
+            self.handler.client_address = ("unix", 0)
+            self.handler.server = server
+            self.conn = None
+
+        def send(self, message):
+            data = message.encode('utf-8')
+            header = struct.pack('II', 0xdeadbeef, len(data))
+            self.fd.write(header)
+            self.fd.write(data)
+            self.fd.flush()
+
+        def handle_connection(self):
+            self.conn = ServerConnection(self, self.dispatcher)
+            self.conn.on_open()
+
+            while True:
+                header = self.fd.read(8)
+                if header == b'':
+                    break
+
+                print('header len = {0}'.format((len(header))))
+
+                magic, length = struct.unpack('II', header)
+                if magic != 0xdeadbeef:
+                    self.dispatcher.logger.info('Message with wrong magic dropped')
+                    continue
+
+                msg = self.fd.read(length)
+                if msg == b'':
+                    break
+
+                self.conn.on_message(msg)
+
+            self.conn.on_close('Bye bye')
+
+    def __init__(self, path, dispatcher):
+        self.path = path
+        self.dispatcher = dispatcher
+        self.sockfd = None
+        self.backlog = 50
+        self.connections = []
+
+    def broadcast_event(self, event, args):
+        for i in self.connections:
+            i.emit_event(event, args)
+
+    def serve_forever(self):
+        try:
+            if os.path.exists(self.path):
+                os.unlink(self.path)
+
+            self.sockfd = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.sockfd.bind(self.path)
+            self.sockfd.listen(self.backlog)
+
+            while True:
+                fd, addr = self.sockfd.accept()
+                handler = self.UnixSocketHandler(self, self.dispatcher, fd, addr)
+                gevent.spawn(handler.handle_connection)
+
+        except socket.error:
+            pass
+
+
 class ServerConnection(WebSocketApplication, EventEmitter):
     def __init__(self, ws, dispatcher):
         super(ServerConnection, self).__init__(ws)
@@ -940,7 +1014,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
         client_addr, client_port = self.real_client_address[:2]
         service_name = data['name']
 
-        if client_addr not in ('127.0.0.1', '::1') and not self.has_external_transport:
+        if client_addr not in ('127.0.0.1', '::1', 'unix') and not self.has_external_transport:
             return
 
         self.send_json({
@@ -1153,7 +1227,6 @@ class ServerConnection(WebSocketApplication, EventEmitter):
                 'name': self.user.name,
                 'description': "Client {0} logged out".format(self.user.name)
             })
-
 
     def broadcast_event(self, event, args):
         for i in self.server.connections:
@@ -1456,7 +1529,12 @@ def run(d, args):
         '/api': ApiHandler(d)
     }, dispatcher=d), **kwargs)
 
-    d.ws_servers = [s4, s6]
+    su = UnixSocketServer(
+        args.u,
+        dispatcher=d
+    )
+
+    d.ws_servers = [s4, s6, su]
     d.port = args.p
     d.init()
 
@@ -1474,7 +1552,7 @@ def run(d, args):
 
         logging.info('Frontend server listening on port %d', args.s)
 
-    serv_threads = [gevent.spawn(s4.serve_forever), gevent.spawn(s6.serve_forever)]
+    serv_threads = [gevent.spawn(s4.serve_forever), gevent.spawn(s6.serve_forever), gevent.spawn(su.serve_forever)]
 
     d.discover_plugins()
     d.load_plugins()
@@ -1488,6 +1566,7 @@ def main():
     parser.add_argument('--log-file', type=str, metavar='LOG_FILE', help="Log to file")
     parser.add_argument('-s', type=int, metavar='PORT', default=8180, help="Run debug frontend server on port")
     parser.add_argument('-p', type=int, metavar='PORT', default=5000, help="WebSockets server port")
+    parser.add_argument('-u', type=str, metavar='PATH', default='/var/run/dispatcher.sock', help="Unix domain server path")
     parser.add_argument('-c', type=str, metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Configuration file path')
     args = parser.parse_args()
 
