@@ -50,6 +50,7 @@ from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from fnutils import configure_logging
 from fnutils.debug import DebugService
+from fnutils.pipesubr import pipeopen, run
 
 sys.path.extend(['/usr/local/lib/dsd/src'])
 
@@ -270,7 +271,6 @@ class DSDConfigurationService(RpcService):
         if ad_context:
             kdcs = ad_context.kdcs
 
-        self.logger.debug('DSDConfigurationService.get_kdcs(): kdcs = %s', kdcs)
         return kdcs
 
     def configure_hostname(self, id, enable=True):
@@ -286,12 +286,9 @@ class DSDConfigurationService(RpcService):
     def configure_kerberos(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_kerberos()')
         self.__toggle_enable(id, 'configure_kerberos', enable)
-
-        self.logger.debug("XXX: configure_kerberos: before etcd call")
         self.client.call_sync('etcd.generation.generate_group', 'kerberos')
-        self.logger.debug("XXX: configure_kerberos: after etcd call")
 
-    def get_kerberos_ticket(self, id):
+    def get_kerberos_ticket(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket(): id = %s', id)
 
         directoryservice = self.datastore.get_by_id('directoryservices', id)
@@ -316,10 +313,7 @@ class DSDConfigurationService(RpcService):
     def configure_nssldap(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
         self.__toggle_enable(id, 'configure_nssldap', enable)
-
-        self.logger.debug("XXX: configure_nssldap: before etcd call")
         self.client.call_sync('etcd.generation.generate_group', 'nss_ldap')
-        self.logger.debug("XXX: configure_nssldap: after etcd call")
 
     def configure_sssd(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
@@ -434,8 +428,14 @@ class DSDConfigurationService(RpcService):
 
         return False
 
-    def join_activedirectory(self, id):
+    def join_activedirectory(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
+
+        ad_context = self.modules['activedirectory'].context
+        if not ad_context:
+            return False
+
+        run("net -k ads join  '%s'" % ad_context.realm, timeout=60)
 
     def configure_pam(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_pam()')
@@ -468,12 +468,13 @@ class DSDConfigurationService(RpcService):
             #self.configure_hostname(id, enable=True)
             #self.configure_hosts(id, enable=True)
             self.configure_kerberos(id, enable=True)
-            self.get_kerberos_ticket(id)
+            self.get_kerberos_ticket(id, enable=True)
             self.configure_nsswitch(id, enable=True)
             self.configure_openldap(id, enable=True)
             self.configure_nssldap(id, enable=True)
             self.configure_sssd(id, enable=True)
             self.configure_samba(id, enable=True)
+            self.join_activedirectory(id, enable=True)
             self.configure_pam(id, enable=True)
 
         except Exception as e:
