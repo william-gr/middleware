@@ -177,6 +177,8 @@ def configure_params(cifs):
     conf['server role'] = 'auto'
     conf['log level'] = str(getattr(LogLevel, cifs['log_level']).value)
     conf['username map'] = '/usr/local/etc/smbusers'
+    conf['idmap config *: range'] = '90000001-100000000'
+    conf['idmap config *: backend'] = 'tdb'
 
 
 def _depends():
