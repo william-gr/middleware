@@ -26,7 +26,7 @@
 #####################################################################
 import os
 import re
-import subprocess
+from bsd import devinfo
 
 DEVICE_HINTS = '/boot/device.hints'
 
@@ -34,23 +34,27 @@ DEVICE_HINTS = '/boot/device.hints'
 def generate_device_hints(context, current, config):
 
     output = re.sub(r'.*uart.*flags="0x10"\n', '', current.strip('\n'))
+    dinfo = devinfo.DevInfo()
 
-    devinfo = subprocess.Popen(
-        ['/usr/sbin/devinfo', '-u'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE).communicate()[0]
+    uart = None
+    for name, ports in dinfo.resource_managers['I/O ports'].items():
+        if not name.startswith('uart'):
+            continue
+        for port in ports:
+            if config['serial_port'] == hex(port.start):
+                uart = port
+                break
 
-    reg = re.search(r'.*%s.*\(uart(\d+)\)' % config['serial_port'], devinfo)
-    unit = reg.group(1) if reg else None
-    if unit is None:
+    if uart is None:
         context.logger.warn('uart number not found for %s', config['serial_port'])
         return current
+    unit = re.sub(r'[a-z]', '', uart.name)
 
-    reg = re.search(r'\s(\d+)\s.*?uart%s' % unit, devinfo)
-    irq = reg.group(1) if reg else None
+    irq = dinfo.resource_managers['Interrupt request lines'].get(uart.name)
     if irq is None:
-        context.logger.warn('irq not found for uart%s', unit)
+        context.logger.warn('irq not found for %s', config['serial_port'])
         return current
+    irq = irq[0].start
 
     output = re.sub(r'hint\.uart\.%s.*\n' % unit, '', output)
 
