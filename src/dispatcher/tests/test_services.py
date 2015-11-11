@@ -184,7 +184,6 @@ class ServicesTest(BaseTestCase):
     	'''
     	sname = inspect.stack()[0][3].split('_')[-1]
     	#service = self.conn.call_sync('services.query', [('name', '=', 'cifs')], {'single': True})
-    	#print service
     	if not self.isRunning(sname):
     		self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'start'))
     	self.assertTaskCompletion(self.submitTask('service.manage', 'cifs', 'reload'))
@@ -313,7 +312,7 @@ class ServicesTest(BaseTestCase):
         if not self.isRunning(sname):
     	    self.assertTaskCompletion(self.submitTask('service.manage', sname, 'start'))
     	# uncomment
-    	#self.assertTaskCompletion(self.submitTask('service.configure', 'webdav', \
+    	#self.assertTaskCompletion(self.submitTask('service.configure', 'smartd', \
     	#	{"connections_limit": 20, 'guest_enable': True, 'guest_user': 'nobody'}))    	
 
 ############# rsyncd   
@@ -359,12 +358,25 @@ class ServicesTest(BaseTestCase):
     def atest_configure_webdav(self):
         '''
         Configure service
+        {u'enable': False, u'protocol': u'HTTP', 
+        u'https_port': 8081, u'certificate': None, 
+        u'authentication': u'DIGEST', 
+        u'http_port': 8080, u'password': u'devtest'}
         '''
         sname = inspect.stack()[0][3].split('_')[-1]
+        payload = {
+            u'enable': True, 
+            u'protocol': u'HTTP', 
+            u'https_port': 8081, 
+            u'certificate': None, 
+            u'authentication': u'DIGEST', 
+            u'http_port': 8080, 
+            u'password': u'devtest'}
         if not self.isRunning(sname):
             tid = self.submitTask('service.manage', sname, 'start')
             self.assertTaskCompletion(tid)
-        tid = self.submitTask('service.configure', sname, {"port": 80})    
+        #tid = self.submitTask('service.configure', sname, {"port": 80})  
+        tid = self.submitTask('service.configure', sname, payload)   
         self.assertTaskCompletion(tid) 
 
 ## ISCI
@@ -386,9 +398,9 @@ class ServicesTest(BaseTestCase):
     ######################### QUERY
     def test_query_all_services(self):
         services = self.conn.call_sync('services.query')
-        for s in services:
-            print s
+        self.pretty_print(services)
         self.assertIsInstance(services, list)
+        buildtin = self.conn.call_sync('services.query', [('builtin', '=', 'True')])
 
 
 

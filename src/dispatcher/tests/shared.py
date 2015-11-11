@@ -57,7 +57,7 @@ class BaseTestCase(unittest.TestCase):
             self.conn = Client()
             self.conn.event_callback = self.on_event
             self.conn.connect(os.getenv('TESTHOST', '127.0.0.1'))
-            self.conn.login_service('tests')
+            self.conn.login_user(os.getenv('TESTUSER', 'root'), os.getenv('TESTPWD', ''), timeout = self.task_timeout)
             self.conn.subscribe_events('*')
         except:
             raise
@@ -78,24 +78,6 @@ class BaseTestCase(unittest.TestCase):
             self.tasks[tid].tid = tid
             self.tasks[tid].name = name
         return tid
-
-    def submitTaskOrig(self, name, *args):
-        self.tasks_lock.acquire()
-        try:
-            tid = self.conn.call_sync('task.submit', name, args)
-            
-        except RpcException:
-            self.tasks_lock.release()
-            raise
-        except Exception:
-            self.tasks_lock.release()
-            raise    
-
-        self.tasks[tid] = self.TaskState()
-        self.tasks[tid].tid = tid
-        self.tasks[tid].name = name
-        self.tasks_lock.release()
-        return tid    
 
     def assertTaskCompletion(self, tid):
         t = self.tasks[tid]

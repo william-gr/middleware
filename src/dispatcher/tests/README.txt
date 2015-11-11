@@ -2,6 +2,9 @@
 Run tests from directory: middleware/src/dispatcher/tests
 PYTHONPATH should be set to ../client/python:../../py-fnutils
 TESTHOST should point to the server IP the tests are running on: example: 10.5.0.160
+TESTUSER should be root
+TESTPWD should be the password
+
 
 Packages to install prior to running the tests:
 
