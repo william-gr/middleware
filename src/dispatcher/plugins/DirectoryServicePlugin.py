@@ -60,6 +60,21 @@ class DirectoryServicesProvider(Provider):
         return self.datastore.query('directoryservices', *(filter or []), 
             callback=extend, **(params or {}))
 
+    def get(self, id, what):
+        return self.dispatcher.call_sync('dsd.configuration.get_%s' % what, id)
+
+    def kerberosticket(self, id):
+        self.dispatcher.call_sync('dsd.configuration.get_kerberos_ticket', id)
+
+    def join(self, id):
+        self.dispatcher.call_sync('dsd.configuration.join_activedirectory', id)
+
+    def enable(self, id):
+        self.dispatcher.call_sync('dsd.configuration.enable', id)
+
+    def disable(self, id):
+        self.dispatcher.call_sync('dsd.configuration.disable', id)
+
 
 @description("Create directory service")
 @accepts(
@@ -224,9 +239,11 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('directoryservice.create', DirectoryServiceCreateTask)
     plugin.register_task_handler('directoryservice.update', DirectoryServiceUpdateTask)
     plugin.register_task_handler('directoryservice.delete', DirectoryServiceDeleteTask)
+
+
+    # Should these even be tasks? to be determined...
     plugin.register_task_handler('directoryservice.enable', DirectoryServiceEnableTask)
     plugin.register_task_handler('directoryservice.disable', DirectoryServiceDisableTask)
-
     plugin.register_task_handler('directoryservice.get', DirectoryServiceGetTask)
     plugin.register_task_handler('directoryservice.configure', DirectoryServiceConfigureTask)
     plugin.register_task_handler('directoryservice.kerberosticket', DirectoryServiceKerberosTicketTask)

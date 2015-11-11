@@ -3,13 +3,10 @@
     directoryservices = dispatcher.call_sync('directoryservices.query')
     for ds in directoryservices:
         if 'configure_kerberos' in ds and ds['configure_kerberos'] == True:
-            res = dispatcher.call_task_sync('directoryservice.get', [ ds['id'], 'kdcs' ])
-            result = res.get('result', None)
-            if not result:
-                continue
+            kdcs = dispatcher.call_sync('directoryservices.get', id, 'kdcs')
 
             # XXX need to handle multiple records and best host
-            first_srv_record = result[0]
+            first_srv_record = kdcs[0]
             parts = first_srv_record.split()
             if len(parts) >= 3:
                 kdc = parts[3]

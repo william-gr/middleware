@@ -462,16 +462,26 @@ class DSDConfigurationService(RpcService):
         self.__toggle_enable(id, 'enable', True)
         self.load_directoryservices()
 
-        # thread these
-        #self.configure_hostname(id, enable=True)
-        self.configure_kerberos(id, enable=True)
-        self.get_kerberos_ticket(id)
-        self.configure_nsswitch(id, enable=True)
-        self.configure_openldap(id, enable=True)
-        self.configure_nssldap(id, enable=True)
-        self.configure_sssd(id, enable=True)
-        #self.configure_samba(id, enable=True)
-        #self.configure_pam(id, enable=True)
+        try: 
+
+            # thread these
+            #self.configure_hostname(id, enable=True)
+            #self.configure_hosts(id, enable=True)
+            self.configure_kerberos(id, enable=True)
+            self.get_kerberos_ticket(id)
+            self.configure_nsswitch(id, enable=True)
+            self.configure_openldap(id, enable=True)
+            self.configure_nssldap(id, enable=True)
+            self.configure_sssd(id, enable=True)
+            self.configure_samba(id, enable=True)
+            self.configure_pam(id, enable=True)
+
+        except Exception as e:
+            self.logger.debug("XXX: caught exception %s", e)
+            self.__toggle_enable(id, 'enable', False)
+            self.load_directoryservices()
+            return False
+
         return True
 
     def disable(self, id):
@@ -485,15 +495,17 @@ class DSDConfigurationService(RpcService):
         self.load_directoryservices()
 
         # thread these
-        #self.configure_pam(id, enable=False)
-        #self.configure_samba(id, enable=False)
+        self.configure_pam(id, enable=False)
+        self.configure_samba(id, enable=False)
         self.configure_sssd(id, enable=False)
         self.configure_nssldap(id, enable=False)
         self.configure_openldap(id, enable=False)
         self.configure_nsswitch(id, enable=False)
-        self.get_kerberos_ticket(id)
+        #self.get_kerberos_ticket(id)
         self.configure_kerberos(id, enable=False)
+        #self.configure_hosts(id, enable=True)
         #self.configure_hostname(id, enable=False)
+
         return True
 
 
