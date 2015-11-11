@@ -435,6 +435,7 @@ class VolumeCreateTask(ProgressTask):
                 'name': name,
                 'type': type,
                 'mountpoint': mountpoint,
+                'topology': volume['topology'],
                 'attributes': volume.get('attributes', {})
             })
 
