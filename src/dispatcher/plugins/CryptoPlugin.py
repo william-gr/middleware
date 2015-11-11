@@ -219,6 +219,11 @@ class CertificateInternalCreateTask(Task):
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
+
         return pkey
 
 
@@ -262,6 +267,11 @@ class CertificateImportTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot import certificate: {0}'.format(str(e)))
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
 
         return pkey
 
@@ -308,6 +318,11 @@ class CSRCreateTask(Task):
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
+
         return pkey
 
 
@@ -341,6 +356,11 @@ class CSRUpdateTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot update CSR: {0}'.format(str(e)))
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
 
         return pkey
 
@@ -386,6 +406,11 @@ class CAInternalCreateTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot create internal CA: {0}'.format(str(e)))
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
 
         return pkey
 
@@ -441,6 +466,11 @@ class CAIntermediateCreateTask(Task):
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
+
         return pkey
 
 
@@ -487,6 +517,11 @@ class CAImportTask(Task):
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'create',
+            'ids': [pkey]
+        })
+
         return pkey
 
 
@@ -531,6 +566,11 @@ class CAUpdateTask(Task):
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
 
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'update',
+            'ids': [id]
+        })
+
 
 @accepts(str)
 class CertificateDeleteTask(Task):
@@ -552,6 +592,11 @@ class CertificateDeleteTask(Task):
             raise TaskException(errno.EBADMSG, 'Cannot delete certificate: {0}'.format(str(e)))
         except RpcException as e:
             raise TaskException(errno.ENXIO, 'Cannot generate certificate: {0}'.format(str(e)))
+
+        self.dispatcher.dispatch_event('crypto.certificates.changed', {
+            'operation': 'delete',
+            'ids': [id]
+        })
 
 
 def _init(dispatcher, plugin):
@@ -609,3 +654,6 @@ def _init(dispatcher, plugin):
     plugin.register_task_handler('crypto.certificates.csr_create', CSRCreateTask)
     plugin.register_task_handler('crypto.certificates.csr_update', CSRUpdateTask)
     plugin.register_task_handler('crypto.certificates.delete', CertificateDeleteTask)
+
+    # Register event types
+    plugin.register_event_type('crypto.certificates.changed')
