@@ -116,7 +116,7 @@ class Client(object):
         self.token = None
         self.event_distribution_lock = RLock()
         self.event_emission_lock = RLock()
-        self.default_timeout = 10
+        self.default_timeout = 20
         self.scheme = None
         self.transport = None
         self.parsed_url = None
