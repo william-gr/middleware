@@ -131,7 +131,7 @@ cdef class SendZFS(object):
                 libzfs.SendFlag.PROPS
             })
             self.zfs_proc_exit_code = 0
-        except libzfs.ZFSException:
+        except libzfs.ZFSException as err:
             self.running = False
             os.write(term_writefd, b'1')
             os.close(term_writefd)
