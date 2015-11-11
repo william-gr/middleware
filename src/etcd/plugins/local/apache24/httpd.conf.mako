@@ -216,17 +216,17 @@ Listen ${cfg[field]}
     Options Indexes FollowSymLinks
   </Directory>
 
-% for share in dispatcher.call_sync('shares', [('type', '=', 'webdav')]):
+% for share in dispatcher.call_sync('shares.query', [('type', '=', 'webdav')]):
   Alias /${share['name']} "${share['filesystem_path']}"
   <Directory "${share['filesystem_path']}">
   </Directory>
-% if share['properties']['read_only']:
+% if share['properties'].get('read_only'):
   <Location /${share['name']}>
     AllowMethods GET OPTIONS PROPFIND
   </Location>
 % endif
 <%
-    if share['properties']['permission']:
+    if share['properties'].get('permission'):
         subprocess.Popen("chown -R webdav:webdav {0}".format(share['filesystem_path']), shell=True)
 %>
 % endfor
