@@ -381,7 +381,7 @@ class ClientTransportSock(ClientTransportBase):
 
     def connect(self, url, parent, **kwargs):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.fd = self.sock.makefile('w+b')
+        self.fd = self.sock.makefile('rwb')
         self.parent = parent
         if not self.parent:
             raise RuntimeError('ClientTransportSock can be only created inside of a class')
@@ -408,7 +408,7 @@ class ClientTransportSock(ClientTransportBase):
 
     def send(self, message):
         if self.terminated is False:
-            header = struct.pack('II', (0xdeadbeef, len(message)))
+            header = struct.pack('II', 0xdeadbeef, len(message))
             message = header + message.encode('utf-8')
             sent = self.fd.write(message)
             if sent == 0:
@@ -432,7 +432,7 @@ class ClientTransportSock(ClientTransportBase):
                 self.closed()
             else:
                 debug_log("Received data: {0}", message)
-                self.parent.recv(message.decode('utf-8'))
+                self.parent.recv(message)
 
     def close(self):
         debug_log("Transport connection closed by client.")
