@@ -34,6 +34,7 @@ from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
+import struct
 from ws4py.messaging import BinaryMessage
 
 _debug_log_file = None
@@ -376,9 +377,11 @@ class ClientTransportSock(ClientTransportBase):
         self.sock = None
         self.parent = None
         self.terminated = False
+        self.fd = None
 
     def connect(self, url, parent, **kwargs):
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.fd = self.sock.makefile('w+b')
         self.parent = parent
         if not self.parent:
             raise RuntimeError('ClientTransportSock can be only created inside of a class')
@@ -405,30 +408,44 @@ class ClientTransportSock(ClientTransportBase):
 
     def send(self, message):
         if self.terminated is False:
-            sent = self.sock.send(message)
-            if sent == 0 and self.terminated is True:
+            header = struct.pack('II', (0xdeadbeef, len(message)))
+            message = header + message.encode('utf-8')
+            sent = self.fd.write(message)
+            if sent == 0:
                 self.closed()
             else:
                 debug_log("Sent data: {0}", message)
 
     def recv(self):
         while self.terminated is False:
-            message = self.sock.recv()
-            if message == b'' and self.terminated is True:
+            header = self.fd.read(8)
+            if header == b'':
+                self.closed()
+
+            magic, length = struct.unpack('II', header)
+            if magic != 0xdeadbeef:
+                debug_log('Message with wrong magic dropped')
+                continue
+
+            message = self.fd.read(length)
+            if message == b'':
                 self.closed()
             else:
                 debug_log("Received data: {0}", message)
-                self.parent.recv(message)
+                self.parent.recv(message.decode('utf-8'))
 
     def close(self):
         debug_log("Transport connection closed by client.")
         self.terminated = True
         self.sock.close()
+        os.close(self.fd)
 
     def closed(self):
         debug_log("Transport socket connection terminated abnormally.")
         self.terminated = True
         self.parent.drop_pending_calls()
+        self.sock.close()
+        os.close(self.fd)
         if self.parent.error_callback is not None:
             from dispatcher.client import ClientError
             self.parent.error_callback(ClientError.CONNECTION_CLOSED)
