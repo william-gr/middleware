@@ -268,6 +268,7 @@ class ReplicateDatasetTask(ProgressTask):
         ))
 
         datasets = [localds]
+        remote_datasets = []
         actions = []
 
         with open('/etc/replication/key') as f:
@@ -294,6 +295,12 @@ class ReplicateDatasetTask(ProgressTask):
             datasets = self.dispatcher.call_sync(
                 'zfs.dataset.query',
                 [('name', '~', '^{0}(/|$)'.format(localds))],
+                {'select': 'name'}
+            )
+
+            remote_datasets = remote_client.call_sync(
+                'zfs.dataset.query',
+                [('name', '~', '^{0}(/|$)'.format(remoteds))],
                 {'select': 'name'}
             )
 
@@ -382,6 +389,17 @@ class ReplicateDatasetTask(ProgressTask):
                         snapshot=snapshots[idx]['snapshot_name']
                     ))
 
+        for rds in remote_datasets:
+            remotefs = rds
+            localfs = remotefs.replace(remoteds, localds, 1)
+
+            if localfs not in datasets:
+                actions.append(ReplicationAction(
+                    ReplicationActionType.DELETE_DATASET,
+                    localfs,
+                    remotefs
+                ))
+
         # 1st pass - estimate send size
         self.set_progress(0, 'Estimating send size...')
         total_send_size = 0
@@ -441,7 +459,7 @@ class ReplicateDatasetTask(ProgressTask):
                     action.remotefs
                 )
 
-                if result['status'] != 'FINISHED':
+                if result['state'] != 'FINISHED':
                     raise TaskException(errno.EFAULT, 'Failed to destroy dataset {0} on remote end: {1}'.format(
                         action.remotefs,
                         result['error']['message']
