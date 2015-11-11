@@ -59,9 +59,6 @@ class Migration(SchemaMigration):
         cs.set('network.netwait.enable', globalconf.gc_netwait_enabled)
         cs.set('network.netwait.addresses', globalconf.gc_netwait_ip.split())
 
-        # Disable autoconfigure since it will be using data from this migration
-        cs.set('network.autoconfigure', False)
-
         # Migrate hosts database
         for line in globalconf.gc_hosts.split('\n'):
             line = line.strip()
@@ -107,7 +104,9 @@ class Migration(SchemaMigration):
             unit += 1
 
         # Migrate IP configuration
+        autoconfigure = True
         for i in orm.Interfaces.objects.all():
+            autoconfigure = False
             aliases = []
             iface = ds.get_by_id('network.interfaces', i.int_interface)
             if not iface:
@@ -174,6 +173,9 @@ class Migration(SchemaMigration):
                     l += v
 
             ds.upsert('network.interfaces', i.int_interface, iface)
+
+        # If there are no interfaces, let it autoconfigure
+        cs.set('network.autoconfigure', autoconfigure)
 
         # Migrate static routes
         for i in orm.StaticRoute.objects.all():
