@@ -242,7 +242,7 @@ class QueryList(list):
                 if isinstance(select, (list, tuple)):
                     return [obj.get(i) for i in select]
 
-                if isinstance(select, basestring):
+                if isinstance(select, str):
                     return obj.get(select)
 
             old = postprocess
