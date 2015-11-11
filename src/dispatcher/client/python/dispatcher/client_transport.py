@@ -438,14 +438,14 @@ class ClientTransportSock(ClientTransportBase):
         debug_log("Transport connection closed by client.")
         self.terminated = True
         self.sock.close()
-        os.close(self.fd)
+        self.fd.close()
 
     def closed(self):
         debug_log("Transport socket connection terminated abnormally.")
         self.terminated = True
         self.parent.drop_pending_calls()
         self.sock.close()
-        os.close(self.fd)
+        self.fd.close()
         if self.parent.error_callback is not None:
             from dispatcher.client import ClientError
             self.parent.error_callback(ClientError.CONNECTION_CLOSED)
