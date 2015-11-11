@@ -135,13 +135,13 @@ class ClientTransportWS(ClientTransportBase):
             if '@' in self.hostname:
                 temp, self.hostname = self.hostname.split('@')
         elif url.path:
-           self.hostname = url.path
+            self.hostname = url.path
 
         if not self.parent:
             raise RuntimeError('ClientTransportWS can be only created inside of a class')
 
         if not self.username:
-                self.username = kwargs.get('username',None)
+                self.username = kwargs.get('username', None)
         else:
             if 'username' in kwargs:
                 raise ValueError('Username cannot be delared in both url and arguments.')
@@ -149,13 +149,13 @@ class ClientTransportWS(ClientTransportBase):
             raise ValueError('Username cannot be delared at this state for ws transport type.')
 
         if not self.hostname:
-            self.hostname = kwargs.get('hostname',"127.0.0.1")
+            self.hostname = kwargs.get('hostname', "127.0.0.1")
         else:
             if 'hostname' in kwargs:
                 raise ValueError('Host name cannot be delared in both url and arguments.')
 
         if not self.port:
-            self.port = kwargs.get('port',self.scheme_default_port)
+            self.port = kwargs.get('port', self.scheme_default_port)
         else:
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
@@ -232,7 +232,7 @@ class ClientTransportSSH(ClientTransportBase):
             self.hostname = url.path
 
         if not self.username:
-                self.username = kwargs.get('username',None)
+                self.username = kwargs.get('username', None)
         else:
             if 'username' in kwargs:
                 raise ValueError('Username cannot be delared in both url and arguments.')
@@ -240,7 +240,7 @@ class ClientTransportSSH(ClientTransportBase):
             raise ValueError('Username is not declared.')
 
         if not self.hostname:
-                self.hostname = kwargs.get('hostname',None)
+                self.hostname = kwargs.get('hostname', None)
         else:
             if 'hostname' in kwargs:
                 raise ValueError('Hostname cannot be delared in both url and arguments.')
@@ -248,7 +248,7 @@ class ClientTransportSSH(ClientTransportBase):
             raise ValueError('Hostname is not declared.')
 
         if not self.port:
-                self.port = kwargs.get('port',22)
+                self.port = kwargs.get('port', 22)
         else:
             if 'port' in kwargs:
                 raise ValueError('Port cannot be delared in both url and arguments.')
@@ -272,7 +272,7 @@ class ClientTransportSSH(ClientTransportBase):
                 try:
                     self.ssh.load_host_keys(self.host_key_file)
                     self.look_for_keys = False
-                except IOError as err:
+                except IOError:
                     debug_log('Cannot read host key file: {0}. SSH transport is closing.', self.host_key_file)
                     self.close()
                     raise
@@ -284,7 +284,7 @@ class ClientTransportSSH(ClientTransportBase):
                     raise ValueError('Key field of host key is not specified.')
                 if key_type is not "ssh-rsa" or key_type is not "ssh-dss":
                     raise ValueError('Key_type field of host key must be either ssh-rsa or ssh-dss.')
-                ssh._host_keys.add(key_hostname, key_type, key)
+                self.ssh._host_keys.add(key_hostname, key_type, key)
             else:
                 self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -323,10 +323,10 @@ class ClientTransportSSH(ClientTransportBase):
 
         self.channel = self.ssh.get_transport().open_session()
 
-        recv_t = spawn_thread(target = self.recv)
+        recv_t = spawn_thread(target=self.recv)
         recv_t.setDaemon(True)
         recv_t.start()
-        closed_t = spawn_thread(target = self.closed)
+        closed_t = spawn_thread(target=self.closed)
         closed_t.setDaemon(True)
         closed_t.start()
 
