@@ -41,37 +41,6 @@ get_image_name()
     find $(get_product_path) -name "$AVATAR_PROJECT-$AVATAR_ARCH.img.xz" -type f
 }
 
-# Convert /etc/version* to /etc/avatar.conf
-#
-# 1 - old /etc/version* file
-# 2 - dist version of avatar.conf
-# 3 - destination avatar.conf
-upgrade_version_to_avatar_conf()
-{
-    local destconf srcconf srcversion
-    local project version revision arch
-
-    srcversion=$1
-    srcconf=$2
-    destconf=$3
-
-    set -- $(sed -E -e 's/-amd64/-x64/' -e 's/-i386/-x86/' -e 's/(.*)-([^-]+) \((.*)\)/\1-\3-\2/' -e 's/-/ /' -e 's/-([^-]+)$/ \1/' -e 's/-([^-]+)$/ \1/' < $srcversion)
-
-    project=$1
-    version=$2
-    revision=$3
-    arch=$4
-
-    sed \
-        -e "s,^AVATAR_ARCH=\".*\",AVATAR_ARCH=\"$arch\",g" \
-        -e "s,^AVATAR_BUILD_NUMBER=\".*\"\$,AVATAR_BUILD_NUMBER=\"$revision\",g" \
-        -e "s,^AVATAR_PROJECT=\".*\"\$,AVATAR_PROJECT=\"$project\",g" \
-        -e "s,^AVATAR_VERSION=\".*\"\$,AVATAR_VERSION=\"$version\",g" \
-        < $srcconf > $destconf.$$
-
-    mv $destconf.$$ $destconf
-}
-
 build_config_old()
 {
     # build_config ${_disk} ${_image} ${_config_file}
@@ -404,164 +373,98 @@ disk_is_freenas()
     local os_part=""
     local data_part=""
 
-    # We have two kinds of potential upgrades here.
-    # The old kind, with 4 slices, and the new kind,
-    # with two partitions.
+    # We have two kinds of potential upgrades here:
+    # freenas-9.3 to current, or FN10 to current.
+    # Both have the same partitioning layout; the difference
+    # is the files to save.
 
     mkdir -p /tmp/data_old
-    if [ -c /dev/${_disk}s4 ]; then
-	os_part=/dev/${_disk}s1a
-	data_part=/dev/${_disk}s4
-	upgrade_style="old"
-    elif [ -c /dev/${_disk}p2 ]; then
-	os_part=/dev/${_disk}p2
-	upgrade_style="new"
-    else
+    os_part=/dev/${_disk}p2
+    if [ ! -c ${os_part} ]; then
+	# If it doesn't have ${_disk}p2 it's not freenas/truenas.
 	return 1
     fi
-
-    if [ "${upgrade_style}" = "new" ]; then
-	# This code is very clumsy.  There
-	# should be a way to structure it such that
-	# all of the cleanup happens as we want it to.
-	if zdb -l ${os_part} | grep "name: 'freenas-boot'" > /dev/null ; then
-	    :
-	else
-	    return 1
-	fi
-	zpool import -N -f freenas-boot || return 1
-	# Now we want to figure out which dataset to use.
-	# We'll mount freenas-boot/grub, and then look for "default=" in
-	# grub.cfg
-	# Of course, if grub.cfg doesn't exist, this isn't a freenas pool, just
-	# a pool masquerading as us.
-	if ! mount -t zfs freenas-boot/grub /tmp/data_old; then
-	    zpool export freenas-boot
-	    return 1
-	fi
-	if [ ! -f /tmp/data_old/grub.cfg ]; then
-	    umount /tmp/data_old
-	    rmdir /tmp/data_old
-	    zpool export freenas-boot
-	    return 1
-	fi
-	# There should always be a "set default=" line in a grub.cfg
-	# that we created.
-	if grep -q '^set default=' /tmp/data_old/grub.cfg ; then
-	    DF=$(grep '^set default=' /tmp/data_old/grub.cfg | tail -1 | sed 's/^set default="\(.*\)"$/\1/')
-	    case "${DF}" in
-		0)	# No default, use "default"
-		    DS=default ;;
-                *${AVATAR_PROJECT}*)    # Default dataset
-                    DS=$(expr "${DF}" : "${AVATAR_PROJECT} (\(.*\)) .*") ;;
-		*) DS="" ;;
-	    esac
-	    umount /tmp/data_old
-	    if [ -n "${DS}" ]; then
-		# Okay, mount this pool
-		if mount -t zfs freenas-boot/ROOT/"${DS}" /tmp/data_old; then
-		    cp -pR /tmp/data_old/data/. /tmp/data_preserved
-		    # Don't want to keep the old pkgdb around, since we're
-		    # nuking the filesystem
-		    rm -rf /tmp/data_preserved/pkgdb
+    if zdb -l ${os_part} | grep "name: 'freenas-boot'" > /dev/null ; then
+	:
+    else
+	# No freenas-boot pool on it, then it's not a *nas disk.
+	return 1
+    fi
+    zpool import -N -f freenas-boot || return 1
+    # Now we want to figure out which dataset to use.
+    # We'll mount freenas-boot/grub, and then look for "default=" in
+    # grub.cfg
+    # Of course, if grub.cfg doesn't exist, this isn't a freenas pool, just
+    # a pool masquerading as us.
+    if ! mount -t zfs freenas-boot/grub /tmp/data_old; then
+	zpool export freenas-boot
+	return 1
+    fi
+    if [ ! -f /tmp/data_old/grub.cfg ]; then
+	umount /tmp/data_old
+	rmdir /tmp/data_old
+	zpool export freenas-boot
+	return 1
+    fi
+    # There should always be a "set default=" line in a grub.cfg
+    # that we created.
+    if grep -q '^set default=' /tmp/data_old/grub.cfg ; then
+	DF=$(grep '^set default=' /tmp/data_old/grub.cfg | tail -1 | sed 's/^set default="\(.*\)"$/\1/')
+	case "${DF}" in
+	    0)	# No default, use "default"
+		DS=default ;;
+            *${AVATAR_PROJECT}*)    # Default dataset
+                DS=$(expr "${DF}" : "${AVATAR_PROJECT} (\(.*\)) .*") ;;
+	    *) DS="" ;;
+	esac
+	umount /tmp/data_old
+	if [ -n "${DS}" ]; then
+	    # Okay, mount this pool
+	    if mount -t zfs freenas-boot/ROOT/"${DS}" /tmp/data_old; then
+		# We have two things we want to look for -- fn9.3, and fn10.
+		# In both cases, let's copy all of /data to be preserved.
+		cp -pR /tmp/data_old/data/. /tmp/data_preserved
+		# Don't want to keep the old pkgdb around, since we're
+		# nuking the filesystem
+		rm -rf /tmp/data_preserved/pkgdb
+		# This stuff is all in 9.3
+		# So we only copy it if we're upgrading from 9.3
+		if [ -f /tmp/data_old/data/freenas-v1.db ]; then
 		    if [ -f /tmp/data_old/conf/base/etc/hostid ]; then
 			cp -p /tmp/data_old/conf/base/etc/hostid /tmp/
 		    fi
 		    if [ -d /tmp/data_old/root/.ssh ]; then
 			cp -pR /tmp/data_old/root/.ssh /tmp/
 		    fi
-		    if [ -d /tmp/data_old/boot/modules ]; then
-			mkdir -p /tmp/modules
-			for i in `ls /tmp/data_old/boot/modules`
-			do
-			    cp -p /tmp/data_old/boot/modules/$i /tmp/modules/
-			done
-		    fi
-		    if [ -d /tmp/data_old/usr/local/fusionio ]; then
-			cp -pR /tmp/data_old/usr/local/fusionio /tmp/
-		    fi
-		    if [ -f /tmp/data_old/boot.config ]; then
-			cp /tmp/data_old/boot.config /tmp/
-		    fi
-		    if [ -f /tmp/data_old/boot/loader.conf.local ]; then
-			cp /tmp/data_old/boot/loader.conf.local /tmp/
-		    fi
-		    umount /tmp/data_old || return 1
-		    zpool export freenas-boot || return 1
-		    return 0
 		fi
+		if [ -d /tmp/data_old/boot/modules ]; then
+		    mkdir -p /tmp/modules
+		    for i in `ls /tmp/data_old/boot/modules`
+		    do
+			cp -p /tmp/data_old/boot/modules/$i /tmp/modules/
+		    done
+		fi
+		if [ -d /tmp/data_old/usr/local/fusionio ]; then
+		    cp -pR /tmp/data_old/usr/local/fusionio /tmp/
+		fi
+		if [ -f /tmp/data_old/boot.config ]; then
+		    cp /tmp/data_old/boot.config /tmp/
+		fi
+		if [ -f /tmp/data_old/boot/loader.conf.local ]; then
+		    cp /tmp/data_old/boot/loader.conf.local /tmp/
+		fi
+		umount /tmp/data_old || return 1
+		zpool export freenas-boot || return 1
+		return 0
 	    fi
-	    zpool export freenas-boot || true
-	    return 1
-	else
-	    umount /tmp/data_old || return 1
-	    zpool export freenas-boot || true
-	    return 1
 	fi
-    fi
-
-    # This is now legacy code, to support the old
-    # partitioning scheme (freenas-9.2 and earlier)
-    if ! mount "${data_part}" /tmp/data_old ; then
+	zpool export freenas-boot || true
+	return 1
+    else
+	umount /tmp/data_old || return 1
+	zpool export freenas-boot || true
 	return 1
     fi
-
-    ls /tmp/data_old > /tmp/data_old.ls
-    if [ -f /tmp/data_old/freenas-v1.db ]; then
-        _rv=0
-    fi
-    # XXX side effect, shouldn't be here!
-    cp -pR /tmp/data_old/. /tmp/data_preserved
-    umount /tmp/data_old
-    if [ $_rv -eq 0 ]; then
-	# For GUI upgrades, we only have one OS partition
-	# that has conf/base/etc.  For ISO upgrades, we
-	# have two, but only one is active.
-	slice=$(gpart show ${_disk} | grep -F '[active]' | awk ' { print $3;}')
-	if [ -z "${slice}" ]; then
-	    # We don't have an active slice, so something is wrong.
-	    return 1
-	fi
-	mount /dev/${_disk}s${slice}a /tmp/data_old
-	ls /tmp/data_old > /dev/null
-	if [ ! -d /tmp/data_old/conf/base/etc ]
-	then
-	    # Mount the other partition
-	    if [ "${slice}" -eq 1 ]; then
-		slice=2
-	    else
-		slice=1
-	    fi
-	    umount /tmp/data_old
-	    mount /dev/${_disk}s${slice}a /tmp/data_old
-	    ls /tmp/data_old > /dev/null
-	fi
-	if [ -f /tmp/data_old/conf/base/etc/hostid ]; then
-	    cp -p /tmp/data_old/conf/base/etc/hostid /tmp/
-	fi
-        if [ -d /tmp/data_old/root/.ssh ]; then
-            cp -pR /tmp/data_old/root/.ssh /tmp/
-        fi
-        if [ -d /tmp/data_old/boot/modules ]; then
-            mkdir -p /tmp/modules
-            for i in `ls /tmp/data_old/boot/modules`
-            do
-                cp -p /tmp/data_old/boot/modules/$i /tmp/modules/
-            done
-        fi
-        if [ -d /tmp/data_old/usr/local/fusionio ]; then
-            cp -pR /tmp/data_old/usr/local/fusionio /tmp/
-        fi
-	if [ -f /tmp/data_old/boot.config ]; then
-	    cp /tmp/data_old/boot.config /tmp/
-	fi
-	if [ -f /tmp/data_old/boot/loader.conf.local ]; then
-	    cp /tmp/data_old/boot/loader.conf.local /tmp/
-	fi
-        umount /tmp/data_old
-    fi
-    rmdir /tmp/data_old
-    return $_rv
 }
 
 prompt_password() {
@@ -747,38 +650,28 @@ menu_install()
     # data from a freenas installation.  It also does
     # a zpool import.
     for _disk in ${_disks}; do
-    if disk_is_freenas ${_disk} ; then
-        if ${INTERACTIVE}; then
-	    if ask_upgrade ${_disk} ; then
-		_do_upgrade=1
-		_action="upgrade"
+	if disk_is_freenas ${_disk} ; then
+            if ${INTERACTIVE}; then
+		if ask_upgrade ${_disk} ; then
+		    _do_upgrade=1
+		    _action="upgrade"
+		fi
+	    else
+		if [ "${_do_upgrade}" != "0" ]; then
+		    _do_upgrade=1
+		    _action="upgrade"
+		fi
 	    fi
-	else
-	    if [ "${_do_upgrade}" != "0" ]; then
-		_do_upgrade=1
-		_action="upgrade"
+	    if [ -c /dev/${_disk}s4 ]; then
+		upgrade_style="old"
+	    elif [ -c /dev/${_disk}p2 ]; then
+		upgrade_style="new"
+	    else
+		echo "Unknown upgrade style" 1>&2
+		exit 1
 	    fi
+	    break
 	fi
-	if [ -c /dev/${_disk}s4 ]; then
-	    upgrade_style="old"
-	elif [ -c /dev/${_disk}p2 ]; then
-	    upgrade_style="new"
-	else
-	    echo "Unknown upgrade style" 1>&2
-	    exit 1
-	fi
-	break
-    elif [ "${_satadom}" = "YES" -a -c /dev/ufs/TrueNASs4 ]; then
-	# Special hack for USB -> DOM upgrades
-	_disk_old=`glabel status | grep ' ufs/TrueNASs4 ' | awk '{ print $3 }' | sed -e 's,s4$,,g'`
-	if disk_is_freenas ${_disk_old} ; then
-	    if ask_upgrade ${_disk_old} ; then
-		_do_upgrade=2
-		_action="upgrade"
-		break
-	    fi
-	fi
-    fi
     done
     # If we haven't set _do_upgrade by now, we're not
     # doing an upgrade.
@@ -823,63 +716,8 @@ menu_install()
     # we can now build a config file for pc-sysinstall
     # build_config  ${_disk} "$(get_image_name)" ${_config_file}
 
-    # For one of the install_worker ISO scripts
-    export INSTALL_MEDIA=${_realdisks}
-    if [ ${_do_upgrade} -eq 1 ]
+    if [ ${_do_upgrade} -eq 0 ]
     then
-        /etc/rc.d/dmesg start
-        mkdir -p /tmp/data
-	if [ "${upgrade_style}" = "old" ]; then
-	    	# For old style, we have two potential
-	    	# partitions to look at:  s1a and s2a.
-		# 
-	    slice=$(gpart show ${_disk} | grep -F '[active]' | awk ' { print $3;}')
-	    if [ -z "${slice}" ]; then
-		# We don't have an active slice, so something is wrong.
-		false
-	    fi
-	    mount /dev/${_disk}s${slice}a /tmp/data
-	    ls /tmp/data > /dev/null
-	    if [ ! -d /tmp/data/conf/base/etc ]
-	    then
-		# Mount the other partition
-		if [ "${slice}" -eq 1 ]; then
-		    slice=2
-		else
-		    slice=1
-		fi
-		umount /tmp/data
-		mount /dev/${_disk}s${slice}a /tmp/data
-		ls /tmp/data > /dev/null
-	    fi
-	    # pre-avatar.conf build. Convert it!
-	    if [ ! -e /tmp/data/conf/base/etc/avatar.conf ]
-	    then
-		upgrade_version_to_avatar_conf \
-		    /tmp/data/conf/base/etc/version* \
-		    /etc/avatar.conf \
-		    /tmp/data/conf/base/etc/avatar.conf
-	    fi
-	elif [ "${upgrade_style}" = "new" ]; then
-		zpool import -f -N ${POOL}
-		mount -t zfs -o noatime freenas-boot/ROOT/default /tmp/data
-	else
-		echo "Unknown upgrade style" 1>&2
-		false
-	fi
-	# This needs to be rewritten.
-        install_worker.sh -D /tmp/data -m / pre-install
-        umount /tmp/data
-	if [ "${upgrade_style}" = "new" ]; then
-	    zpool export freenas-boot
-	fi
-        rmdir /tmp/data
-    else
-        # Run through some sanity checks on new installs ;).. some of the
-        # checks won't make sense, but others might (e.g. hardware sanity
-        # checks).
-        install_worker.sh -D / -m / pre-install
-
 	# Destroy existing partition table, if there is any but tolerate
 	# failure.
 	for _disk in ${_realdisks}; do
@@ -905,12 +743,18 @@ menu_install()
     mount_disk /tmp/data
     
     if [ -d /tmp/data_preserved ]; then
-	cp -pR /tmp/data_preserved/. /tmp/data/data
-	# we still need the newer version we are upgrading to's
-	# factory-v1.db, else issuing a factory-restore on the
-	# newly upgraded system completely horks the system
-	cp /data/factory-v1.db /tmp/data/data/
-	chown www:www /tmp/data/data/factory-v1.db
+	# We have to handle 9.3->current differently
+	# from 10->current.
+	# 9.3 will have freenas-v1.db; 10 will have
+	# freenas.db (as a directory).  The post-install
+	# script for the middleware package will do the
+	# right thing for 9.3->current if the files are
+	# installed before it runs, but will not handle
+	# the case for 10->current.
+	if [ -f /tmp/data_preserved/freenas-v1.db ]; then
+	    cp -pR /tmp/data_preserved/. /tmp/data/data
+	    chown www:www /tmp/data/data/factory-v1.db
+	fi
     else
 	cp -R /data/* /tmp/data/data/
 	chown -R www:www /tmp/data/data
@@ -925,7 +769,7 @@ menu_install()
     mkdir /tmp/data/dev
     mount -t devfs devfs /tmp/data/dev
     # Tell it to look in /.mount for the packages.
-    /usr/local/bin/freenas-install -P /.mount/${OS}/Packages -M /.mount/${OS}-MANIFEST /tmp/data
+    /usr/local/bin/freenas-install -P /.mount/${OS}/Packages -M /.mount/${OS}-MANIFEST /tmp/data 2>&1 | tee -a /tmp/install.log
     
     rm -f /tmp/data/conf/default/etc/fstab /tmp/data/conf/base/etc/fstab
     echo "freenas-boot/grub	/boot/grub	zfs	rw,noatime	1	0" > /tmp/data/etc/fstab
@@ -961,9 +805,6 @@ menu_install()
 		-e '/^kernel=.*/d' /tmp/data/boot/loader.conf /tmp/data/boot/loader.conf.local
 	fi
     fi
-    if is_truenas ; then
-        install_worker.sh -D /tmp/data -m / install
-    fi
     
     # Debugging pause.
     # read foo
@@ -978,20 +819,7 @@ menu_install()
     zpool set bootfs=freenas-boot/ROOT/default freenas-boot
     install_grub /tmp/data ${_realdisks}
     
-#    set +x
-    if [ -d /tmp/data_preserved ]; then
-	# Instead of sentinel files, let's just migrate!
-	# Unfortunately, this doesn't seem to work well.
-	# This should be investigated.
-#	chroot /tmp/data /bin/sh -c "/usr/bin/yes | \
-#		/usr/local/bin/python
-#		      /usr/local/www/freenasUI/manage.py migrate --all --merge --delete-ghost-migrations"
-	# Create upgrade sentinel files
-	: > /tmp/data/${CD_UPGRADE_SENTINEL}
-	: > /tmp/data/${NEED_UPDATE_SENTINEL}
-	${INTERACTIVE} && dialog --msgbox "The installer has preserved your database file.
-#$AVATAR_PROJECT will migrate this file, if necessary, to the current format." 6 74
-    elif [ "${_do_upgrade}" -eq 0 ]; then
+    if [ "${_do_upgrade}" -eq 0 ]; then
 	if [ -n "${_password}" ]; then
 		# Set the root password
 		#chroot /tmp/data /etc/netcli reset_root_pw ${_password}
@@ -1008,24 +836,6 @@ menu_install()
     umount /tmp/data/dev
     umount /tmp/data/var
     umount /tmp/data/
-
-    # We created a 16m swap partition earlier, for TrueNAS
-    # And created /data/fstab.swap as well.
-    if is_truenas ; then
-#        # Put a swap partition on newly created installation image
-#        if [ -e /dev/${_disk}s3 ]; then
-#            gpart delete -i 3 ${_disk}
-#            gpart add -t freebsd ${_disk}
-#            echo "/dev/${_disk}s3.eli		none			swap		sw		0	0" > /tmp/fstab.swap
-#        fi
-#
-#        mkdir -p /tmp/data
-#        mount /dev/${_disk}s4 /tmp/data
-#        ls /tmp/data > /dev/null
-#        mv /tmp/fstab.swap /tmp/data/
-#        umount /tmp/data
-#        rmdir /tmp/data
-    fi
 
     # End critical section.
     set +e
