@@ -311,7 +311,11 @@ class ReplicateDatasetTask(ProgressTask):
                 remote_snapshots_full = wrap(remote_client.call_sync('zfs.dataset.get_snapshots', remotefs))
                 remote_snapshots = list(filter(is_replicated, remote_snapshots_full))
             except RpcException as err:
-                raise TaskException(err.code, 'Cannot contact {0}: {1}'.format(remote, err.message))
+                if err.code == errno.ENOENT:
+                    # Dataset not found on remote side
+                    remote_snapshots_full = None
+                else:
+                    raise TaskException(err.code, 'Cannot contact {0}: {1}'.format(remote, err.message))
 
             snapshots = local_snapshots[:]
             found = None
