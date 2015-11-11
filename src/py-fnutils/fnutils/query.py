@@ -248,7 +248,6 @@ class QueryList(list):
             old = postprocess
             postprocess = lambda o: select_fn(old, o)
 
-
         if sort:
             def sort_transform(result, key):
                 reverse = False
