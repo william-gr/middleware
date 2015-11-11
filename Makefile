@@ -23,12 +23,6 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-ifndef host
-  $(error host is not set)
-endif
-ifndef dir
-  $(error dir is not set)
-endif
 
 sync:
 .if defined(dir)
