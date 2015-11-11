@@ -114,7 +114,7 @@ class ClientTransportWS(ClientTransportBase):
                 self.parent.parent.error_callback(ClientError.CONNECTION_CLOSED)
 
         def received_message(self, message):
-            self.parent.parent.recv(message)
+            self.parent.parent.recv(message.data)
 
     def __init__(self):
         self.parent = None
@@ -344,7 +344,7 @@ class ClientTransportSSH(ClientTransportBase):
             data_received = self.stdout.readline()
             if self.terminated is False:
                 debug_log("Received data: {0}", data_received)
-                self.parent.recv(BinaryMessage(data_received.encode('utf8')))
+                self.parent.recv(data_received)
 
     def closed(self):
         exit_status = self.channel.recv_exit_status()
@@ -411,6 +411,7 @@ class ClientTransportSock(ClientTransportBase):
             header = struct.pack('II', 0xdeadbeef, len(message))
             message = header + message.encode('utf-8')
             sent = self.fd.write(message)
+            self.fd.flush()
             if sent == 0:
                 self.closed()
             else:

@@ -188,9 +188,11 @@ class Client(object):
         self.transport.send(data)
 
     def recv(self, message):
-        debug_log('-> {0}', message.data.decode('utf8'))
+        if isinstance(message, bytes):
+            message = message.decode('utf-8')
+        debug_log('-> {0}', message)
         try:
-            msg = loads(message.data.decode('utf8'))
+            msg = loads(message)
         except ValueError as err:
             if self.error_callback is not None:
                 self.error_callback(ClientError.INVALID_JSON_RESPONSE, err)
@@ -332,7 +334,7 @@ class Client(object):
         self.transport = builder.create(self.scheme)
         self.transport.connect(self.parsed_url, self, **kwargs)
         debug_log('Connection opened, local address {0}', self.transport.address)
-        
+
         if self.use_bursts:
             self.event_thread = spawn_thread(target=self.__event_emitter, args=())
             self.event_thread.start()
