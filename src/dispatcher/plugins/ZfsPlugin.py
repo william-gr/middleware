@@ -152,6 +152,25 @@ class ZfsDatasetProvider(Provider):
             raise RpcException(errno.EFAULT, str(err))
 
     @accepts(str)
+    @returns(h.array(
+        h.one_of(
+            h.ref('zfs-dataset'),
+            h.ref('zfs-snapshot')
+        )
+    ))
+    def get_dependencies(self, dataset_name):
+        try:
+            zfs = libzfs.ZFS()
+            ds = zfs.get_dataset(dataset_name)
+            deps = list(ds.dependents)
+            return deps
+        except libzfs.ZFSException as err:
+            if err.code == libzfs.Error.NOENT:
+                raise RpcException(errno.ENOENT, str(err))
+
+            raise RpcException(errno.EFAULT, str(err))
+
+    @accepts(str)
     @returns(h.array(h.ref('zfs-snapshot')))
     def get_snapshots(self, dataset_name):
         try:
