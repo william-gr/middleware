@@ -156,7 +156,7 @@ def migrate_collection(dump, directory, force=False):
     integer = metadata['pkey-type'] == 'integer'
     upsert = metadata['migration'] in ('merge-overwrite', 'replace')
 
-    if metadata['migration'] != 'replace' and directory and os.path.isdir(directory):
+    if metadata['migration'] != 'replace' and directory and os.path.isdir(directory) and ds.collection_exists(name):
         apply_migrations(name, directory, force)
 
     if metadata['migration'] == 'replace':
