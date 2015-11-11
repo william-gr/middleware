@@ -424,6 +424,16 @@ class DSDConfigurationService(RpcService):
 
         return False
 
+    def restart_samba(self, id, enable=True):
+        p = pipeopen("/usr/sbin/service samba_server onerestart")
+        out = p.communicate()
+        if p.returncode != 0:
+            self.logger.debug('DSDConfigurationSerivce.restart_samba(): FAILED: %s', out)
+            return False
+
+        self.logger.debug('DSDConfigurationSerivce.restart_samba(): SUCCESS')
+        return True
+
     def join_activedirectory(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
 
@@ -480,6 +490,7 @@ class DSDConfigurationService(RpcService):
             self.configure_samba(id, enable=True)
             self.join_activedirectory(id, enable=True)
             self.configure_pam(id, enable=True)
+            self.restart_samba(id, enable=True)
 
         except Exception as e:
             self.logger.debug("XXX: caught exception %s", e)
@@ -510,6 +521,7 @@ class DSDConfigurationService(RpcService):
         self.configure_kerberos(id, enable=False)
         #self.configure_hosts(id, enable=True)
         #self.configure_hostname(id, enable=False)
+        self.restart_samba(id, enable=True)
 
         return True
 
