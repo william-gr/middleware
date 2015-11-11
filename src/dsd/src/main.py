@@ -425,14 +425,8 @@ class DSDConfigurationService(RpcService):
         return False
 
     def restart_samba(self, id, enable=True):
-        p = pipeopen("/usr/sbin/service samba_server onerestart")
-        out = p.communicate()
-        if p.returncode != 0:
-            self.logger.debug('DSDConfigurationSerivce.restart_samba(): FAILED: %s', out)
-            return False
-
-        self.logger.debug('DSDConfigurationSerivce.restart_samba(): SUCCESS')
-        return True
+        self.logger.debug('DSDConfigurationSerivce.restart_samba()')
+        return self.client.call_sync("services.restart", "cifs"):
 
     def join_activedirectory(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
