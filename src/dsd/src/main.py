@@ -381,10 +381,8 @@ class DSDConfigurationService(RpcService):
         for key in ad_smbconf.keys():
             if key in conf:
                 del conf[key]
-            if key in saved_smbconf:
-                x = saved_smbconf[key]
-                self.logger.debug("XXXX: typeof(x) = %s", type(x))
-                #conf[key] = saved_smbconf[key]
+            if saved_smbconf and key in saved_smbconf:
+                conf[key.decode('utf-8')] = saved_smbconf[key]
 
         self.state['saved_smbconf'] = {}
         return True
@@ -435,7 +433,15 @@ class DSDConfigurationService(RpcService):
         if not ad_context:
             return False
 
-        run("net -k ads join  '%s'" % ad_context.realm, timeout=60)
+        os.environ['LOGNAME'] = 'root'
+        p = pipeopen("/usr/local/bin/net -k ads join  '%s'" % ad_context.realm)
+        out = p.communicate()
+        if p.returncode != 0:
+            self.logger.debug('DSDConfigurationSerivce.join_activedirectory(): FAILED: %s', out)
+            return False
+
+        self.logger.debug('DSDConfigurationSerivce.join_activedirectory(): SUCCESS')
+        return True
 
     def configure_pam(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_pam()')
