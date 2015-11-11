@@ -31,8 +31,12 @@ ifndef dir
 endif
 
 sync:
+.if defined(dir)
 	rsync -avl \
 		--rsync-path="sudo rsync" \
 		--delete \
 		--exclude '.git' \
 		--exclude '.idea' . ${host}:${dir}/
+.else
+.error Error: Undefined target directory
+.endif
