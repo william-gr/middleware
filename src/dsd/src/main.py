@@ -82,7 +82,6 @@ class DSDConfigurationService(RpcService):
         self.load_directoryservices()
 
         self.directory_context_init()
-        #self.configure_samba(1)
 
     def __cache_empty(self, cache, key):
         if not self.cache[cache]:
@@ -271,6 +270,7 @@ class DSDConfigurationService(RpcService):
         if ad_context:
             kdcs = ad_context.kdcs
 
+        self.logger.debug('DSDConfigurationService.get_kdcs(): kdcs = %s', kdcs)
         return kdcs
 
     def configure_hostname(self, id, enable=True):
@@ -286,10 +286,13 @@ class DSDConfigurationService(RpcService):
     def configure_kerberos(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_kerberos()')
         self.__toggle_enable(id, 'configure_kerberos', enable)
+
+        self.logger.debug("XXX: configure_kerberos: before etcd call")
         self.client.call_sync('etcd.generation.generate_group', 'kerberos')
+        self.logger.debug("XXX: configure_kerberos: after etcd call")
 
     def get_kerberos_ticket(self, id):
-        self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket()')
+        self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket(): id = %s', id)
 
         directoryservice = self.datastore.get_by_id('directoryservices', id)
 
@@ -313,63 +316,123 @@ class DSDConfigurationService(RpcService):
     def configure_nssldap(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
         self.__toggle_enable(id, 'configure_nssldap', enable)
-        self.client.call_sync('etcd.generation.generate_group', 'nssldap')
+
+        self.logger.debug("XXX: configure_nssldap: before etcd call")
+        self.client.call_sync('etcd.generation.generate_group', 'nss_ldap')
+        self.logger.debug("XXX: configure_nssldap: after etcd call")
 
     def configure_sssd(self, id, enable=True):
         self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
         self.__toggle_enable(id, 'configure_sssd', enable)
         self.client.call_sync('etcd.generation.generate_group', 'sssd')
 
-    # XXX Fucking Samba...
-    def configure_samba(self, id, enable=True):
-        #self.logger.debug('DSDConfigurationSerivce.configure_samba()')
-        #self.__toggle_enable(id, 'configure_samba', enable)
-        #self.client.call_sync('etcd.generation.generate_group', 'samba')
+    def __activedirectory_smbconf(self, ad_context):
+        return {
+            'idmap config *: backend': 'tdb',
+            'idmap config *: range': '90000001-100000000',
+            'server role': 'member server',
+            'local master': 'no',
+            'domain master': 'no',
+            'preferred master': 'no',
+            'domain logons': 'no',
+            'workgroup': ad_context.netbiosname,
+            'realm': ad_context.realm,
+            'security': 'ads',
+            'winbind cache time': '7200',
+            'winbind offline logon': 'yes',
+            'winbind enum users': 'yes',
+            'winbind enum groups': 'yes',
+            'winbind nested groups': 'yes',
+            'winbind use default domain': 'yes',
+            'winbind refresh tickets': 'yes',
+            'idmap config %s: backend' % ad_context.netbiosname: 'rid',
+            'idmap config %s: range' % ad_context.netbiosname: '10000-90000000',
+            'client use spnego': 'yes',
+            'allow trusted domains': 'no',
+            'client ldap sasl wrapping': 'plain',
+            'template shell': '/bin/sh',
+            'template homedir': '/home/%U'
+        }
 
+    def __enable_samba_activedirectory(self, id):
         ad_context = self.modules['activedirectory'].context
         if not ad_context:
             return False
 
-        # beat me with a horse dildo please
         node = ConfigNode('service.cifs',
             ConfigStore(self.datastore)).__getstate__()
-        self.logger.debug("XXX: NODE = %s", node)
-
         conf = smbconf.SambaConfig('registry')
-        #self.state['samba'] = copy.deepcopy(conf)
 
-        conf['idmap config *: backend'] = 'tdb'
-        conf['idmap config *: range'] = '90000001-100000000'
+        saved_smbconf = {}
+        ad_smbconf = self.__activedirectory_smbconf(ad_context)
+        for key in ad_smbconf.keys():
+            if key in conf:
+                saved_smbconf[key] = conf[key]
+            conf[key] = ad_smbconf[key]
 
-        conf['server role'] = 'member server'
-        conf['local master'] = 'no'
-        conf['domain master'] = 'no'
-        conf['preferred master'] = 'no'
-        conf['domain logons'] = 'no'
+        self.state['saved_smbconf'] = saved_smbconf
+        return True
 
-        conf['workgroup'] = ad_context.netbiosname
-        conf['realm'] = ad_context.realm
-        conf['security'] = 'ads'
+    def __disable_samba_activedirectory(self, id):
+        ad_context = self.modules['activedirectory'].context
+        if not ad_context:
+            return False
 
-        conf['winbind cache time'] = '7200'
-        conf['winbind offline logon'] = 'yes'
-        conf['winbind enum users'] = 'yes'
-        conf['winbind enum groups'] = 'yes'
-        conf['winbind nested groups'] = 'yes'
-        conf['winbind use default domain'] = 'yes'
-        conf['winbind refresh tickets'] = 'yes'
+        node = ConfigNode('service.cifs',
+            ConfigStore(self.datastore)).__getstate__()
+        conf = smbconf.SambaConfig('registry')
 
-        conf['idmap config %s: backend' % ad_context.netbiosname] = 'rid'
-        conf['idmap config %s: range' % ad_context.netbiosname] = '10000-90000000'
+        saved_smbconf = self.state.get('saved_smbconf', None)
+        ad_smbconf = self.__activedirectory_smbconf(ad_context)
+        for key in ad_smbconf.keys():
+            if key in conf:
+                del conf[key]
+            if key in saved_smbconf:
+                x = saved_smbconf[key]
+                self.logger.debug("XXXX: typeof(x) = %s", type(x))
+                #conf[key] = saved_smbconf[key]
 
-        conf['client use spnego'] = 'yes'
-        conf['allow trusted domains'] = 'no'
-        conf['client ldap sasl wrapping'] = 'plain'
-        conf['template shell'] = '/bin/sh'
-        conf['template homedir'] = '/home/%U'
+        self.state['saved_smbconf'] = {}
+        return True
 
-        #conf = copy.deepcopy(self.state['samba'])
+    def __configure_samba_activedirectory(self, id, enable):
+        if enable:
+            return self.__enable_samba_activedirectory(id)
+        return self.__disable_samba_activedirectory(id)
 
+    def __enable_samba_ldap(self, id):
+        ldap_context = self.modules['ldap'].context
+        if not ldap_context:
+            return  False
+
+        return True
+
+    def __disable_samba_ldap(self, id):
+        ldap_context = self.modules['ldap'].context
+        if not ldap_context:
+            return  False
+
+        return True
+
+    def __configure_samba_ldap(self, id, enable):
+        if enable:
+            return self.__enable_samba_ldap(id)
+        return self.__disable_samba_ldap(id)
+
+    def configure_samba(self, id, enable=True):
+        self.logger.debug('DSDConfigurationSerivce.configure_samba()')
+        self.__toggle_enable(id, 'configure_samba', enable)
+
+        ds = self.datastore.get_by_id('directoryservices', id)
+        if not ds or not ds.get('type'):
+            return False
+
+        if ds.get('type') == 'activedirectory':
+            return self.__configure_samba_activedirectory(id, enable)
+        elif ds.get('type') == 'ldap':
+            return self.__configure_samba_ldap(id, enable)
+
+        return False
 
     def join_activedirectory(self, id):
         self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
@@ -390,14 +453,48 @@ class DSDConfigurationService(RpcService):
         self.client.call_sync('etcd.generation.generate_group', 'ldap')
 
     def enable(self, id):
-        self.logger.debug('DSDConfigurationSerivce.enable()')
+        self.logger.debug('DSDConfigurationSerivce.enable(): id = %s', id)
+
+        ds = self.datastore.get_by_id('directoryservices', id)
+        if 'enable' in ds and ds['enable'] == True:
+            return True
+
         self.__toggle_enable(id, 'enable', True)
         self.load_directoryservices()
 
+        # thread these
+        #self.configure_hostname(id, enable=True)
+        self.configure_kerberos(id, enable=True)
+        self.get_kerberos_ticket(id)
+        self.configure_nsswitch(id, enable=True)
+        self.configure_openldap(id, enable=True)
+        self.configure_nssldap(id, enable=True)
+        self.configure_sssd(id, enable=True)
+        #self.configure_samba(id, enable=True)
+        #self.configure_pam(id, enable=True)
+        return True
+
     def disable(self, id):
-        self.logger.debug('DSDConfigurationSerivce.disable()')
+        self.logger.debug('DSDConfigurationSerivce.disable(): id = %s', id)
+
+        ds = self.datastore.get_by_id('directoryservices', id)
+        if 'enable' in ds and ds['enable'] == False:
+            return True
+
         self.__toggle_enable(id, 'enable', False)
         self.load_directoryservices()
+
+        # thread these
+        #self.configure_pam(id, enable=False)
+        #self.configure_samba(id, enable=False)
+        self.configure_sssd(id, enable=False)
+        self.configure_nssldap(id, enable=False)
+        self.configure_openldap(id, enable=False)
+        self.configure_nsswitch(id, enable=False)
+        self.get_kerberos_ticket(id)
+        self.configure_kerberos(id, enable=False)
+        #self.configure_hostname(id, enable=False)
+        return True
 
 
 class Main(object):

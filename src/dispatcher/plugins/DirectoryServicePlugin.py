@@ -137,6 +137,8 @@ class DirectoryServiceDisableTask(Task):
 @description("Get directory service servers")
 class DirectoryServiceGetTask(Task):
     def verify(self, args):
+        self.logger.debug("XXX: DirectoryServiceGetTask.verify: args = %s", args)
+
         id = args[0] 
         what = args[1]
 

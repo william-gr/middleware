@@ -69,7 +69,6 @@ class ActiveDirectoryContext(ContextBase):
             self.error = e
             return False
         
-
         self.dcs = self.ad.get_domain_controllers(self.domain)
         self.gcs = self.ad.get_global_catalog_servers(self.domain)
         self.kdcs = self.kc.get_kerberos_servers(self.domain)
