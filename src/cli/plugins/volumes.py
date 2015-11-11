@@ -64,10 +64,10 @@ def correct_disk_path(disk):
 class AddVdevCommand(Command):
     """
     Usage: add_vdev type=<type> disks=<disk1>,<disk2>,<disk3> ...
-    
+
     Example:
-            add_vdev type=mirror disks=ada3,ada4 
-    
+            add_vdev type=mirror disks=ada3,ada4
+
     Valid types are: mirror disk raidz1 raidz2 raidz3 cache log
 
     Adds a new vdev to volume
@@ -77,36 +77,46 @@ class AddVdevCommand(Command):
 
     def run(self, context, args, kwargs, opargs):
         entity = self.parent.entity
-        if 'type' not in kwargs.keys():
-            raise CommandException(_("Please specify a type of vdev, see 'help add_vdev' for more information"))
+        if 'type' not in kwargs:
+            raise CommandException(_(
+                "Please specify a type of vdev, see 'help add_vdev' for more information"
+            ))
+
+        disks_per_type = DISKS_PER_TYPE.copy()
+        disks_per_type.pop('auto', None)
+        disks_per_type.update({
+            'log': 1,
+            'cache': 1,
+        })
+
         typ = kwargs.pop('type')
 
-        if typ not in ('disk', 'mirror', 'cache', 'log', 'raidz1', 'raidz2', 'raidz3'):
+        if disks_per_type.get(typ) is None:
             raise CommandException(_("Invalid vdev type"))
 
-        disks_per_type={'disk':1,
-                        'cache':1,
-                        'log':1,
-                        'mirror':2,
-                        'raidz1':3,
-                        'raidz2':4,
-                        'raidz3':5}
+        if 'disks' not in kwargs:
+            raise CommandException(_("Please specify one or more disks using the disks property"))
+        else:
+            disks = kwargs.pop('disks').split(',')
 
-        if len(args) < disks_per_type[typ]:
-            raise CommandException(_("Vdev of type {0} requires at least {1} disks".format(typ, disks_per_type[typ])))
+        if len(disks) < disks_per_type[typ]:
+            raise CommandException(_(
+                "Vdev of type {0} requires at least {1} disks".format(typ, disks_per_type[typ])
+            ))
 
+        if typ == 'mirror':
             entity['topology']['data'].append({
                 'type': 'mirror',
-                'children': [{'type': 'disk', 'path': correct_disk_path(x)} for x in args]
+                'children': [{'type': 'disk', 'path': correct_disk_path(x)} for x in disks]
             })
 
         if typ == 'disk':
-            if len(args) != 1:
+            if len(disks) != 1:
                 raise CommandException(_("Disk vdev consist of single disk"))
 
             entity['topology']['data'].append({
                 'type': 'disk',
-                'path': correct_disk_path(args[0])
+                'path': correct_disk_path(disks[0])
             })
 
         if typ == 'cache':
@@ -115,11 +125,11 @@ class AddVdevCommand(Command):
 
             entity['topology']['cache'].append({
                 'type': 'disk',
-                'path': correct_disk_path(args[0])
+                'path': correct_disk_path(disks[0])
             })
 
         if typ == 'log':
-            if len(args) != 1:
+            if len(disks) != 1:
                 raise CommandException(_("Log vdevs cannot be mirrored"))
 
             if 'log' not in entity:
@@ -127,13 +137,13 @@ class AddVdevCommand(Command):
 
             entity['topology']['log'].append({
                 'type': 'disk',
-                'path': correct_disk_path(args[0])
+                'path': correct_disk_path(disks[0])
             })
 
         if typ.startswith('raidz'):
             entity['topology']['data'].append({
                 'type': typ,
-                'children': [{'type': 'disk', 'path': correct_disk_path(x)} for x in args]
+                'children': [{'type': 'disk', 'path': correct_disk_path(x)} for x in disks]
             })
 
         self.parent.modified = True
@@ -219,7 +229,12 @@ class OfflineVdevCommand(Command):
 
         if guid is None:
             raise CommandException(_("Disk {0} is not part of the volume.".format(disk)))
-        context.submit_task('zfs.pool.offline_disk', self.parent.entity['name'], guid)
+        context.submit_task(
+            'zfs.pool.offline_disk',
+            self.parent.entity['name'],
+            guid,
+            callback=lambda s: post_save(self.parent, s)
+        )
 
 
 @description("Onlines a disk in a volume")
@@ -251,7 +266,12 @@ class OnlineVdevCommand(Command):
 
         if guid is None:
             raise CommandException(_("Disk {0} is not part of the volume.".format(disk)))
-        context.submit_task('zfs.pool.online_disk', self.parent.entity['name'], guid)
+        context.submit_task(
+            'zfs.pool.online_disk',
+            self.parent.entity['name'],
+            guid,
+            callback=lambda s: post_save(self.parent, s)
+        )
 
 
 @description("Finds volumes available to import")
@@ -418,10 +438,10 @@ class ReplicateCommand(Command):
                     )
 
                 if row['type'] == 'DELETE_SNAPSHOTS':
-                    return 'on remote dataset {remotefs}'.format(**row)
+                    return 'reinitialize remote dataset {remotefs}'.format(**row)
 
                 if row['type'] == 'DELETE_DATASET':
-                    return row['remotefs']
+                    return 'delete remote dataset {remotefs} (because it has been deleted locally)'.format(**row)
 
             result = context.call_task_sync(*args)
             return Table(result['result'], [
