@@ -68,6 +68,8 @@ class ClientTransportBuilder(object):
             return ClientTransportSSH()
         elif 'ws' in scheme:
             return ClientTransportWS()
+        elif 'unix' in scheme:
+            return ClientTransportSock()
         else:
             raise ValueError('Unsupported type of connection scheme.')
 
@@ -365,3 +367,68 @@ class ClientTransportSSH(ClientTransportBase):
     @property
     def host_keys(self):
         return self.ssh.get_host_keys()
+
+
+class ClientTransportSock(ClientTransportBase):
+
+    def __init__(self):
+        self.path = '/var/run/dispatcher.sock'
+        self.sock = None
+        self.parent = None
+        self.terminated = False
+
+    def connect(self, url, parent, **kwargs):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        self.parent = parent
+        if not self.parent:
+            raise RuntimeError('ClientTransportSock can be only created inside of a class')
+
+        if url.path:
+            self.path = url.path
+
+        try:
+            self.sock.connect(self.path)
+
+            debug_log('Connected to {0}', self.path)
+
+            recv_t = spawn_thread(target=self.recv)
+            recv_t.setDaemon(True)
+            recv_t.start()
+        except socket.error as err:
+            self.terminated = True
+            debug_log('Socket connection exception: {0}', err)
+            raise
+
+    @property
+    def address(self):
+        return self.path
+
+    def send(self, message):
+        if self.terminated is False:
+            sent = self.sock.send(message)
+            if sent == 0 and self.terminated is True:
+                self.closed()
+            else:
+                debug_log("Sent data: {0}", message)
+
+    def recv(self):
+        while self.terminated is False:
+            message = self.sock.recv()
+            if message == b'' and self.terminated is True:
+                self.closed()
+            else:
+                debug_log("Received data: {0}", message)
+                self.parent.recv(message)
+
+    def close(self):
+        debug_log("Transport connection closed by client.")
+        self.terminated = True
+        self.sock.close()
+
+    def closed(self):
+        debug_log("Transport socket connection terminated abnormally.")
+        self.terminated = True
+        self.parent.drop_pending_calls()
+        if self.parent.error_callback is not None:
+            from dispatcher.client import ClientError
+            self.parent.error_callback(ClientError.CONNECTION_CLOSED)
