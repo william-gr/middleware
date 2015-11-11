@@ -172,16 +172,11 @@ cdef class SendZFS(object):
         self.throttle = throttle
 
         snap = self.zfs.get_snapshot('{0}@{1}'.format(dataset, tosnap))
-        if fromsnap is None:
-            fsnap = fromsnap
-        else:
-            fsnap = '{0}@{1}'.format(dataset, fromsnap)
-
         term_readfd, term_writefd = os.pipe()
 
         self.running = True
         zfs_readfd, zfs_writefd = os.pipe()
-        snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, term_writefd, zfs_writefd, fsnap))
+        snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, term_writefd, zfs_writefd, fromsnap))
         snap_send_thread.setDaemon(True)
         snap_send_thread.start()
 
