@@ -63,7 +63,9 @@ cdef class SendZFS(object):
     cdef int running
     cdef object throttle_buffer
     cdef int ssh_proc_exit_code
+    cdef int zfs_proc_exit_code
     cdef object ssh_proc_exit_status
+    cdef object zfs_proc_exit_status
 
     def __init__(self):
         self.zfs = libzfs.ZFS()
@@ -128,12 +130,13 @@ cdef class SendZFS(object):
                 libzfs.SendFlag.PROGRESS,
                 libzfs.SendFlag.PROPS
             })
-
+            self.zfs_proc_exit_code = 0
         except libzfs.ZFSException:
             self.running = False
             os.write(term_writefd, b'1')
             os.close(term_writefd)
-            raise
+            self.zfs_proc_exit_code = -1
+            self.zfs_proc_exit_status = err
         os.close(writefd)
 
     def throttle_timer(self):
@@ -176,6 +179,7 @@ cdef class SendZFS(object):
 
         term_readfd, term_writefd = os.pipe()
 
+        self.running = True
         zfs_readfd, zfs_writefd = os.pipe()
         snap_send_thread = threading.Thread(target=self.zfs_snap_send, args=(snap, term_writefd, zfs_writefd, fsnap))
         snap_send_thread.setDaemon(True)
@@ -211,7 +215,6 @@ cdef class SendZFS(object):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 )
-                self.running = True
             except (OSError, ValueError):
                 self.running = False
                 raise
@@ -273,3 +276,6 @@ cdef class SendZFS(object):
             check_ssh_stat_thread.join()
             if self.ssh_proc_exit_code != 0:
                 raise ChildProcessError(self.ssh_proc_exit_status)
+            snap_send_thread.join()
+            if self.zfs_proc_exit_code != 0:
+                raise self.zfs_proc_exit_status
