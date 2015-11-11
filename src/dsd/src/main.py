@@ -322,8 +322,6 @@ class DSDConfigurationService(RpcService):
 
     def __activedirectory_smbconf(self, ad_context):
         return {
-            'idmap config *: backend': 'tdb',
-            'idmap config *: range': '90000001-100000000',
             'server role': 'member server',
             'local master': 'no',
             'domain master': 'no',
