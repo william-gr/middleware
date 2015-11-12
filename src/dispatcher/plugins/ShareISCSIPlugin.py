@@ -199,7 +199,7 @@ class CreateISCSITargetTask(Task):
         normalize(target, {
             'description': None,
             'auth_group': 'no-authentication',
-            'poral_group': 'default',
+            'portal_group': 'default',
             'extents': []
         })
 
@@ -435,6 +435,7 @@ def _init(dispatcher, plugin):
             'id': {'type': 'string'},
             'description': {'type': 'string'},
             'auth_group': {'type': 'string'},
+            'portal_group': {'type': 'string'},
             'extents': {
                 'type': 'array',
                 'items': {
