@@ -182,6 +182,8 @@ SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
    AcceptFilter https none
 </IfDefine>
 
+ExtendedStatus On
+
 <%def name="webdav_block(cfg, field, certificate=None)">
 Listen ${cfg[field]}
 
