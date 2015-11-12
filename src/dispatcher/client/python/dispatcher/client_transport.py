@@ -422,6 +422,7 @@ class ClientTransportSock(ClientTransportBase):
             header = self.fd.read(8)
             if header == b'':
                 self.closed()
+                break
 
             magic, length = struct.unpack('II', header)
             if magic != 0xdeadbeef:
