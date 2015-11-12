@@ -63,6 +63,28 @@ def debug_log(message, *args):
         _debug_log_file.flush()
 
 
+def _patched_exec_command(self,
+                          command,
+                          bufsize=-1,
+                          timeout=None,
+                          get_pty=False,
+                          stdin_binary=True,
+                          stdout_binary=False,
+                          stderr_binary=False):
+
+    chan = self._transport.open_session()
+    if get_pty:
+        chan.get_pty()
+    chan.settimeout(timeout)
+    chan.exec_command(command)
+    stdin = chan.makefile('wb' if stdin_binary else 'w', bufsize)
+    stdout = chan.makefile('rb' if stdin_binary else 'r', bufsize)
+    stderr = chan.makefile_stderr('rb' if stdin_binary else 'r', bufsize)
+    return stdin, stdout, stderr
+
+paramiko.SSHClient.exec_command = _patched_exec_command
+
+
 class ClientTransportBuilder(object):
     def create(self, scheme):
         if 'ssh' in scheme:
@@ -335,16 +357,30 @@ class ClientTransportSSH(ClientTransportBase):
 
     def send(self, message):
         if self.terminated is False:
-            self.stdin.write(str(message) + '\n')
+            header = struct.pack('II', 0xdeadbeef, len(message))
+            message = header + message.encode('utf-8')
+            self.stdin.write(message)
             self.stdin.flush()
             debug_log("Sent data: {0}", message)
 
     def recv(self):
         while self.terminated is False:
-            data_received = self.stdout.readline()
-            if self.terminated is False:
-                debug_log("Received data: {0}", data_received)
-                self.parent.recv(data_received)
+            header = self.stdout.read(8)
+            if header == b'' or len(header) != 8:
+                self.closed()
+                break
+
+            magic, length = struct.unpack('II', header)
+            if magic != 0xdeadbeef:
+                debug_log('Message with wrong magic dropped')
+                continue
+
+            message = self.stdout.read(length)
+            if message == b'' or len(message) != length:
+                self.closed()
+            else:
+                debug_log("Received data: {0}", message)
+                self.parent.recv(message)
 
     def closed(self):
         exit_status = self.channel.recv_exit_status()
@@ -420,7 +456,7 @@ class ClientTransportSock(ClientTransportBase):
     def recv(self):
         while self.terminated is False:
             header = self.fd.read(8)
-            if header == b'':
+            if header == b'' or len(header) != 8:
                 self.closed()
                 break
 
@@ -430,7 +466,7 @@ class ClientTransportSock(ClientTransportBase):
                 continue
 
             message = self.fd.read(length)
-            if message == b'':
+            if message == b'' or len(message) != length:
                 self.closed()
             else:
                 debug_log("Received data: {0}", message)

@@ -25,86 +25,117 @@
 #
 #####################################################################
 
+from __future__ import print_function
+import io
 import sys
 import os
 import uuid
-from ws4py.exc import HandshakeError
+import struct
+import socket
+import select
 from dispatcher.jsonenc import dumps
-from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
-from transport_ws_handler import TransportWSHandler
-from transport_catcher_base import TransportCatcherBase, debug_log
 
 _thread_type = ClientType.THREADED
+_debug_log_file = None
 
 
-class TransportCatcherSSH(TransportCatcherBase):
+def debug_log(message, *args):
+    global _debug_log_file
+
+    if os.getenv('DISPATCHER_TRANSPORT_CATCHER_DEBUG'):
+        if not _debug_log_file:
+            try:
+                _debug_log_file = open('/var/tmp/dispatchercatcher.{0}.log'.format(os.getpid()), 'w')
+            except OSError:
+                pass
+
+        print(message.format(*args), file=_debug_log_file)
+        _debug_log_file.flush()
+
+
+class TransportCatcherSSH(object):
 
     def __init__(self):
         self.ended = False
-        self.transport_ws_handler = None
+        self.sock_fd = None
+        self.stdin_fd = None
+        self.stdout_fd = None
+        self.sock = None
+        self.terminated = False
 
     def start(self):
-        self.transport_ws_handler = TransportWSHandler(self)
-        try:
-            self.transport_ws_handler.start()
-        except HandshakeError:
-            debug_log('HandshakeError received. Closing')
-            raise
-
-        debug_log('Connection opened.')
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect('/var/run/dispatcher.sock')
+        self.sock_fd = self.sock.makefile('rwb')
 
         ssh_client_data = os.getenv("SSH_CLIENT")
         addr, outport, inport = ssh_client_data.split(' ', 3)
         outport = int(outport)
         client_address = [addr, outport]
 
-        self.transport_ws_handler.send(self.pack('transport', 'setup', client_address))
-        debug_log('Transport setup sent')
-        t = spawn_thread(target=self.send)
-        t.setDaemon(True)
-        t.start()
-        self.transport_ws_handler.wait_forever()
+        message = self.pack('transport', 'setup', client_address)
 
-    def send(self):
-        while self.ended is False:
-            message = sys.stdin.readline()
-            if message:
-                message = message[:-1]
-                try:
-                    self.transport_ws_handler.send(message)
-                    debug_log('Sent message: {0}', message)
-                except ValueError:
-                    debug_log('ValueError on sending message: {0}', message)
-                    self.transport_ws_handler.close()
-            else:
-                self.transport_ws_handler.close()
-                sys.exit(0)
+        header = struct.pack('II', 0xdeadbeef, len(message))
+        message = header + message.encode('utf-8')
+        sent = self.sock_fd.write(message)
+        self.sock_fd.flush()
+        if sent == 0:
+            debug_log("Can't send transport setup message: {0} - connection closed", message)
+            return
+        else:
+            debug_log("Sent data: {0}", message)
 
-    def recv(self, message):
-        try:
-            message = str(message) + '\n'
-            sys.stdout.write(message)
-            sys.stdout.flush()
-            debug_log('Received message: {0}', message[:-1])
-        except ValueError:
-            debug_log('ValueError on receiving message: {0}', message)
+        debug_log('Connection opened.')
 
-    def connection_ended(self):
-        debug_log('Connection closed.')
-        self.ended = True
-        sys.exit(0)
+        self.stdin_fd = io.open(sys.stdin.fileno(), 'rb')
+        self.stdout_fd = io.open(sys.stdout.fileno(), 'wb')
 
-    def pack(self, namespace, name, args, id=None):
+        inputs = [sys.stdin.fileno(), self.sock.fileno()]
+        while self.terminated is False:
+            inputready, outputready, exceptready = select.select(inputs, [], [])
+
+            for fd in inputready:
+
+                if fd == sys.stdin.fileno():
+                    debug_log('New message: Client -> Server')
+                    data = self.stdin_fd.read1(4096)
+                    if data == b'':
+                        self.closed()
+                        break
+                    sent = self.sock_fd.write(data)
+                    if sent == 0:
+                        self.closed()
+                    self.sock_fd.flush()
+                elif fd == self.sock.fileno():
+                    debug_log('New message: Server -> Client')
+                    data = self.sock_fd.read1(4096)
+                    if data == b'':
+                        self.closed()
+                        break
+                    sent = self.stdout_fd.write(data)
+                    if sent == 0:
+                        self.closed()
+                    self.stdout_fd.flush()
+                else:
+                    debug_log('Bad fd ready received {0}', fd)
+                    self.closed()
+                    break
+
+    @staticmethod
+    def pack(namespace, name, args):
         return dumps({
             'namespace': namespace,
             'name': name,
             'args': args,
-            'id': str(id if id is not None else uuid.uuid4())
+            'id': str(uuid.uuid4())
         })
 
+    def closed(self):
+        self.sock.close()
+        self.sock_fd.close()
+        self.terminated = True
+        debug_log('Connection closed.')
+
 catcher = TransportCatcherSSH()
-try:
-    catcher.start()
-except HandshakeError:
-    sys.exit(1)
+catcher.start()
