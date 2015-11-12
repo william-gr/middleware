@@ -152,7 +152,7 @@ class Context(object):
         self.datastore = get_default_datastore()
         self.configstore = ConfigStore(self.datastore)
         self.conn = Client()
-        self.conn.connect('127.0.0.1')
+        self.conn.connect('unix:')
         self.conn.login_service('task.{0}'.format(os.getpid()))
         self.conn.enable_server()
         self.conn.rpc.register_service_instance('taskproxy', self.service)
