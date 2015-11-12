@@ -25,9 +25,12 @@
 #####################################################################
 import errno
 import logging
+import requests
+from io import StringIO
 from task import Task, Provider
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private
 from fnutils import normalize
+from lxml import etree
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +40,39 @@ class WebDAVSharesProvider(Provider):
     @private
     @accepts(str)
     def get_connected_clients(self, share_id=None):
-        # FIXME
         result = []
+        config = self.dispatcher.call_sync('service.webdav.get_config')
+
+        if not config['enable']:
+            return result
+
+        if 'HTTP' in config['protocol']:
+            proto = 'http'
+            port = config['http_port']
+        elif 'HTTPS' in config['protocol']:
+            proto = 'https'
+            port = config['https_port']
+        else:
+            return result
+
+        r = requests.get(
+            '{0}://127.0.0.1:{1}/server-status'.format(proto, port),
+            verify=False,
+            timeout=5,
+        )
+        parser = etree.HTMLParser()
+        tree = etree.parse(StringIO(r.text), parser)
+        for table in tree.xpath('//table[1]'):
+            for row in table.xpath('./tr[position()>1]'):
+                cols = row.getchildren()
+                request = cols[12].text
+                if request == 'GET /server-status HTTP/1.1':
+                    continue
+                result.append({
+                   'pid': cols[1].text,
+                   'client': cols[10].text,
+                   'request': cols[12].text,
+                })
         return result
 
 
