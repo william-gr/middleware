@@ -8,10 +8,11 @@
 
     directoryservices = dispatcher.call_sync('directoryservices.query')
     for ds in directoryservices:
-        if ds["configure_pam"] == True:
-            ds_type = ds["type"]
-            break
+        configure_pam = ds.get('configure_pam', False)
+        if not configure_pam:
+            continue
 
+        ds_type = ds["type"]
 %>
 
 # auth
