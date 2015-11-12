@@ -29,6 +29,8 @@ import os
 import re
 import netif
 import time
+import io
+from xml.etree import ElementTree
 from bsd import geom
 from event import EventSource
 from task import Provider
@@ -113,6 +115,11 @@ class DeviceInfoPlugin(Provider):
 
 
 class DevdEventSource(EventSource):
+    class DevdEvent(dict):
+        def __init__(self, kind):
+            self.kind = kind
+            super(DevdEventSource.DevdEvent, self).__init__()
+
     def __init__(self, dispatcher):
         super(DevdEventSource, self).__init__(dispatcher)
         self.register_event_type("system.device.attached")
@@ -135,11 +142,17 @@ class DevdEventSource(EventSource):
         self.register_event_type("fs.zfs.dataset.deleted")
         self.register_event_type("fs.zfs.dataset.renamed")
 
-    def __tokenize(self, line):
+    def __tokenize(self, buffer):
         try:
-            return {i.split("=")[0]: i.split("=")[1] for i in line.split()}
-        except IndexError:
-            pass
+            tree = ElementTree.fromstring(buffer)
+        except ElementTree.ParseError:
+            return None
+
+        ret = self.DevdEvent(tree.tag)
+        for i in tree:
+            ret[i.tag] = i.text
+
+        return ret
 
     def __process_devfs(self, args):
         if args["subsystem"] == "CDEV":
@@ -211,6 +224,18 @@ class DevdEventSource(EventSource):
 
         self.emit_event(event_mapping[ev_type][0], **params)
 
+    def read_until_nul(self, sock):
+        buf = io.BytesIO()
+        while True:
+            byte = sock.read(1)
+            if byte == b'':
+                return None
+
+            if byte == b'\x00':
+                return buf.getvalue()
+
+            buf.write(byte)
+
     def run(self):
         while True:
             try:
@@ -219,34 +244,34 @@ class DevdEventSource(EventSource):
                 f = self.socket.makefile("rb", 0)
                 # with self.socket.makefile("r", 0) as f:
                 while True:
-                    line = f.readline().decode('utf8', 'replace')
+                    line = self.read_until_nul(f)
                     if line is None:
                         # Connection closed - we need to reconnect
                         # return
-                        raise
+                        raise OSError('Connection closed')
 
-                    args = self.__tokenize(line[1:].strip())
-                    if not args:
+                    event = self.__tokenize(line.decode('utf-8', 'replace'))
+                    if not event:
                         # WTF
                         continue
                         
-                    if "system" not in args:
+                    if "system" not in event:
                         # WTF
                         continue
 
-                    if args["system"] == "DEVFS":
-                        self.__process_devfs(args)
+                    if event["system"] == "DEVFS":
+                        self.__process_devfs(event)
 
-                    if args["system"] == "IFNET":
-                        self.__process_ifnet(args)
+                    if event["system"] == "IFNET":
+                        self.__process_ifnet(event)
 
-                    if args["system"] == "ZFS":
-                        self.__process_zfs(args)
+                    if event["system"] == "ZFS":
+                        self.__process_zfs(event)
 
-                    if args["system"] == "SYSTEM":
-                        self.__process_system(args)
+                    if event["system"] == "SYSTEM":
+                        self.__process_system(event)
 
-            except socket.error:
+            except OSError:
                 # sleep for a half a second and retry
                 self.dispatcher.logger.debug(
                     '/var/run/devd.pipe timedout/was not available, retrying in 0.5 seconds')
