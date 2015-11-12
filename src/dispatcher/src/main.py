@@ -800,8 +800,6 @@ class UnixSocketServer(object):
                 if header == b'':
                     break
 
-                print('header len = {0}'.format((len(header))))
-
                 magic, length = struct.unpack('II', header)
                 if magic != 0xdeadbeef:
                     self.dispatcher.logger.info('Message with wrong magic dropped')
@@ -814,12 +812,14 @@ class UnixSocketServer(object):
                 self.conn.on_message(msg)
 
             self.conn.on_close('Bye bye')
+            self.fd.close()
 
     def __init__(self, path, dispatcher):
         self.path = path
         self.dispatcher = dispatcher
         self.sockfd = None
         self.backlog = 50
+        self.logger = logging.getLogger('UnixSocketServer')
         self.connections = []
 
     def broadcast_event(self, event, args):
@@ -834,14 +834,18 @@ class UnixSocketServer(object):
             self.sockfd = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.sockfd.bind(self.path)
             self.sockfd.listen(self.backlog)
+        except OSError as err:
+            self.logger.error('Cannot start socket server: {0}'.format(str(err)))
+            return
 
-            while True:
+        while True:
+            try:
                 fd, addr = self.sockfd.accept()
-                handler = self.UnixSocketHandler(self, self.dispatcher, fd, addr)
-                gevent.spawn(handler.handle_connection)
+            except OSError as err:
+                self.logger.error('accept() failed: {0}'.format(str(err)))
 
-        except socket.error:
-            pass
+            handler = self.UnixSocketHandler(self, self.dispatcher, fd, addr)
+            gevent.spawn(handler.handle_connection)
 
 
 class ServerConnection(WebSocketApplication, EventEmitter):
