@@ -1089,7 +1089,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
             return
 
-        if client_addr in ('127.0.0.1', '::1') or self.has_external_transport is True:
+        if client_addr in ('127.0.0.1', '::1', 'unix') or self.has_external_transport is True:
             # If client is connecting from localhost, omit checking password
             # and instead verify his username using sockstat(1). Also make
             # token lifetime None for such users (as we do not want their
