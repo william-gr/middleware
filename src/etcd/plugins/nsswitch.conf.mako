@@ -21,8 +21,8 @@
             group_source += " ldap"
 
 %>
-passwd: files ${passwd_source}
-group: files ${group_source}
+passwd: ${passwd_source}
+group: ${group_source}
 hosts: files mdns dns
 shells: files
 services: compat
