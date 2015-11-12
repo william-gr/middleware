@@ -26,9 +26,8 @@
 import errno
 import logging
 from task import Task, Provider
-from dispatcher.rpc import RpcException, description, accepts, private
-from dispatcher.rpc import SchemaHelper as h
-
+from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private
+from fnutils import normalize
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +52,10 @@ class CreateWebDAVShareTask(Task):
         return ['service:webdav']
 
     def run(self, share):
+        ormalize(share['properties'], {
+            'read_only': False,
+            'permission': False,
+        })
         id = self.datastore.insert('shares', share)
         self.dispatcher.call_sync('etcd.generation.generate_group', 'webdav')
         self.dispatcher.call_sync('services.reload', 'webdav')
