@@ -779,6 +779,7 @@ class UnixSocketServer(object):
             self.dispatcher = dispatcher
             self.fd = connfd.makefile('rwb')
             self.address = address
+            self.server = server
             self.handler = types.SimpleNamespace()
             self.handler.client_address = ("unix", 0)
             self.handler.server = server
@@ -802,7 +803,7 @@ class UnixSocketServer(object):
 
                 magic, length = struct.unpack('II', header)
                 if magic != 0xdeadbeef:
-                    self.dispatcher.logger.info('Message with wrong magic dropped')
+                    self.server.logger.info('Message with wrong magic dropped')
                     continue
 
                 msg = self.fd.read(length)
@@ -843,6 +844,7 @@ class UnixSocketServer(object):
                 fd, addr = self.sockfd.accept()
             except OSError as err:
                 self.logger.error('accept() failed: {0}'.format(str(err)))
+                continue
 
             handler = self.UnixSocketHandler(self, self.dispatcher, fd, addr)
             gevent.spawn(handler.handle_connection)
