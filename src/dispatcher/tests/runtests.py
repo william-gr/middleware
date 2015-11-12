@@ -4,7 +4,17 @@ import os
 import inspect
 import traceback
 import time
+import subprocess
 
+###############
+# PYTHOPATH
+###############
+testdir = os.getcwd()
+
+topdir = subprocess.check_output('git rev-parse --show-toplevel',shell=True).rstrip('\n')
+topdir = os.path.normpath(topdir)
+sys.path.append(os.path.join(topdir, 'src/dispatcher/client/python'))
+sys.path.append(os.path.join(topdir, 'src/py-fnutils'))
 
 loader = unittest.TestLoader()
 r = loader.discover('./')
@@ -31,36 +41,6 @@ overall = results.wasSuccessful()
 
 
 # OUTPUT
-
-
-'''
-print '============================='
-print "Total tests discovered:  " + str(r.countTestCases())
-print "Total tests ran: " + str(results.testsRun)
-print 'Tests failed: ' + str(len(results.failures))
-print 'Errors reported: ' + str(len(results.errors))
-print 'Tests skipped: ' + str(len(results.skipped))
-print "Overall Result: " + str(overall)
-print '============================='
-if not overall:
-    print '========================================='
-    print "ERRORS:"
-    print '========================================='
-    for error in results.errors:
-        print str(error[0]) + ': '
-        print '========================================='
-        print  error[1]
-        print '========================================='
-    print '========================================='
-    print 'FAILURES'
-    print '========================================='
-    for failure in results.failures:
-        print str(failure[0]) + ': '
-        print '========================================='
-        print  failure[1]
-        print '========================================='
-'''
-
 def header(r, results):
     overall = results.wasSuccessful()
     output = 'Total tests discovered:  ' + str(r.countTestCases()) + os.linesep
@@ -90,6 +70,8 @@ def header(r, results):
     return output
 
 print header(r, results)
+
+
 #==========================
 # HTML 
 #====================
@@ -132,7 +114,7 @@ def make_header(info, doc):
     doc.append(text)
     text = HTMLgen.Paragraph('Server: %s' % os.getenv('TESTHOST'))
     doc.append(text)
-    text = HTMLgen.Paragraph('Test Mmodule/Class/Name: %s' % info)
+    text = HTMLgen.Paragraph('Test Module/Class/Name: %s' % info)
     doc.append(text)
     text = HTMLgen.Paragraph('###################')
     doc.append(text)
@@ -150,22 +132,6 @@ def append_to_table(table, test_id, group, text='FAILED'):
     href = HTMLgen.Href(filename, HTMLgen.Text(text))
     l = [f[0].id().split('.')[0], f[0].id().split('.')[1], f[0].id().split('.')[2], href, '']
     t.body.append(l)
-
-def file_to_htmliREMOVE(f_path, html_root):
-    '''
-    html file
-    from a text file
-    '''
-    doc = HTMLgen.SimpleDocument(title=f_path)
-    lst = HTMLgen.NonBulletList()
-    txt = ''
-    if os.path.exists(f_path):
-        for line in open(f_path, 'r').readlines():
-            txt +=line
-    doc.append(HTMLgen.Text(txt))
-    new_path = os.path.join(html_root, os.path.split(f_path)[1] + '.html')
-    doc.write(new_path) 
-    return os.path.join(new_path)       
 
 
 # create html file per failure
@@ -226,7 +192,9 @@ units = testfiles_to_html(complete_list, logdir)
 try:
   for test in complete_list:
     test_id = test.id()
-    srcref = HTMLgen.Href(units[test_id][1], HTMLgen.Text(units[test_id][0]))        
+    htm_log = units[test_id][1]
+    src = units[test_id][0]
+    srcref = HTMLgen.Href(os.path.split(htm_log)[1], HTMLgen.Text(src))        
 
     if test_id not in failed.keys() + errors.keys() + skipped.keys():
         l = [test_id.split('.')[0], test_id.split('.')[1], test_id.split('.')[2], 'OK', srcref]  
