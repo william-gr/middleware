@@ -798,7 +798,8 @@ class UnixSocketServer(object):
 
             while True:
                 header = self.fd.read(8)
-                if header == b'':
+                if header == b'' or len(header) != 8:
+                    self.server.logger.info('Message wrong header dropped; closing connection')
                     break
 
                 magic, length = struct.unpack('II', header)
@@ -807,7 +808,8 @@ class UnixSocketServer(object):
                     continue
 
                 msg = self.fd.read(length)
-                if msg == b'':
+                if msg == b'' or len(msg) != length:
+                    self.server.logger.info('Message with wrong length dropped; closing connection')
                     break
 
                 self.conn.on_message(msg)
