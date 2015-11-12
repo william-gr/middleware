@@ -44,7 +44,6 @@ class Migration(DataMigration):
                 'id': 'pg{0}'.format(p.id),
                 'tag': p.iscsi_target_portal_tag,
                 'description': p.iscsi_target_portal_comment,
-                'discovery_auth_metod': AUTH_METHOD_TABLE[p.iscsi_target_portal_discoveryauthmethod],
                 'discovery_auth_group': 'ag{0}'.format(p.iscsi_target_portal_discoveryauthgroup),
                 'listen': [{'address': i.iscsi_target_portalip_ip, 'port': i.iscsi_target_portalip_port} for i in p.ips.all()]
             })
@@ -54,6 +53,7 @@ class Migration(DataMigration):
         for t in iscsi_targets:
             ds.insert('iscsi.targets', {
                 'id': t.iscsi_target_name,
+                'auth_group': 'no-authentication',  # XXX: Needs to pass proper auth group
                 'description': t.iscsi_target_alias,
                 'extents': []
             })
