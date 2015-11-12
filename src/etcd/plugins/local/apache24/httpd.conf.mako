@@ -185,6 +185,12 @@ SSLProtocol +TLSv1 +TLSv1.1 +TLSv1.2
 <%def name="webdav_block(cfg, field, certificate=None)">
 Listen ${cfg[field]}
 
+<VirtualHost 127.0.0.1:${cfg[field]}>
+  <Location "/server-status">
+    SetHandler server-status
+  </Location>
+</VirtualHost>
+
 <VirtualHost *:${cfg[field]}>
 
 % if certificate:
