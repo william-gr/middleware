@@ -41,8 +41,8 @@ logger = logging.getLogger("kerberos")
 
 class Kerberos(object):
     def __init__(self, *args,  **kwargs):
-        self.dispatcher = kwargs['dispatcher']
-        self.datastore = kwargs['datastore']
+        self.dispatcher = kwargs.get('dispatcher')
+        self.datastore = kwargs.get('datastore')
 
         sys.path.extend(['/usr/local/lib/dsd/modules/'])
         from dsdns import DSDNS
@@ -55,54 +55,121 @@ class Kerberos(object):
     def get_directory_type(self):
         return "kerberos"
 
-    def get_kerberos_servers(self, domain, site=None):
-        kdcs = []
+    def get_kerberos_servers(self, domain, proto='tcp'):
+        kerberos_servers = []
+
         if not domain:
-            return kdcs
+            return kerberos_servers
+        if proto is None:
+            proto = ['tcp', 'udp']
             
-        host = "_kerberos._tcp.%s" % domain
-        if site:
-            host = "_kerberos._tcp.%s._sites.%s" % (site, domain)
+        if 'tcp' in proto:
+            tcp_host = "_kerberos._tcp.%s" % domain
             
-        logger.debug("get_kerberos_servers: host = %s", host)
-        kdcs = self.dsdns.get_SRV_records(host)
+            logger.debug("get_kerberos_servers: tcp_host = %s", tcp_host)
+            tcp_kerberos_servers = self.dsdns.get_SRV_records(tcp_host)
+            if tcp_kerberos_servers:
+                kerberos_servers += tcp_kerberos_servers
 
-        for kdc in kdcs:
-            logger.debug("get_kerberos_servers: found %s", kdc)
+        if 'udp' in proto:
+            udp_host = "_kerberos._tcp.%s" % domain
 
-        return kdcs
+            logger.debug("get_kerberos_servers: udp_host = %s", udp_host)
+            udp_kerberos_servers = self.dsdns.get_SRV_records(tcp_host)
+            if udp_kerberos_servers:
+                kerberos_servers += udp_kerberos_servers
 
-    def get_kerberos_domain_controllers(self, domain, site=None):
-        kdcs = []
+        for ks in kerberos_servers:
+            logger.debug("get_kerberos_servers: found %s", ks)
+
+        return kerberos_servers
+
+    def get_kpasswd_servers(self, domain, proto='tcp'):
+        kpasswd_servers = []
+
         if not domain:
-            return kdcs
+            return kpasswd_servers
+        if proto is None:
+            proto = ['tcp', 'udp']
 
-        host = "_kerberos._tcp.dc._msdcs.%s" % domain
-        if site:
-            host = "_kerberos._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
+        if 'tcp' in proto:
+            tcp_host = "_kpasswd._tcp.%s" % domain
 
-        logger.debug("get_kerberos_domain_controllers: host = %s", host)
-        kdcs = self.dsdns.get_SRV_records(host)
+            logger.debug("get_kpasswd_servers: tcp_host = %s", tcp_host)
+            tcp_kpasswd_servers = self.dsdns.get_SRV_records(tcp_host)
+            if tcp_kpasswd_servers:
+                kpasswd_servers += tcp_kpasswd_servers
 
-        for kdc in kdcs:
-            logger.debug("get_kerberos_domain_controllers: found %s", kdc)
+        if 'udp' in proto:
+            udp_host = "_kpasswd._udp.%s" % domain
 
-        return kdcs
+            logger.debug("get_kpasswd_servers: udp_host = %s", udp_host)
+            udp_kpasswd_servers = self.dsdns.get_SRV_records(udp_host)
+            if udp_kpasswd_servers:
+                kpasswd_servers += udp_kpasswd_servers
 
-    def get_kpasswd_servers(self, domain):
-        kpws = []
+        for kpws in kpasswd_servers:
+            logger.debug("get_kpasswd_servers: found %s", kpws)
+
+        return kpasswd_servers
+
+    def get_kerberos_master_servers(self, domain, proto='tcp'):
+        kerberos_master_servers = []
+
         if not domain:
-            return kpws
+            return kerberos_master_servers
+        if proto is None:
+            proto = ['tcp', 'udp']
 
-        host = "_kpasswd._tcp.%s" % domain
-        logger.debug("get_kpasswd_servers: host = %s", host)
+        if 'tcp' in proto:
+            tcp_host = "_kerberos-master._tcp.%s" % domain
 
-        kpws = self.dsdns.get_SRV_records(host)
+            logger.debug("get_kerberos_master_servers: tcp_host = %s", tcp_host)
+            tcp_kerberos_master_servers = self.dsdns.get_SRV_records(tcp_host)
+            if tcp_kerberos_master_servers:
+                kerberos_master_servers += tcp_kerberos_master_servers
 
-        for kpw in kpws:
-            logger.debug("get_kpasswd_servers: found %s", kpwd)
+        if 'udp' in proto:
+            udp_host = "_kerberos-master._tcp.%s" % domain
 
-        return kpws
+            logger.debug("get_kerberos_master_servers: udp_host = %s", udp_host)
+            udp_kerberos_master_servers = self.dsdns.get_SRV_records(tcp_host)
+            if udp_kerberos_master_servers:
+                kerberos_master_servers += udp_kerberos_master_servers
+
+        for kms in kerberos_master_servers:
+            logger.debug("get_kerberos_master_servers: found %s", kms)
+
+        return kerberos_master_servers
+
+    def get_kerberos_admin_servers(self, domain, proto='tcp'):
+        kerberos_admin_servers = []
+
+        if not domain:
+            return kerberos_admin_servers
+        if proto is None:
+            proto = ['tcp', 'udp']
+
+        if 'tcp' in proto:
+            tcp_host = "_kerberos-adm._tcp.%s" % domain
+
+            logger.debug("get_kerberos_admin_servers: tcp_host = %s", tcp_host)
+            tcp_kerberos_admin_servers = self.dsdns.get_SRV_records(tcp_host)
+            if tcp_kerberos_admin_servers:
+                kerberos_admin_servers += tcp_kerberos_admin_servers
+
+        if 'udp' in proto:
+            udp_host = "_kerberos-adm._tcp.%s" % domain
+
+            logger.debug("get_kerberos_admin_servers: udp_host = %s", udp_host)
+            udp_kerberos_admin_servers = self.dsdns.get_SRV_records(tcp_host)
+            if udp_kerberos_admin_servers:
+                kerberos_admin_servers += udp_kerberos_admin_servers
+
+        for kms in kerberos_admin_servers:
+            logger.debug("get_kerberos_admin_servers: found %s", kms)
+
+        return kerberos_admin_servers
 
     def cache_has_ticket(self):
         res = False

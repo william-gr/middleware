@@ -182,7 +182,18 @@ class DSDConfigurationService(RpcService):
         self.modules['kerberos'].context = None
 
     def ldap_context_init(self):
-        pass
+        ds = self.directoryservices['ldap']
+
+        self.modules['ldap'].context = LDAPContext(
+            self.context,
+            ds['domain'],
+            ds['binddn'],
+            ds['bindpw'],
+            self.modules
+        )
+
+        self.modules['ldap'].context.context_init()
+        self.logger.debug("XXX: LDAP CONTEXT = %s", self.modules['ldap'].context)
 
     def ldap_context_update(self, updated_fields):
         self.modules['ldap'].context.context_update(updated_fields)

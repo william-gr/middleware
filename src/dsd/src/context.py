@@ -68,10 +68,10 @@ class ActiveDirectoryContext(ContextBase):
         except Exception as e:
             self.error = e
             return False
-        
+
         self.dcs = self.ad.get_domain_controllers(self.domain)
         self.gcs = self.ad.get_global_catalog_servers(self.domain)
-        self.kdcs = self.kc.get_kerberos_servers(self.domain)
+        self.kdcs = self.ad.get_kerberos_servers(self.domain)
 
         self.baseDN = self.ad.get_baseDN(self.handle)
         self.netbiosname = self.ad.get_domain_netbiosname(self.handle)
@@ -105,11 +105,67 @@ class ActiveDirectoryContext(ContextBase):
         return True
      
 
-class KerberosContext(object):
+class LDAPContext(ContextBase):
+    def __init__(self, context, domain, binddn, bindpw, modules):
+        super(LDAPContext, self).__init__(context)
+
+        self.domain = domain
+        self.binddn = binddn
+        self.bindpw = bindpw
+        self.realm = domain.upper()
+        self.baseDN = None
+        self.handle = None
+        self.kdcs = []
+
+        self.modules = modules
+        self.ldap = modules['ldap'].instance
+        self.kc = modules['kerberos'].instance
+
+        self.error = None
+
+    def context_init(self):
+
+        try:
+            self.handle = self.ldap.get_connection_handle(
+                self.domain,
+                self.binddn,
+                self.bindpw
+            )
+
+        except Exception as e:
+            self.error = e
+            return False
+        
+        self.kdcs = self.kc.get_kerberos_servers(self.domain)
+        self.baseDN = self.ldap.get_baseDN(self.handle)
+
+        return True
+
+    def context_update(self, updated_fields):
+        if 'domain' in updated_fields:
+            return self.context_init()
+        elif 'binddn' in updated_fields:
+            return self.context_init()
+        elif 'bindpw' in updated_fields:
+            return self.context_init()
+
+        return True
+
+    def context_fini(self):
+        self.domain = None
+        self.binddn = None
+        self.bindpw = None
+        self.baseDN = None
+        self.kdcs = None
+        self.handle = None
+        self.modules = None
+        self.ldap = None
+        self.kc = None
+        self.error = None
+        return True
+
+class KerberosContext(ContextBase):
     pass
 
-class LDAPContext(object):
-    pass
-
-class DirectoryContext(object):
+class DirectoryContext(ContextBase):
     pass

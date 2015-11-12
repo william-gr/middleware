@@ -110,8 +110,8 @@ class ActiveDirectory(object):
             )
 
     def __init__(self, *args,  **kwargs):
-        self.dispatcher = kwargs['dispatcher']
-        self.datastore = kwargs['datastore']
+        self.dispatcher = kwargs.get('dispatcher')
+        self.datastore = kwargs.get('datastore')
 
         sys.path.extend(['/usr/local/lib/dsd/modules/'])
         from dsdns import DSDNS
@@ -210,6 +210,55 @@ class ActiveDirectory(object):
 
         return fgcs
 
+    def get_kerberos_servers(self, domain, site=None):
+        kdcs = []
+        if not domain:
+            return kdcs
+
+        host = "_kerberos._tcp.%s" % domain
+        if site:
+            host = "_kerberos._tcp.%s._sites.%s" % (site, domain)
+
+        logger.debug("get_kerberos_servers: host = %s", host)
+        kdcs = self.dsdns.get_SRV_records(host)
+
+        for kdc in kdcs:
+            logger.debug("get_kerberos_servers: found %s", kdc)
+
+        return kdcs
+
+    def get_kerberos_domain_controllers(self, domain, site=None):
+        kdcs = []
+        if not domain:
+            return kdcs
+
+        host = "_kerberos._tcp.dc._msdcs.%s" % domain
+        if site:
+            host = "_kerberos._tcp.%s._sites.dc._msdcs.%s" % (site, domain)
+
+        logger.debug("get_kerberos_domain_controllers: host = %s", host)
+        kdcs = self.dsdns.get_SRV_records(host)
+
+        for kdc in kdcs:
+            logger.debug("get_kerberos_domain_controllers: found %s", kdc)
+
+        return kdcs
+
+    def get_kpasswd_servers(self, domain):
+        kpws = []
+        if not domain:
+            return kpws
+
+        host = "_kpasswd._tcp.%s" % domain
+        logger.debug("get_kpasswd_servers: host = %s", host)
+
+        kpws = self.dsdns.get_SRV_records(host)
+
+        for kpw in kpws:
+            logger.debug("get_kpasswd_servers: found %s", kpwd)
+
+        return kpws
+
     def get_rootDSE(self, handle):
         dchandle = handle.dchandle
 
@@ -222,19 +271,25 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return None
 
-        rootDSE = dchandle.response[0]
-        return rootDSE
+        if not dchandle.response:
+            return None
+
+        results = dchandle.response[0]
+        if not results:
+            return None
+
+        attributes = results.get('attributes', None)
+        if not attributes:
+            return None
+
+        return attributes
 
     def get_rootDN(self, handle):
         rootDSE = self.get_rootDSE(handle)
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        rootDN = attributes.get('rootDomainNamingContext', None)
+        rootDN = rootDSE.get('rootDomainNamingContext', None)
         if not rootDN:
             return None
 
@@ -248,11 +303,7 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        baseDN = attributes.get('defaultNamingContext', None)
+        baseDN = rootDSE.get('defaultNamingContext', None)
         if not baseDN:
             return None
 
@@ -266,11 +317,7 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        configurationDN = attributes.get('configurationNamingContext', None)
+        configurationDN = rootDSE.get('configurationNamingContext', None)
         if not configurationDN:
             return None
 
@@ -284,11 +331,7 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        forest_functionality = attributes.get('forestFunctionality', None)
+        forest_functionality = rootDSE.get('forestFunctionality', None)
         if not forest_functionality:
             return None
 
@@ -302,11 +345,7 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        domain_functionality = attributes.get('domainFunctionality', None)
+        domain_functionality = rootDSE.get('domainFunctionality', None)
         if not domain_functionality:
             return None
 
@@ -320,11 +359,7 @@ class ActiveDirectory(object):
         if not rootDSE:
             return None
 
-        attributes = rootDSE.get('attributes', None)
-        if not attributes:
-            return None
-
-        domain_controller_functionality = attributes.get('domainControllerFunctionality', None)
+        domain_controller_functionality = rootDSE.get('domainControllerFunctionality', None)
         if not domain_controller_functionality:
             return None
 
@@ -349,6 +384,9 @@ class ActiveDirectory(object):
         )
 
         if not dchandle.result:
+            return None
+
+        if not dchandle.response:
             return None
 
         attributes = dchandle.response[0].get('attributes', None)
@@ -589,6 +627,9 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return None
 
+        if not dchandle.response:
+            return None
+
         attributes = dchandle.response[0].get('attributes', None)
         if not attributes: 
             return None
@@ -687,6 +728,9 @@ class ActiveDirectory(object):
         if not dchandle.result:
             return []
 
+        if not dchandle.response:
+            return []
+
         attributes = dchandle.response[0].get('attributes', None)
         if not attributes: 
             return []
@@ -708,6 +752,9 @@ class ActiveDirectory(object):
         )
 
         if not dchandle.result:
+            return []
+
+        if not dchandle.response:
             return []
 
         attributes = dchandle.response[0].get('attributes', None)
