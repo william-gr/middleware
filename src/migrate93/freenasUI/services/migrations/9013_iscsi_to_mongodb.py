@@ -53,6 +53,7 @@ class Migration(DataMigration):
         for t in iscsi_targets:
             ds.insert('iscsi.targets', {
                 'id': t.iscsi_target_name,
+                'portal_group': 'default',  # XXX: Needs to pass proper portal group
                 'auth_group': 'no-authentication',  # XXX: Needs to pass proper auth group
                 'description': t.iscsi_target_alias,
                 'extents': []
