@@ -112,8 +112,8 @@ inadynmt_enable="YES"
 
 % if config.get("service.ipfs.enable"):
 ipfs_go_enable="YES"
-ipfs_go_path="${config.get("service.ipfs.path")}"
 % endif
+ipfs_go_path="${config.get("service.ipfs.path")}"
 
 ladvd_flags="-a\
 % if lldp_config['save_description']:
@@ -133,7 +133,6 @@ nfsv4_server_enable="YES"
 %  else:
 nfsv4_server_enable="NO"
 %  endif
-
 rpcbind_enable="YES"
 nfs_server_enable="YES"
 rpc_lockd_enable="YES"
@@ -142,33 +141,33 @@ mountd_enable="YES"
 nfsd_enable="YES"
 nfsuserd_enable="YES"
 gssd_enable="YES"
+% endif
 
 nfs_server_flags="-t -n ${nfs_config['servers']} ${nfs_ips}\
-%  if nfs_config['udp']:
+% if nfs_config['udp']:
  -u\
-%  endif
+% endif
 "
 mountd_flags="-l -rS ${nfs_ips}\
-%  if nfs_config['nonroot']:
+% if nfs_config['nonroot']:
  -n\
-%  endif
-%  if nfs_config['mountd_port']:
+% endif
+% if nfs_config['mountd_port']:
  -p ${nfs_config['mountd_port']}\
-%  endif
+% endif
 "
 rpc_statd_flags="${nfs_ips}\
-%  if nfs_config['rpcstatd_port']:
+% if nfs_config['rpcstatd_port']:
  -p ${nfs_config['rpcstatd_port']}\
-%  endif
+% endif
 "
 rpc_lockd_flags="${nfs_ips}\
-%  if nfs_config['rpclockd_port']:
+% if nfs_config['rpclockd_port']:
  -p ${nfs_config['rpclockd_port']}\
-%  endif
+% endif
 "
-%  if nfs_ips:
+% if nfs_ips:
 rpcbind_flags="${nfs_ips}"
-%  endif
 % endif
 
 % if smartd_config['interval']:
@@ -193,13 +192,13 @@ tftpd_flags="-s -u ${tftp_config['username']} -U ${tftp_config['umask']}\
 % endif
 "
 
-% if ups_config['enable']:
-%  if ups_config['mode'] == 'MASTER':
+% if ups_config['mode'] == 'MASTER':
 nut_enable="YES"
 nut_upslog_ups="${ups_config['identifier']}"
-%  else:
+% else:
 nut_upslog_ups="${ups_config['identifier']}@${ups_config['remote_host']}:${ups_config['remote_port']}"
-%  endif
+% endif
+% if ups_config['enable']:
 nut_upslog_enable="YES"
 nut_upsmon_enable="YES"
 % endif
