@@ -52,7 +52,7 @@ class CreateWebDAVShareTask(Task):
         return ['service:webdav']
 
     def run(self, share):
-        ormalize(share['properties'], {
+        normalize(share['properties'], {
             'read_only': False,
             'permission': False,
         })
