@@ -37,8 +37,8 @@ from datastore import DuplicateKeyException, DatastoreException
 from lib.system import SubprocessException, system
 
 
-
 EMAIL_REGEX = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}\b")
+
 
 def check_unixname(name):
     """Helper method to check if a given name is a valid unix name
@@ -333,6 +333,10 @@ class UserUpdateTask(Task):
 
         if 'full_name' in updated_fields and ':' in updated_fields['full_name']:
             errors.append(('full_name', errno.EINVAL, 'The character ":" is not allowed'))
+
+        if 'username' in updated_fields:
+            if self.datastore.exists('users', ('username', '=', updated_fields['username']), ('id', '!=', uid)):
+                errors.append(('username', errno.EEXIST, 'Different user with given name already exists'))
 
         if 'email' in updated_fields:
             if not EMAIL_REGEX.match(updated_fields['email']):
