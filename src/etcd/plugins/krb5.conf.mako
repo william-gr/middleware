@@ -2,7 +2,10 @@
     realms = {}
     directoryservices = dispatcher.call_sync('directoryservices.query')
     for ds in directoryservices:
-        if 'configure_kerberos' in ds and ds['configure_kerberos'] == True:
+        configure_kerberos = ds.get('configure_kerberos', False)
+        if not configure_kerberos:
+            continue
+
             kdcs = dispatcher.call_sync('directoryservices.get', ds['id'], 'kdcs')
             if not kdcs:
                 continue

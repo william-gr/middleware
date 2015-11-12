@@ -8,7 +8,8 @@
 
     directoryservices = dispatcher.call_sync('directoryservices.query')
     for ds in directoryservices:
-        if ds["configure_nsswitch"] == False:
+        configure_nsswitch = ds.get('configure_nsswitch', False)
+        if not configure_nsswitch:
             continue
 
         if ds["type"] == "activedirectory":
@@ -18,9 +19,10 @@
         if ds["type"] == "ldap":
             passwd_source += " ldap"
             group_source += " ldap"
+
 %>
-passwd: ${passwd_source}
-group: ${group_source}
+passwd: files ${passwd_source}
+group: files ${group_source}
 hosts: files mdns dns
 shells: files
 services: compat
