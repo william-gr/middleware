@@ -1,0 +1,4 @@
+#!/bin/sh
+LIBDIR=/usr/local/lib/containerd/src
+export DISPATCHERCLIENT_TYPE=GEVENT
+exec /usr/local/bin/python3 -u $LIBDIR/main.py $*
