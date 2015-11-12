@@ -63,6 +63,9 @@ from module import DSDModule
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 
+DS_TYPE_ACTIVEDIRECTORY = 'activedirectory'
+DS_TYPE_LDAP = 'ldap'
+DS_TYPE_KERBEROS = 'kerberos'
 
 class DSDConfigurationService(RpcService):
     def __init__(self, context):
@@ -94,9 +97,23 @@ class DSDConfigurationService(RpcService):
         return False 
 
     def __toggle_enable(self, id, name, enable):
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-        directoryservice[name] = enable
-        self.datastore.update('directoryservices', id, directoryservice)
+        ds= self.datastore.get_by_id('directoryservices', id)
+        ds[name] = enable
+        self.datastore.update('directoryservices', id, ds)
+
+    def ds_is_activedirectory(self, id):
+        ds = self.datastore.get_by_id('directoryservices', id)
+        if not ds:
+            return False
+
+        return (ds.get('type') == DS_TYPE_ACTIVEDIRECTORY)
+
+    def ds_is_ldap(self, id):
+        ds = self.datastore.get_by_id('directoryservices', id)
+        if not ds:
+            return False
+
+        return (ds.get('type') == DS_TYPE_LDAP)
 
     #
     # XXX implement proper plugin architecture
@@ -122,39 +139,39 @@ class DSDConfigurationService(RpcService):
                 #self.report_error("Cannot load module %s", module_path)
 
     def directory_context_init(self):
-        if self.directoryservices.get('activedirectory'):
+        if self.directoryservices.get(DS_TYPE_ACTIVEDIRECTORY):
             self.activedirectory_context_init()
 
-        if self.directoryservices.get('kerberos'):
+        if self.directoryservices.get(DS_TYPE_KERBEROS):
             self.kerberos_context_init()
 
-        if self.directoryservices.get('ldap'):
+        if self.directoryservices.get(DS_TYPE_LDAP):
             self.ldap_context_init()
 
     def directory_context_update(self, updated_fields):
-        if self.directoryservices.get('activedirectory'):
+        if self.directoryservices.get(DS_TYPE_ACTIVEDIRECTORY):
             self.activedirectory_context_update(updated_fields)
 
-        if self.directoryservices.get('kerberos'):
+        if self.directoryservices.get(DS_TYPE_KERBEROS):
             self.kerberos_context_update(updated_fields)
 
-        if self.directoryservices.get('ldap'):
+        if self.directoryservices.get(DS_TYPE_LDAP):
             self.ldap_context_update(updated_fields)
 
     def directory_context_fini(self):
-        if not self.directoryservices.get('activedirectory'):
+        if not self.directoryservices.get(DS_TYPE_ACTIVEDIRECTORY):
             self.activedirectory_context_finis()
 
-        if not self.directoryservices.get('kerberos'):
+        if not self.directoryservices.get(DS_TYPE_KERBEROS):
             self.kerberos_context_fini()
 
-        if not self.directoryservices.get('ldap'):
+        if not self.directoryservices.get(DS_TYPE_LDAP):
             self.ldap_context_fini()
 
     def activedirectory_context_init(self):
-        ds = self.directoryservices['activedirectory']
+        ds = self.directoryservices[DS_TYPE_ACTIVEDIRECTORY]
 
-        self.modules['activedirectory'].context = ActiveDirectoryContext(
+        self.modules[DS_TYPE_ACTIVEDIRECTORY].context = ActiveDirectoryContext(
             self.context,
             ds['domain'],
             ds['binddn'],
@@ -162,29 +179,29 @@ class DSDConfigurationService(RpcService):
             self.modules
         )
 
-        self.modules['activedirectory'].context.context_init()
+        self.modules[DS_TYPE_ACTIVEDIRECTORY].context.context_init()
 
     def activedirectory_context_update(self, updated_fields):
-        self.modules['activedirectory'].context.context_update(updated_fields)
+        self.modules[DS_TYPE_ACTIVEDIRECTORY].context.context_update(updated_fields)
 
     def activedirectory_context_fini(self):
-        self.modules['activedirectory'].context.context_fini()
-        self.modules['activedirectory'].context = None
+        self.modules[DS_TYPE_ACTIVEDIRECTORY].context.context_fini()
+        self.modules[DS_TYPE_ACTIVEDIRECTORY].context = None
 
     def kerberos_context_init(self):
         pass
 
     def kerberos_context_update(self, updated_fields):
-        self.modules['kerberos'].context.context_update(updated_fields)
+        self.modules[DS_TYPE_KERBEROS].context.context_update(updated_fields)
 
     def kerberos_context_fini(self):
-        self.modules['kerberos'].context.context_fini()
-        self.modules['kerberos'].context = None
+        self.modules[DS_TYPE_KERBEROS].context.context_fini()
+        self.modules[DS_TYPE_KERBEROS].context = None
 
     def ldap_context_init(self):
-        ds = self.directoryservices['ldap']
+        ds = self.directoryservices[DS_TYPE_LDAP]
 
-        self.modules['ldap'].context = LDAPContext(
+        self.modules[DS_TYPE_LDAP].context = LDAPContext(
             self.context,
             ds['domain'],
             ds['binddn'],
@@ -192,15 +209,15 @@ class DSDConfigurationService(RpcService):
             self.modules
         )
 
-        self.modules['ldap'].context.context_init()
-        self.logger.debug("XXX: LDAP CONTEXT = %s", self.modules['ldap'].context)
+        self.modules[DS_TYPE_LDAP].context.context_init()
+        self.logger.debug("XXX: LDAP CONTEXT = %s", self.modules[DS_TYPE_LDAP].context)
 
     def ldap_context_update(self, updated_fields):
-        self.modules['ldap'].context.context_update(updated_fields)
+        self.modules[DS_TYPE_LDAP].context.context_update(updated_fields)
 
     def ldap_context_fini(self):
-        self.modules['ldap'].context.context_fini()
-        self.modules['ldap'].context = None
+        self.modules[DS_TYPE_LDAP].context.context_fini()
+        self.modules[DS_TYPE_LDAP].context = None
 
     def load_directoryservices(self):
         self.datastore.collection_create(
@@ -224,9 +241,8 @@ class DSDConfigurationService(RpcService):
     def query(self, *args, **kwargs):
         return self.datastore.query('directoryservices', *args, **kwargs)
 
-    def create(self, directoryservice):
-        res = self.datastore.insert('directoryservices', directoryservice,
-            pkey=directoryservice['name'])
+    def create(self, ds):
+        res = self.datastore.insert('directoryservices', ds, pkey=ds['name'])
 
         self.load_directoryservices()
         self.directory_context_init()
@@ -234,9 +250,9 @@ class DSDConfigurationService(RpcService):
         return res
 
     def update(self, id, updated_fields):
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
-        directoryservice.update(updated_fields)
-        res = self.datastore.update('directoryservices', id, directoryservice)
+        ds = self.datastore.get_by_id('directoryservices', id)
+        ds.update(updated_fields)
+        res = self.datastore.update('directoryservices', id, ds)
 
         self.load_directoryservices()
         self.directory_context_update(updated_fields)
@@ -255,79 +271,84 @@ class DSDConfigurationService(RpcService):
         return self.datastore.get_by_id('directoryservices', id)
 
     def get_dcs(self, id):
-        self.logger.debug('DSDConfigurationService.get_dcs(): id = %s', id)
+        self.logger.debug('get_dcs(): id = %s', id)
 
         dcs = []
-        ad_context = self.modules['activedirectory'].context
+        ad_context = self.modules[DS_TYPE_ACTIVEDIRECTORY].context
         if ad_context:
             dcs = ad_context.dcs
 
         return dcs 
 
     def get_gcs(self, id):
-        self.logger.debug('DSDConfigurationService.get_gcs(): id = %s', id)
+        self.logger.debug('get_gcs(): id = %s', id)
 
         gcs = []
-        ad_context = self.modules['activedirectory'].context
+        ad_context = self.modules[DS_TYPE_ACTIVEDIRECTORY].context
         if ad_context:
             gcs = ad_context.gcs
 
         return gcs 
 
     def get_kdcs(self, id):
-        self.logger.debug('DSDConfigurationService.get_kdcs(): id = %s', id)
-
+        self.logger.debug('get_kdcs(): id = %s', id)
         kdcs = []
-        ad_context = self.modules['activedirectory'].context
-        if ad_context:
-            kdcs = ad_context.kdcs
+
+        if self.ds_is_activedirectory(id):
+            ad_context = self.modules[DS_TYPE_LDAP].context
+            if ad_context:
+                kdcs = ad_context.kdcs
+        elif self.ds_is_ldap(id):
+            ldap_context = self.modules[DS_TYPE_LDAP].context
+            if ldap_context:
+                kdcs = ldap_context.kdcs
 
         return kdcs
 
     def configure_hostname(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_hostname()')
+        self.logger.debug('configure_hostname()')
         self.__toggle_enable(id, 'configure_hostname', enable)
         self.client.call_sync('etcd.generation.generate_group', 'hostname')
 
     def configure_hosts(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_hosts()')
+        self.logger.debug('configure_hosts()')
         self.__toggle_enable(id, 'configure_hosts', enable)
         self.client.call_sync('etcd.generation.generate_group', 'hosts')
 
     def configure_kerberos(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_kerberos()')
+        self.logger.debug('configure_kerberos()')
         self.__toggle_enable(id, 'configure_kerberos', enable)
         self.client.call_sync('etcd.generation.generate_group', 'kerberos')
 
     def get_kerberos_ticket(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.get_kerberos_ticket(): id = %s', id)
+        self.logger.debug('get_kerberos_ticket(): id = %s', id)
 
-        directoryservice = self.datastore.get_by_id('directoryservices', id)
+        ds = self.datastore.get_by_id('directoryservices', id)
 
-        realm = directoryservice['domain'].upper()
-        binddn = directoryservice['binddn'].split('@')[0]
-        bindpw = directoryservice['bindpw']
+        realm = ds['domain'].upper()
+        binddn = ds['binddn'].split('@')[0]
+        bindpw = ds['bindpw']
 
-        kc = self.modules['kerberos'].instance
+        kc = self.modules[DS_TYPE_KERBEROS].instance
         kc.get_ticket(realm, binddn, bindpw)
 
     def configure_nsswitch(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_nsswitch()')
+        self.logger.debug('configure_nsswitch()')
         self.__toggle_enable(id, 'configure_nsswitch', enable)
         self.client.call_sync('etcd.generation.generate_group', 'nsswitch')
 
     def configure_openldap(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_openldap()')
+        self.logger.debug('configure_openldap()')
         self.__toggle_enable(id, 'configure_openldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'openldap')
 
     def configure_nssldap(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_nssldap()')
+        self.logger.debug('configure_nssldap()')
         self.__toggle_enable(id, 'configure_nssldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'nss_ldap')
 
     def configure_sssd(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_sssd()')
+        self.logger.debug('configure_sssd()')
         self.__toggle_enable(id, 'configure_sssd', enable)
         self.client.call_sync('etcd.generation.generate_group', 'sssd')
 
@@ -358,7 +379,7 @@ class DSDConfigurationService(RpcService):
         }
 
     def __enable_samba_activedirectory(self, id):
-        ad_context = self.modules['activedirectory'].context
+        ad_context = self.modules[DS_TYPE_ACTIVEDIRECTORY].context
         if not ad_context:
             return False
 
@@ -377,7 +398,7 @@ class DSDConfigurationService(RpcService):
         return True
 
     def __disable_samba_activedirectory(self, id):
-        ad_context = self.modules['activedirectory'].context
+        ad_context = self.modules[DS_TYPE_ACTIVEDIRECTORY].context
         if not ad_context:
             return False
 
@@ -402,14 +423,14 @@ class DSDConfigurationService(RpcService):
         return self.__disable_samba_activedirectory(id)
 
     def __enable_samba_ldap(self, id):
-        ldap_context = self.modules['ldap'].context
+        ldap_context = self.modules[DS_TYPE_LDAP].context
         if not ldap_context:
             return  False
 
         return True
 
     def __disable_samba_ldap(self, id):
-        ldap_context = self.modules['ldap'].context
+        ldap_context = self.modules[DS_TYPE_LDAP].context
         if not ldap_context:
             return  False
 
@@ -421,28 +442,28 @@ class DSDConfigurationService(RpcService):
         return self.__disable_samba_ldap(id)
 
     def configure_samba(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_samba()')
+        self.logger.debug('configure_samba()')
         self.__toggle_enable(id, 'configure_samba', enable)
 
         ds = self.datastore.get_by_id('directoryservices', id)
         if not ds or not ds.get('type'):
             return False
 
-        if ds.get('type') == 'activedirectory':
+        if self.ds_is_activedirectory(id):
             return self.__configure_samba_activedirectory(id, enable)
-        elif ds.get('type') == 'ldap':
+        elif self.ds_is_ldap(id):
             return self.__configure_samba_ldap(id, enable)
 
         return False
 
     def restart_samba(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.restart_samba()')
+        self.logger.debug('restart_samba()')
         return self.client.call_sync("services.restart", "cifs")
 
     def join_activedirectory(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.join_activedirectory()')
+        self.logger.debug('join_activedirectory()')
 
-        ad_context = self.modules['activedirectory'].context
+        ad_context = self.modules[DS_TYPE_ACTIVEDIRECTORY].context
         if not ad_context:
             return False
 
@@ -450,29 +471,29 @@ class DSDConfigurationService(RpcService):
         p = pipeopen("/usr/local/bin/net -k ads join  '%s'" % ad_context.realm)
         out = p.communicate()
         if p.returncode != 0:
-            self.logger.debug('DSDConfigurationSerivce.join_activedirectory(): FAILED: %s', out)
+            self.logger.debug('join_activedirectory(): FAILED: %s', out)
             return False
 
-        self.logger.debug('DSDConfigurationSerivce.join_activedirectory(): SUCCESS')
+        self.logger.debug('join_activedirectory(): SUCCESS')
         return True
 
     def configure_pam(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_pam()')
+        self.logger.debug('configure_pam()')
         self.__toggle_enable(id, 'configure_pam', enable)
         self.client.call_sync('etcd.generation.generate_group', 'pam')
 
     def configure_activedirectory(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_activedirectory()')
+        self.logger.debug('configure_activedirectory()')
         self.__toggle_enable(id, 'configure_activedirectory', enable)
         self.client.call_sync('etcd.generation.generate_group', 'activedirectory')
 
     def configure_ldap(self, id, enable=True):
-        self.logger.debug('DSDConfigurationSerivce.configure_ldap()')
+        self.logger.debug('configure_ldap()')
         self.__toggle_enable(id, 'configure_ldap', enable)
         self.client.call_sync('etcd.generation.generate_group', 'ldap')
 
     def enable(self, id):
-        self.logger.debug('DSDConfigurationSerivce.enable(): id = %s', id)
+        self.logger.debug('enable(): id = %s', id)
 
         ds = self.datastore.get_by_id('directoryservices', id)
         if 'enable' in ds and ds['enable'] == True:
@@ -481,19 +502,32 @@ class DSDConfigurationService(RpcService):
         self.__toggle_enable(id, 'enable', True)
         self.load_directoryservices()
 
+        ds_is_ldap = self.ds_is_ldap(id) 
+        ds_is_activedirectory = self.ds_is_activedirectory(id)
+
         try: 
 
             # thread these
             #self.configure_hostname(id, enable=True)
             #self.configure_hosts(id, enable=True)
-            self.configure_kerberos(id, enable=True)
-            self.get_kerberos_ticket(id, enable=True)
+
+            # only support kerberos for AD right now
+            if ds_is_activedirectory:
+                self.configure_kerberos(id, enable=True)
+                self.get_kerberos_ticket(id, enable=True)
+
             self.configure_nsswitch(id, enable=True)
             self.configure_openldap(id, enable=True)
-            self.configure_nssldap(id, enable=True)
-            self.configure_sssd(id, enable=True)
+
+            if ds_is_ldap:
+                self.configure_sssd(id, enable=True)
+                #self.configure_nssldap(id, enable=True)
+
             self.configure_samba(id, enable=True)
-            self.join_activedirectory(id, enable=True)
+
+            if ds_is_activedirectory:
+                self.join_activedirectory(id, enable=True)
+
             self.configure_pam(id, enable=True)
             self.restart_samba(id, enable=True)
 
@@ -506,7 +540,7 @@ class DSDConfigurationService(RpcService):
         return True
 
     def disable(self, id):
-        self.logger.debug('DSDConfigurationSerivce.disable(): id = %s', id)
+        self.logger.debug('disable(): id = %s', id)
 
         ds = self.datastore.get_by_id('directoryservices', id)
         if 'enable' in ds and ds['enable'] == False:
@@ -515,15 +549,24 @@ class DSDConfigurationService(RpcService):
         self.__toggle_enable(id, 'enable', False)
         self.load_directoryservices()
 
+        ds_is_ldap = self.ds_is_ldap(id) 
+        ds_is_activedirectory = self.ds_is_activedirectory(id)
+
         # thread these
         self.configure_pam(id, enable=False)
         self.configure_samba(id, enable=False)
-        self.configure_sssd(id, enable=False)
-        self.configure_nssldap(id, enable=False)
+
+        if ds_is_ldap:
+            self.configure_sssd(id, enable=False)
+            #self.configure_nssldap(id, enable=False)
+
         self.configure_openldap(id, enable=False)
         self.configure_nsswitch(id, enable=False)
         #self.get_kerberos_ticket(id)
-        self.configure_kerberos(id, enable=False)
+
+        if ds_is_activedirectory:
+            self.configure_kerberos(id, enable=False)
+
         #self.configure_hosts(id, enable=True)
         #self.configure_hostname(id, enable=False)
         self.restart_samba(id, enable=True)
