@@ -9,9 +9,12 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS middleware daemon
 
-BUILD_DEPENDS=	cython>0:${PORTSDIR}/lang/cython
-RUN_DEPENDS=	\
-		${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh \
+FETCH_DEPENDS=	npm012>0:${PORTSDIR}/www/npm012
+
+BUILD_DEPENDS=	cython>0:${PORTSDIR}/lang/cython \
+		npm012>0:${PORTSDIR}/www/npm012
+
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}argh>0:${PORTSDIR}/devel/py-argh \
 		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil \
 		${PYTHON_PKGNAMEPREFIX}Flask>0:${PORTSDIR}/www/py-flask \
 		${PYTHON_PKGNAMEPREFIX}Flask-Bootstrap>0:${PORTSDIR}/www/py-flask-bootstrap \
@@ -39,8 +42,11 @@ MAKE_JOBS_UNSAFE= yes
 ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/dispatcher
 
-checksum fetch:
+checksum:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
+
+fetch:
+	${MAKE} -C ${WRKSRC}/client/javascript fetch
 
 do-install:
 	${MAKE} -C ${WRKSRC} install STAGEDIR=${STAGEDIR} PREFIX=${PREFIX} PYTHON=${PYTHON_CMD}
