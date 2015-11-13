@@ -25,6 +25,35 @@
  *
  */
 
+function compareJSON(obj1, obj2, _Q){
+    _Q = (_Q == undefined)? new Array : _Q;
+
+    for(var keyName in obj1){
+        var value1 = obj1[keyName],
+        value2 = obj2[keyName];
+
+            if (typeof value1 != typeof value2 && value2 == undefined) {
+                _Q.push(['missing', keyName, value1, value2, obj1])
+            }else if (typeof value1 != typeof value2) {
+                _Q.push(['diffType', keyName, value1, value2, obj1])
+            }else if (value1 != value2) {
+                _Q.push(['diffValue', keyName, value1, value2, obj1])
+            }
+        }
+    }
+
+    for(var keyName in obj2){
+        var value1 = obj2[keyName],
+        value2 = obj1[keyName];
+
+        if (typeof value1 != typeof value2 && value2 == undefined) {
+            _Q.push(['new', keyName, obj1[keyName], obj2[keyName], obj2])
+        }
+    }
+
+    return _Q;
+  }
+
 class CappedMap
 {
     constructor(maxsize)
