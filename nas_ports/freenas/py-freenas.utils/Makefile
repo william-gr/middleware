@@ -1,6 +1,6 @@
 # $FreeBSD$
 
-PORTNAME=	fnutils
+PORTNAME=	freenas.utils
 PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
 PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
@@ -18,7 +18,7 @@ USES=		python
 USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
 
-WRKSRC=		/usr/middleware_src/py-fnutils
+WRKSRC=		/usr/middleware_src/utils
 
 checksum fetch:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
