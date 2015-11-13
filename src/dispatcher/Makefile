@@ -17,4 +17,4 @@ install:
 	cp -R libexec/ ${STAGEDIR}${PREFIX}/libexec/dispatcher/
 	${PYTHON} setup.py install --install-lib=${STAGEDIR}${PREFIX}/lib/dispatcher/src/lib/
 	cd client/python && ${PYTHON} setup.py install --root=${STAGEDIR} --prefix=${PREFIX}
-	cd client/javascript && make install
+	cd client/javascript && make install BROWSERIFY_BUNDLE=${STAGEDIR}${PREFIX}/lib/dispatcher/src/frontend/static/middleware.js
