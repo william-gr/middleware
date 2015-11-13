@@ -17,8 +17,8 @@
             group_source += " winbind"
 
         if ds["type"] == "ldap":
-            passwd_source += " ldap"
-            group_source += " ldap"
+            passwd_source += " sss"
+            group_source += " sss"
 
 %>
 passwd: ${passwd_source}

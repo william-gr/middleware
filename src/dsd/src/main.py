@@ -523,13 +523,13 @@ class DSDConfigurationService(RpcService):
                 self.configure_sssd(id, enable=True)
                 #self.configure_nssldap(id, enable=True)
 
-            self.configure_samba(id, enable=True)
+            #self.configure_samba(id, enable=True)
 
             if ds_is_activedirectory:
                 self.join_activedirectory(id, enable=True)
 
             self.configure_pam(id, enable=True)
-            self.restart_samba(id, enable=True)
+            #self.restart_samba(id, enable=True)
 
         except Exception as e:
             self.logger.debug("XXX: caught exception %s", e)
@@ -554,7 +554,7 @@ class DSDConfigurationService(RpcService):
 
         # thread these
         self.configure_pam(id, enable=False)
-        self.configure_samba(id, enable=False)
+        #self.configure_samba(id, enable=False)
 
         if ds_is_ldap:
             self.configure_sssd(id, enable=False)
@@ -569,7 +569,7 @@ class DSDConfigurationService(RpcService):
 
         #self.configure_hosts(id, enable=True)
         #self.configure_hostname(id, enable=False)
-        self.restart_samba(id, enable=True)
+        #self.restart_samba(id, enable=True)
 
         return True
 
