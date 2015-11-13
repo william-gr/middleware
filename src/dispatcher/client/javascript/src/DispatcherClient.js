@@ -78,18 +78,26 @@ export class DispatcherClient
         }
 
         if (data.namespace == "events" && data.name == "event") {
-            this.onEvent(data.args);
+            if (this.eventHandlers.has(data.args.name)) {
+                for (let e of this.eventHandlers.values()) {
+                    e(data.args.args);
+                }
+            }
+
+            this.onEvent(data.args.name, data.args.args);
             return;
         }
 
         if (data.namespace == "events" && data.name == "logout") {
             this.onError(LOGOUT);
+            return;
         }
 
         if (data.namespace == "rpc") {
             if (data.name == "call") {
                 console.error("Server functionality is not supported");
                 this.onError(SPURIOUS_RPC_RESPONSE);
+                return;
             }
 
             if (data.name == "response") {
@@ -215,8 +223,17 @@ export class DispatcherClient
         list.set(cookie, callback);
     }
 
-    unregisterEventHandler(cookie)
+    unregisterEventHandler(name, cookie)
     {
+        if (!this.eventHandlers.has(name)) {
+            throw new Error(`there are no handlers registered for ${name}`);
+        }
 
+        let list = this.eventHandlers.get(name);
+        if (!list.has(cookie)) {
+            throw new Error("no handler registered for that cookie");
+        }
+
+        list.delete(cookie);
     }
 }
