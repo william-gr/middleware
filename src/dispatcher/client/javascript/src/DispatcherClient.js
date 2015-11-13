@@ -36,50 +36,65 @@ const OTHER = 8;
 
 export { EntitySubscriber } from './EntitySubscriber.js'
 
+export class RPCException
+{
+    constructor(code, message, extra=null, stacktrace=null)
+    {
+        this.code = code;
+        this.message = message;
+        this.extra = extra;
+        this.stacktrace = stacktrace;
+    }
+}
+
 export class DispatcherClient
 {
     constructor(hostname)
     {
         this.defaultTimeout = 20;
-        this.socket = new WebSocket(`ws://${hostname}:5000/socket`);
-        this.socket.onmessage = this.__onmessage;
-        this.socket.onopen = this.__onopen;
-        this.socket.onclose = this.__onclose;
+        this.hostname = hostname;
+        this.socket = null;
         this.pendingCalls = new Map();
         this.eventHandlers = new Map();
 
         /* Callbacks */
-        this.onEvent = null;
-        this.onLogin = null;
-        this.onRPCResponse = null;
-        this.onError = null;
+        this.onEvent = () => {};
+        this.onConnect = () => {};
+        this.onDisconnect = () => {};
+        this.onLogin = () => {};
+        this.onRPCResponse = () => {};
+        this.onError = () => {};
     }
 
     __onmessage(msg)
     {
         try {
-            let data = JSON.parse(msg);
+            var data = JSON.parse(msg.data);
         } catch (e) {
+            console.warn(`Malformed response: "${msg.data}"`);
             return;
         }
 
         if (data.namespace == "events" && data.name == "event") {
-            this.emit("event", data.args);
+            this.onEvent(data.args);
             return;
         }
 
         if (data.namespace == "events" && data.name == "logout") {
-            this.onError(this.LOGOUT);
+            this.onError(LOGOUT);
         }
 
         if (data.namespace == "rpc") {
             if (data.name == "call") {
-
+                console.error("Server functionality is not supported");
+                this.onError(SPURIOUS_RPC_RESPONSE);
             }
 
             if (data.name == "response") {
                 if (!this.pendingCalls.has(data.id)) {
-
+                    console.warn(`Spurious RPC response: ${data.id}`);
+                    this.onError(SPURIOUS_RPC_RESPONSE);
+                    return;
                 }
 
                 let call = this.pendingCalls.get(data.id);
@@ -92,15 +107,17 @@ export class DispatcherClient
 
     __onopen()
     {
-
+        console.log("Connection established");
+        this.onConnect();
     }
 
     __onclose()
     {
-
+        console.log("Connection closed");
+        this.onDisconnect();
     }
 
-    __ontimeout()
+    __ontimeout(id)
     {
 
     }
@@ -116,7 +133,7 @@ export class DispatcherClient
     {
         return JSON.stringify({
             "namespace": namespace,
-            "id": id || this.__uuid(),
+            "id": id || DispatcherClient.__uuid(),
             "name": name,
             "args": args
         });
@@ -124,49 +141,66 @@ export class DispatcherClient
 
     connect()
     {
-
+        this.socket = new WebSocket(`ws://${this.hostname}:5000/socket`);
+        this.socket.onmessage = this.__onmessage.bind(this);
+        this.socket.onopen = this.__onopen.bind(this);
+        this.socket.onclose = this.__onclose.bind(this);
     }
 
     login(username, password)
     {
-        let id = this.__uuid();
+        let id = DispatcherClient.__uuid();
         let payload = {
             "username": username,
             "password": password
         };
 
-        this.pendingCalls[id] = {
-            "callback": () => self.emit( "login" )
-        };
+        this.pendingCalls.set(id, {
+            "callback": () => this.onLogin()
+        });
 
-        this.socket.send(this.pack("rpc", "auth", payload, id));
+        this.socket.send(DispatcherClient.__pack("rpc", "auth", payload, id));
     }
 
     call(method, args, callback)
     {
-        let id = this.__uuid();
+        let id = DispatcherClient.__uuid();
+        let timeout = setTimeout(() => {
+            this.__ontimeout(id);
+        });
+
         let payload = {
             "method": method,
             "args": args
         };
 
-        this.pendingCalls[id] = {
+        this.pendingCalls.set(id, {
             "method": method,
             "args": args,
-            "callback": callback
-        };
+            "callback": callback,
+            "timeout": timeout
+        });
 
-        this.socket.send(this.pack("rpc", "call", payload, id));
+        this.socket.send(DispatcherClient.__pack("rpc", "call", payload, id));
     }
 
     emitEvent(name, args)
     {
-
+        this.socket.send(DispatcherClient.__pack("events", "event", {
+            "name": name,
+            "args": "args"
+        }, null));
     }
 
     registerEventHandler(name, callback)
     {
+        if (!this.eventHandlers.has(name)) {
+            this.eventHandlers.set(name, new Map());
+        }
 
+        let cookie = DispatcherClient.__uuid();
+        let list = this.eventHandlers.get(name);
+        list.set(cookie, callback);
     }
 
     unregisterEventHandler(cookie)
