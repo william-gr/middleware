@@ -26,7 +26,13 @@ EXTRACT_ONLY=
 
 WRKSRC=		/usr/middleware_src/cli
 
+PLIST_FILES=	bin/cli bin/logincli
+
 checksum fetch:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
+
+post-install:
+	${INSTALL_PROGRAM} ${WRKSRC}/tools/cli ${STAGEDIR}${PREFIX}/bin/
+	${INSTALL_PROGRAM} ${WRKSRC}/tools/logincli ${STAGEDIR}${PREFIX}/bin/
 
 .include <bsd.port.mk>
