@@ -204,12 +204,22 @@ export class DispatcherClient
         this.socket.send(DispatcherClient.__pack("rpc", "call", payload, id));
     }
 
+    subscribe(patterns)
+    {
+        this.socket.send(DispatcherClient.__pack("events", "subscribe", patterns));
+    }
+
+    unsubscribe(patterns)
+    {
+        this.socket.send(DispatcherClient.__pack("events", "unsubscribe", patterns));
+    }
+
     emitEvent(name, args)
     {
         this.socket.send(DispatcherClient.__pack("events", "event", {
             "name": name,
             "args": "args"
-        }, null));
+        }));
     }
 
     registerEventHandler(name, callback)
