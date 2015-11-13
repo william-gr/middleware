@@ -48,9 +48,9 @@ from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigNode, ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
-from fnutils import configure_logging
-from fnutils.debug import DebugService
-from fnutils.pipesubr import pipeopen, run
+from freenas.utils import configure_logging
+from freenas.utils.debug import DebugService
+from freenas.utils.pipesubr import pipeopen, run
 
 sys.path.extend(['/usr/local/lib/dsd/src'])
 

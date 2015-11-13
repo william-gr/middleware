@@ -53,8 +53,8 @@ from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
-from fnutils.debug import DebugService
-from fnutils import configure_logging, to_timedelta
+from freenas.utils.debug import DebugService
+from freenas.utils import configure_logging, to_timedelta
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'

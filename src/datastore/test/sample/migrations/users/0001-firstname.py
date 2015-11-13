@@ -1,4 +1,4 @@
-from fnutils import extend
+from freenas.utils import extend
 
 
 def probe(obj, datastore):

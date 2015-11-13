@@ -36,7 +36,7 @@ from dispatcher.rpc import accepts, returns, description
 from dispatcher.rpc import SchemaHelper as h
 from gevent import socket
 from lib.freebsd import get_sysctl
-from fnutils import exclude
+from freenas.utils import exclude
 
 
 @description("Provides information about devices installed in the system")

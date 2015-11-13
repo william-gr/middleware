@@ -32,7 +32,7 @@ import sys
 import tempfile
 import time
 
-from fnutils.pipesubr import (
+from freenas.utils.pipesubr import (
     pipeopen,
     run
 )

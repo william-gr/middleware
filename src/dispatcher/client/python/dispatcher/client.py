@@ -36,7 +36,7 @@ from dispatcher import rpc
 from dispatcher.spawn_thread import spawn_thread
 from dispatcher.spawn_thread import ClientType
 from dispatcher.client_transport import ClientTransportBuilder
-from fnutils.query import matches
+from freenas.utils.query import matches
 from ws4py.compat import urlsplit
 
 

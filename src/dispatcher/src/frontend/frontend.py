@@ -30,7 +30,7 @@ import json
 import inspect
 from flask import Flask, render_template, redirect, url_for
 from flask_bootstrap import Bootstrap
-from fnutils import materialized_paths_to_tree
+from freenas.utils import materialized_paths_to_tree
 
 
 app = Flask(__name__)

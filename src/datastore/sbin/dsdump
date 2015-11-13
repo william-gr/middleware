@@ -31,7 +31,7 @@ import argparse
 import json
 import datastore
 from bson import json_util
-from fnutils import exclude
+from freenas.utils import exclude
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'

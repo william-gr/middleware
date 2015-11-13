@@ -36,7 +36,7 @@ from dispatcher.rpc import RpcException, description, accepts, private, returns
 from dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
-from fnutils import extend as extend_dict
+from freenas.utils import extend as extend_dict
 
 
 logger = logging.getLogger('ServiceManagePlugin')

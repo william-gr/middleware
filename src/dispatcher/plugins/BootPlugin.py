@@ -28,7 +28,7 @@
 import os
 import sys
 import errno
-from fnutils.query import wrap
+from freenas.utils.query import wrap
 from task import Provider, Task, ProgressTask, VerifyException, TaskException
 
 

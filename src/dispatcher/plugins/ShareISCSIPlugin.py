@@ -33,8 +33,8 @@ import ctl
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from fnutils import normalize
-from fnutils.query import wrap
+from freenas.utils import normalize
+from freenas.utils.query import wrap
 
 
 @description("Provides info about configured iSCSI shares")

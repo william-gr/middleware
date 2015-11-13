@@ -31,7 +31,7 @@ from task import Task, TaskStatus, Provider, TaskException
 from resources import Resource
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from fnutils import first_or_default, normalize
+from freenas.utils import first_or_default, normalize
 
 
 @description("Provides info about configured AFP shares")

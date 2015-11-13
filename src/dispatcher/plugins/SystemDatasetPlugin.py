@@ -36,7 +36,7 @@ import libzfs
 from dispatcher.rpc import RpcException, accepts, returns, description, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, Provider
-from fnutils.copytree import copytree
+from freenas.utils.copytree import copytree
 
 
 SYSTEM_DIR = '/var/db/system'
