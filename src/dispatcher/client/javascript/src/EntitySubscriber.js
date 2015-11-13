@@ -40,7 +40,6 @@ function compareJSON(obj1, obj2, _Q){
                 _Q.push(['diffValue', keyName, value1, value2, obj1])
             }
         }
-    }
 
     for(var keyName in obj2){
         var value1 = obj2[keyName],
