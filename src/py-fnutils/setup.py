@@ -1,4 +1,3 @@
-#+
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
@@ -24,9 +23,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #####################################################################
-
-
-from distutils.core import setup
+from setuptools import setup
 
 
 setup(
