@@ -35,6 +35,7 @@ const LOGOUT = 7;
 const OTHER = 8;
 
 export { EntitySubscriber } from './EntitySubscriber.js'
+export { getErrno } from './ErrnoCodes'
 
 export class RPCException
 {
