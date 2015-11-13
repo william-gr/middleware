@@ -25,17 +25,17 @@
  *
  */
 
+const INVALID_JSON_RESPONSE = 1;
+const CONNECTION_TIMEOUT = 2;
+const CONNECTION_CLOSED = 3;
+const RPC_CALL_TIMEOUT = 4;
+const RPC_CALL_ERROR = 5;
+const SPURIOUS_RPC_RESPONSE = 6;
+const LOGOUT = 7;
+const OTHER = 8;
+
 class DispatcherClient
 {
-    const INVALID_JSON_RESPONSE = 1;
-    const CONNECTION_TIMEOUT = 2;
-    const CONNECTION_CLOSED = 3;
-    const RPC_CALL_TIMEOUT = 4;
-    const RPC_CALL_ERROR = 5;
-    const SPURIOUS_RPC_RESPONSE = 6;
-    const LOGOUT = 7;
-    const OTHER = 8;
-
     constructor(hostname)
     {
         this.defaultTimeout = 20;
