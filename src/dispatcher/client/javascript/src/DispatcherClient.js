@@ -34,6 +34,8 @@ const SPURIOUS_RPC_RESPONSE = 6;
 const LOGOUT = 7;
 const OTHER = 8;
 
+export { EntitySubscriber } from './EntitySubscriber.js'
+
 export class DispatcherClient
 {
     constructor(hostname)
@@ -142,7 +144,7 @@ export class DispatcherClient
 
     call(method, args, callback)
     {
-        let id = uuid();
+        let id = this.__uuid();
         let payload = {
             "method": method,
             "args": args

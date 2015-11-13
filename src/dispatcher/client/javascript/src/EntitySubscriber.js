@@ -99,7 +99,7 @@ class CappedMap
 
 }
 
-class EntitySubscriber
+export class EntitySubscriber
 {
     constructor(client, name, maxsize=2000)
     {
