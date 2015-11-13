@@ -41,7 +41,7 @@ class WebDAVSharesProvider(Provider):
     @accepts(str)
     def get_connected_clients(self, share_id=None):
         result = []
-        config = self.dispatcher.call_sync('service.webdav.get_config')
+        config = self.dispatcher.call_sync('service.webdav.get_config').__getstate__()
 
         if not config['enable']:
             return result
