@@ -34,8 +34,9 @@ const SPURIOUS_RPC_RESPONSE = 6;
 const LOGOUT = 7;
 const OTHER = 8;
 
+import { getErrno, getCode } from './ErrnoCodes.js'
 export { EntitySubscriber } from './EntitySubscriber.js'
-export { getErrno } from './ErrnoCodes'
+export { getErrno, getCode }
 
 export class RPCException
 {
@@ -120,7 +121,15 @@ export class DispatcherClient
 
     __ontimeout(id)
     {
+        let call = this.pendingCalls.get(id);
+        let errno = getCode("ETIMEDOUT");
 
+        call.callback(new RPCException(
+            errno.code,
+            errno.description
+        ));
+
+        this.pendingCalls.delete(data.id);
     }
 
     static __uuid() {

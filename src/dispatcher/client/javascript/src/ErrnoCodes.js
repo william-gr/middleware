@@ -122,11 +122,24 @@ const errno = new Map([
     [94, {"name": "ECAPMODE", "description": "Not permitted in capability mode "}],
     [95, {"name": "ENOTRECOVERABLE", "description": "State not recoverable "}],
     [96, {"name": "EOWNERDEAD", "description": "Previous owner died "}],
-    [96, {"name": "ELAST", "description": "Must be equal largest errno "}]
 ]);
 
 
 export function getErrno(code)
 {
-    return errnos.get(code);
+    return errno.get(code);
+}
+
+export function getCode(name)
+{
+    for (let [k, v] of errno.entries()) {
+        if (v.name == name)
+            return {
+                "code": k,
+                "name": v.name,
+                "description": v.description
+            };
+    }
+
+    return null;
 }
