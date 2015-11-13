@@ -1,8 +1,10 @@
 # $FreeBSD$
 
-PORTNAME=	freenas-cli
+PORTNAME=	freenas.cli
 PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
 PORTREVISION=	${REVISION}
+PORTREVISION=   ${REVISION}
+PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 
 CATEGORIES=	freenas
 VALID_CATEGORIES+= freenas
@@ -19,18 +21,12 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}columnize>0:${PORTSDIR}/devel/py-columnize \
 		${PYTHON_PKGNAMEPREFIX}texttable>0:${PORTSDIR}/textproc/py-texttable
 
 USES=		python
-USE_PYTHON=	py3kplist
+USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
 
-NO_BUILD=	yes
-MAKE_JOBS_UNSAFE= yes
-ALL_TARGET=	obj all
 WRKSRC=		/usr/middleware_src/cli
 
 checksum fetch:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
-
-do-install:
-	${MAKE} -C ${WRKSRC} install PREFIX=${STAGEDIR}${PREFIX} PYTHON=${PYTHON_CMD}
 
 .include <bsd.port.mk>
