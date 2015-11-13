@@ -129,7 +129,7 @@ export class DispatcherClient
             errno.description
         ));
 
-        this.pendingCalls.delete(data.id);
+        this.pendingCalls.delete(id);
     }
 
     static __uuid() {
@@ -157,6 +157,11 @@ export class DispatcherClient
         this.socket.onclose = this.__onclose.bind(this);
     }
 
+    disconnect()
+    {
+        this.socket.close()
+    }
+
     login(username, password)
     {
         let id = DispatcherClient.__uuid();
@@ -175,10 +180,7 @@ export class DispatcherClient
     call(method, args, callback)
     {
         let id = DispatcherClient.__uuid();
-        let timeout = setTimeout(() => {
-            this.__ontimeout(id);
-        });
-
+        let timeout = setTimeout(() => { this.__ontimeout(id); }, this.defaultTimeout * 1000);
         let payload = {
             "method": method,
             "args": args
