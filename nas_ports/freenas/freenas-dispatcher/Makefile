@@ -48,6 +48,9 @@ checksum:
 fetch:
 	${MAKE} -C ${WRKSRC}/client/javascript fetch
 
+extract:
+	:
+
 do-install:
 	${MAKE} -C ${WRKSRC} install STAGEDIR=${STAGEDIR} PREFIX=${PREFIX} PYTHON=${PYTHON_CMD}
 
