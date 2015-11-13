@@ -1097,7 +1097,7 @@ class ServerConnection(WebSocketApplication, EventEmitter):
             # If client is connecting using transport layer other than raw ws
             # authentication part is held by transport layer itself so we do not
             # check password correctness but be aware such users sessions will timeout.
-            if not self.has_external_transport or client_addr == 'unix':
+            if not self.has_external_transport and client_addr != 'unix':
                 if not user.check_local(client_addr, client_port, self.dispatcher.port):
                     self.emit_rpc_error(id, errno.EACCES, "Incorrect username or password")
                     return
