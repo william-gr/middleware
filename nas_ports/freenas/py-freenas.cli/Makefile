@@ -32,7 +32,7 @@ checksum fetch:
 	${ECHO_CMD} ${.TARGET} not needed because building direct
 
 post-install:
-	${INSTALL_PROGRAM} ${WRKSRC}/tools/cli ${STAGEDIR}${PREFIX}/bin/
-	${INSTALL_PROGRAM} ${WRKSRC}/tools/logincli ${STAGEDIR}${PREFIX}/bin/
+	${INSTALL_SCRIPT} ${WRKSRC}/tools/cli ${STAGEDIR}${PREFIX}/bin/
+	${INSTALL_SCRIPT} ${WRKSRC}/tools/logincli ${STAGEDIR}${PREFIX}/bin/
 
 .include <bsd.port.mk>
