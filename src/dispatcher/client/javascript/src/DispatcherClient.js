@@ -34,7 +34,7 @@ const SPURIOUS_RPC_RESPONSE = 6;
 const LOGOUT = 7;
 const OTHER = 8;
 
-class DispatcherClient
+export class DispatcherClient
 {
     constructor(hostname)
     {
