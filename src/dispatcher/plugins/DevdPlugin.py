@@ -242,7 +242,7 @@ class DevdEventSource(EventSource):
                 self.socket = socket.socket(family=socket.AF_UNIX)
                 self.socket.connect("/var/run/devd.pipe")
                 f = self.socket.makefile("rb", 0)
-                # with self.socket.makefile("r", 0) as f:
+                
                 while True:
                     line = self.read_until_nul(f)
                     if line is None:
