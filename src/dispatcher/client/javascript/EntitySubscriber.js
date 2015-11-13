@@ -29,22 +29,44 @@ class CappedMap
 {
     constructor(maxsize)
     {
-
+        this.map = new Map();
+        this.maxsize = maxsize;
     }
 
     get(key)
     {
-
+        return this.map.get(key);
     }
 
     set(key, value)
     {
-
+        this.map.set(key, value);
+        if (this.map.size() > this.maxsize) {
+            let mapIter = this.map.entries();
+            this.map.delete(mapIter.next().key);
+        }
     }
 
     has(key)
     {
+        return this.map.has(key);
+    }
 
+    getSize()
+    {
+        return this.map.size();
+    }
+
+    setMaxSize(maxsize)
+    {
+        if (maxsize < this.maxsize){
+            let mapIter = this.map.entries();
+            let deleteSize = this.map.size() - maxsize;
+            for (i = 0; i < deleteSize; i++){
+                this.map.delete(mapIter.next().key);
+            }
+        }
+        this.maxsize = maxsize;
     }
 
 }
@@ -56,7 +78,7 @@ class EntitySubscriber
         this.name = name;
         this.client = client;
         this.maxsize = maxsize;
-        this.objects = new Map();
+        this.objects = new CappedMap(maxsize);
         this.handlerCookie = null;
 
         /* Callbacks */
