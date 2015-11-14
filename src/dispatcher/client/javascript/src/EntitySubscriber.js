@@ -84,19 +84,25 @@ export class EntitySubscriber
         this.handlerCookie = null;
 
         /* Callbacks */
-        this.onCreate = null;
-        this.onUpdate = null;
-        this.onDelete = null;
+        this.onCreate = () => {};
+        this.onUpdate = () => {};
+        this.onDelete = () => {};
     }
 
     start()
     {
-        this.handlerCookie = this.client.registerEventHandler(`entity-subscriber.${this.name}.changed`);
+        this.handlerCookie = this.client.registerEventHandler(
+            `entity-subscriber.${this.name}.changed`,
+            this.__onChanged
+        );
     }
 
     stop()
     {
-        this.client.unregisterEventHandler(this.handlerCookie);
+        this.client.unregisterEventHandler(
+            `entity-subscriber.${this.name}.changed`,
+            this.handlerCookie
+        );
     }
 
     __onChanged(event)
