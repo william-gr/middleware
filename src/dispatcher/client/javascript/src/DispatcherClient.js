@@ -168,7 +168,7 @@ export class DispatcherClient
 
     disconnect()
     {
-        this.socket.close()
+        this.socket.close();
     }
 
     login(username, password)

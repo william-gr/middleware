@@ -35,9 +35,9 @@ export class ShellClient
         this.authenticated = false;
 
         /* Callbacks */
-        this.onConnect = () => {};
+        this.onOpen = () => {};
         this.onClose = () => {};
-        this.onData = () => {}
+        this.onData = () => {};
     }
 
     __onopen()
@@ -50,7 +50,7 @@ export class ShellClient
 
     __onclose()
     {
-
+        this.onClose();
     }
 
     __onmessage(msg)
@@ -79,7 +79,8 @@ export class ShellClient
             this.socket = new WebSocket(`http://${this.client.hostname}:5000/shell`);
             this.socket.onopen = this.__onopen.bind(this);
             this.socket.onmessage = this.__onmessage.bind(this);
-            this.socket.onclose = this.__onclose.bind(this)
+            this.socket.onclose = this.__onclose.bind(this);
+            this.onOpen();
         });
     }
 
@@ -90,5 +91,10 @@ export class ShellClient
         }
 
         this.socket.close();
+    }
+
+    send(data)
+    {
+        this.socket.send(data);
     }
 }
