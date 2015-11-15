@@ -830,17 +830,24 @@ menu_install()
     chroot /tmp/data /usr/sbin/mtree -deUf /etc/mtree/BSD.var.dist -p /var
     # Set default boot filesystem
     zpool set bootfs=freenas-boot/ROOT/default freenas-boot
+
+    # Start MongoDB for dspasswd, sdsinit and grub_install
+    chroot /tmp/data /usr/local/sbin/dsinit --start-forked
     install_grub /tmp/data ${_realdisks}
     
     if [ "${_do_upgrade}" -eq 0 ]; then
 	if [ -n "${_password}" ]; then
 		# Set the root password
-		#chroot /tmp/data /etc/netcli reset_root_pw ${_password}
-		chroot /tmp/data /usr/local/sbin/dsinit --start-forked
 		chroot /tmp/data /usr/local/sbin/dspasswd root "${_password}"
-		chroot /tmp/data /usr/local/sbin/dsinit --stop-forked
 	fi
     fi
+
+    # Set up .system dataset
+    chroot /tmp/data /usr/local/sbin/sdsinit
+
+    # Done with MongoDB
+    chroot /tmp/data /usr/local/sbin/dsinit --stop-forked
+
     : > /tmp/data/${FIRST_INSTALL_SENTINEL}
     # Finally, before we unmount, start a srub.
     # zpool scrub freenas-boot || true
