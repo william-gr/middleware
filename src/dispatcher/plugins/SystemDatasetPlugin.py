@@ -51,54 +51,36 @@ class Directory(object):
             setattr(self, k, v)
 
 
-SKELETON_DIRS = [
-    Directory('log', link='/var/log', children=[
-        Directory('riak', owner='riak', group='riak'),
-        Directory('riak-cs', owner='riakcs', group='riak'),
-        Directory('stanchion', owner='stanchion', group='riak'),
-        Directory('swift', owner='swift', group='swift'),
-        Directory('samba4')
-    ]),
-    Directory('samba', link='/var/db/samba4', children=[
-        Directory('private')
-    ]),
-    Directory('riak', link='/var/db/riak', owner='riak', group='riak'),
-    Directory('riak-cs', link='/var/db/riak-cs', owner='riakcs', group='riak'),
-    Directory('stanchion', link='/var/db/stanchion', owner='stanchion', group='riak'),
-    Directory('swift', link='/var/db/swift', owner='swift', group='swift'),
-]
-
-
 def link_directories(dispatcher):
-    for d in SKELETON_DIRS:
-        target = dispatcher.call_sync('system_dataset.request_directory', d.name)
-        if hasattr(d, 'link'):
-            if not os.path.islink(d.link) or not os.readlink(d.link) == target:
-                if os.path.exists(d.link):
-                    shutil.move(d.link, d.link + '.{0}.bak'.format(int(time.time())))
-                os.symlink(target, d.link)
+    for name, d in dispatcher.configstore.get('system.dataset.layout').items():
+        target = dispatcher.call_sync('system_dataset.request_directory', name)
+        if 'link' in d:
+            if not os.path.islink(d['link']) or not os.readlink(d['link']) == target:
+                if os.path.exists(d['link']):
+                    shutil.move(d['link'], d['link'] + '.{0}.bak'.format(int(time.time())))
+                os.symlink(target, d['link'])
 
         if hasattr(d, 'owner'):
-            user = dispatcher.call_sync('users.query', [('username', '=', d.owner)], {'single': True})
-            group = dispatcher.call_sync('groups.query', [('name', '=', d.group)], {'single': True})
+            user = dispatcher.call_sync('users.query', [('username', '=', d['owner'])], {'single': True})
+            group = dispatcher.call_sync('groups.query', [('name', '=', d['group'])], {'single': True})
             if user and group:
                 os.chown(target, user['id'], group['id'])
 
-        for c in d.children:
+        for cname, c in d.get('children', {}).items():
             try:
-                os.mkdir(os.path.join(target, c.name))
+                os.mkdir(os.path.join(target, cname))
             except OSError as err:
                 if err.errno != errno.EEXIST:
                     logger.warning('Cannot create skeleton directory {0}: {1}'.format(
-                        os.path.join(target, c.name),
+                        os.path.join(target, cname),
                         str(err))
                     )
 
-            if hasattr(c, 'owner'):
-                user = dispatcher.call_sync('users.query', [('username', '=', c.owner)], {'single': True})
-                group = dispatcher.call_sync('groups.query', [('name', '=', c.group)], {'single': True})
+            if 'owner' in c:
+                user = dispatcher.call_sync('users.query', [('username', '=', c['owner'])], {'single': True})
+                group = dispatcher.call_sync('groups.query', [('name', '=', c['group'])], {'single': True})
                 if user and group:
-                    os.chown(os.path.join(target, c.name), user['id'], group['id'])
+                    os.chown(os.path.join(target, cname), user['id'], group['id'])
 
 
 def create_system_dataset(dispatcher, dsid, pool):

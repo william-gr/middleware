@@ -45,6 +45,17 @@ cs = ConfigStore(ds)
 def link_directories():
     for name, d in cs.get('system.dataset.layout').items():
         target = os.path.join(SYSTEM_DIR, name)
+        if not os.path.isdir(target):
+            try:
+                os.mkdir(os.path.join(target, cname))
+            except OSError as err:
+                if err.errno != errno.EEXIST:
+                    logger.warning('Cannot create skeleton directory {0}: {1}'.format(
+                        os.path.join(target, cname),
+                        str(err))
+                    )
+                    continue
+
         if 'link' in d:
             if not os.path.islink(d['link']) or not os.readlink(d['link']) == target:
                 if os.path.exists(d['link']):
