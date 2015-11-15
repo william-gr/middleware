@@ -832,7 +832,9 @@ menu_install()
     zpool set bootfs=freenas-boot/ROOT/default freenas-boot
 
     # Start MongoDB for dspasswd, sdsinit and grub_install
+    chroot /tmp/data /etc/rc.d/ldconfig start
     chroot /tmp/data /usr/local/sbin/dsinit --start-forked
+
     install_grub /tmp/data ${_realdisks}
     
     if [ "${_do_upgrade}" -eq 0 ]; then
