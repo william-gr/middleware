@@ -44,5 +44,6 @@ lib/dispatcher/src/lib/sendzfs.so
 etc/rc.d/dispatcher
 sbin/dispatcherd
 sbin/dispatcherctl
+sbin/sdsinit
 libexec/taskworker
 etc/middleware.conf
