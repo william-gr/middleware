@@ -47,6 +47,24 @@ destination console { file("/dev/console"); };
 destination allusers { usertty("*"); };
 #destination loghost { udp("loghost" port(514)); };
 
+destination mongodb {
+    mongodb(
+        servers("127.0.0.1:27017"),
+        database("freenas-log"),
+        collection("syslog"),
+        value-pairs(
+            pair("program" "$PROGRAM"),
+            pair("host" "$HOST"),
+            pair("pid" "$PID"),
+            pair("seqnum" "$SEQNUM"),
+            pair("message" "$MESSAGE"),
+            pair("date" "$UNIXTIME"),
+            pair("priority" "$PRIORITY"),
+            pair("facility" "$FACILITY")
+        )
+   );
+};
+
 #
 # log facility filters
 #
@@ -160,7 +178,7 @@ log { source(src); filter(f_emerg); destination(allusers); };
 # touch /var/log/all.log and chmod it to mode 600 before it will work
 # *.*							/var/log/all.log
 #
-#log { source(src); destination(all); };
+log { source(src); destination(mongodb); };
 
 #
 # uncomment this to enable logging to a remote loghost named loghost

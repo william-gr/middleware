@@ -2015,5 +2015,18 @@
         },
         "data": {
         }
+    },
+    {
+        "metadata": {
+            "name": "syslog",
+            "migration": "keep",
+            "pkey-type": "native",
+            "attributes": {
+                "type": "log",
+                "cap": 268435456
+            }
+        },
+        "data": {
+        }
     }
 ]
