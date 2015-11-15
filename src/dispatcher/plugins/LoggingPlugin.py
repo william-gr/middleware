@@ -1,4 +1,4 @@
-#+
+#
 # Copyright 2015 iXsystems, Inc.
 # All rights reserved
 #
@@ -25,24 +25,29 @@
 #
 #####################################################################
 
+from event import EventSource
+from task import Provider
 
-import logging
+
+class SyslogProvider(Provider):
+    def query(self, filter=None, params=None):
+        return self.datastore.query('syslog', *(filter or []), **(params or {}))
 
 
-class EventSource(object):
+class SyslogEventSource(EventSource):
     def __init__(self, dispatcher):
-        self.dispatcher = dispatcher
-        self.datastore = dispatcher.datastore
-        self.logger = logging.getLogger(self.__class__.__name__)
+        super(SyslogEventSource, self).__init__(dispatcher)
+        self.register_event_type("syslog.changed")
 
-    def enable(self, event):
-        pass
+    def run(self):
+        while True:
+            for i in self.datastore.listen('syslog'):
+                self.dispatcher.dispatch_event('syslog.changed', {
+                    'operation': 'create',
+                    'ids': [str(i['id'])]
+                })
 
-    def disable(self, event):
-        pass
 
-    def register_event_type(self, name, source=None, schema=None):
-        self.dispatcher.register_event_type(name, source, schema)
-
-    def emit_event(self, type, **kwargs):
-        self.dispatcher.dispatch_event(type, kwargs)
+def _init(dispatcher, plugin):
+    plugin.register_event_source('syslog', SyslogEventSource)
+    plugin.register_provider('syslog', SyslogProvider)
