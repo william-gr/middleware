@@ -319,8 +319,8 @@ class MongodbDatastore(object):
 
         if timestamp:
             t = datetime.now()
-            obj['updated-at'] = t
-            obj['created-at'] = t
+            obj['updated_at'] = t
+            obj['created_at'] = t
 
         try:
             db = self._get_db(collection)
@@ -348,10 +348,10 @@ class MongodbDatastore(object):
 
         if timestamp:
             t = datetime.now()
-            obj['updated-at'] = t
+            obj['updated_at'] = t
 
             if not self.get_by_id(collection, pkey):
-                obj['created-at'] = t
+                obj['created_at'] = t
 
         db = self._get_db(collection)
         db.update({'_id': pkey}, obj, upsert=upsert)
