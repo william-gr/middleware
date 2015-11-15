@@ -75,10 +75,11 @@ def restore_collection(dump):
 
     ds.collection_delete(name)
     ds.collection_create(name, metadata['pkey-type'], metadata['attributes'])
+    configstore = metadata['attributes'].get('configstore', False)
 
     for key, row in list(data.items()):
         pkey = int(key) if integer else key
-        ds.insert(name, row, pkey=pkey)
+        ds.insert(name, row, pkey=pkey, config=configstore)
 
 
 def main():

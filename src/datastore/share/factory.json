@@ -981,7 +981,8 @@
         },
         "metadata": {
             "attributes": {
-                "type": "config"
+                "type": "config",
+                "configstore": true
             },
             "migration": "merge-preserve",
             "name": "config",

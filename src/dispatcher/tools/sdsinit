@@ -1,0 +1,120 @@
+#!/usr/local/bin/python3
+#
+# Copyright 2015 iXsystems, Inc.
+# All rights reserved
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted providing that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#####################################################################
+
+import time
+import os
+import shutil
+import errno
+import logging
+import libzfs
+from datastore import get_default_datastore
+from datastore.config import ConfigStore
+
+
+SYSTEM_DIR = '/var/db/system'
+logger = logging.getLogger('SystemDataset')
+ds = get_default_datastore()
+cs = ConfigStore(ds)
+
+
+def link_directories():
+    for name, d in cs.get('system.dataset.layout').items():
+        target = os.path.join(SYSTEM_DIR, name)
+        if 'link' in d:
+            if not os.path.islink(d['link']) or not os.readlink(d['link']) == target:
+                if os.path.exists(d['link']):
+                    shutil.move(d['link'], d['link'] + '.{0}.bak'.format(int(time.time())))
+                os.symlink(target, d['link'])
+
+        if hasattr(d, 'owner'):
+            user = ds.get_one('users', ('username', '=', d['owner']))
+            group = ds.get_one('groups', ('name', '=', d['group']))
+            if user and group:
+                os.chown(target, user['id'], group['id'])
+
+        for cname, c in d.get('children', {}).items():
+            try:
+                os.mkdir(os.path.join(target, cname))
+            except OSError as err:
+                if err.errno != errno.EEXIST:
+                    logger.warning('Cannot create skeleton directory {0}: {1}'.format(
+                        os.path.join(target, cname),
+                        str(err))
+                    )
+
+            if 'owner' in c:
+                user = ds.get_one('users', ('username', '=', c['owner']))
+                group = ds.get_one('groups', ('name', '=', c['group']))
+                if user and group:
+                    os.chown(os.path.join(target, cname), user['id'], group['id'])
+
+
+def create_system_dataset(dsid, pool):
+    logger.warning('Creating system dataset on pool {0}'.format(pool))
+    zfs = libzfs.ZFS()
+    pool = zfs.get(pool)
+
+    try:
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
+    except libzfs.ZFSException:
+        pool.create('{0}/.system-{1}'.format(pool.name, dsid), {
+            'mountpoint': 'none',
+            'sharenfs': 'off'
+        })
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
+
+    try:
+        ds.properties['canmount'].value = 'noauto'
+        ds.properties['mountpoint'].value = SYSTEM_DIR
+    except libzfs.ZFSException as err:
+        logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
+
+
+def mount_system_dataset(dsid, pool, path):
+    logger.warning('Mounting system dataset from pool {0} on {1}'.format(pool, path))
+    zfs = libzfs.ZFS()
+    pool = zfs.get(pool)
+    try:
+        ds = zfs.get_dataset('{0}/.system-{1}'.format(pool.name, dsid))
+        if ds.mountpoint:
+            logger.warning('.system dataset already mounted')
+            return
+
+        ds.properties['mountpoint'].value = path
+        ds.mount()
+    except libzfs.ZFSException as err:
+        logger.error('Cannot mount .system dataset on pool {0}: {1}'.format(pool.name, str(err)))
+        raise err
+
+
+if __name__ == '__main__':
+    pool = cs.get('system.dataset.pool')
+    dsid = cs.get('system.dataset.id')
+    create_system_dataset(dsid, pool)
+    mount_system_dataset(dsid, pool, SYSTEM_DIR)
+    link_directories()

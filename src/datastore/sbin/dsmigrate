@@ -155,6 +155,7 @@ def migrate_collection(dump, directory, force=False):
     name = metadata['name']
     integer = metadata['pkey-type'] == 'integer'
     upsert = metadata['migration'] in ('merge-overwrite', 'replace')
+    configstore = metadata['attributes'].get('configstore', False)
 
     if metadata['migration'] != 'replace' and directory and os.path.isdir(directory) and ds.collection_exists(name):
         apply_migrations(name, directory, force)
@@ -172,11 +173,11 @@ def migrate_collection(dump, directory, force=False):
         pkey = int(key) if integer else key
         if metadata['migration'] == 'merge-preserve':
             if not ds.exists(name, ('id', '=', pkey)):
-                ds.insert(name, row, pkey=pkey)
+                ds.insert(name, row, pkey=pkey, config=configstore)
 
             continue
 
-        ds.update(name, pkey, row, upsert=upsert)
+        ds.update(name, pkey, row, upsert=upsert, config=configstore)
 
 
 def main():
