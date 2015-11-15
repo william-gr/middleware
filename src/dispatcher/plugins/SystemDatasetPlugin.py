@@ -43,14 +43,6 @@ SYSTEM_DIR = '/var/db/system'
 logger = logging.getLogger('SystemDataset')
 
 
-class Directory(object):
-    def __init__(self, name, **kwargs):
-        self.name = name
-        self.children = []
-        for k, v in list(kwargs.items()):
-            setattr(self, k, v)
-
-
 def link_directories(dispatcher):
     for name, d in dispatcher.configstore.get('system.dataset.layout').items():
         target = dispatcher.call_sync('system_dataset.request_directory', name)

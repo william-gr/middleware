@@ -20,6 +20,9 @@ dispatcher_env="GEVENT_RESOLVER=ares"
 prestart()
 {
     rc_flags="-P ${pidfile} -r /usr/local/sbin/crash-wrapper /usr/local/sbin/dispatcherd ${rc_flags}"
+
+    # mount .system dataset (or create it/fix links if needed)
+    /usr/local/sbin/sdsinit
 }
 
 poststart()

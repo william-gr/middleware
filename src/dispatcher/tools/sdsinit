@@ -32,6 +32,7 @@ import shutil
 import errno
 import logging
 import libzfs
+import uuid
 from datastore import get_default_datastore
 from datastore.config import ConfigStore
 
@@ -47,11 +48,11 @@ def link_directories():
         target = os.path.join(SYSTEM_DIR, name)
         if not os.path.isdir(target):
             try:
-                os.mkdir(os.path.join(target, cname))
+                os.mkdir(target)
             except OSError as err:
                 if err.errno != errno.EEXIST:
                     logger.warning('Cannot create skeleton directory {0}: {1}'.format(
-                        os.path.join(target, cname),
+                        target,
                         str(err))
                     )
                     continue
@@ -124,8 +125,13 @@ def mount_system_dataset(dsid, pool, path):
 
 
 if __name__ == '__main__':
-    pool = cs.get('system.dataset.pool')
     dsid = cs.get('system.dataset.id')
+    if not dsid:
+        dsid = uuid.uuid4().hex[:8]
+        cs.set('system.dataset.id', dsid)
+        logger.info('New system dataset ID: {0}'.format(dsid))
+
+    pool = cs.get('system.dataset.pool')
     create_system_dataset(dsid, pool)
     mount_system_dataset(dsid, pool, SYSTEM_DIR)
     link_directories()

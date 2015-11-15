@@ -856,6 +856,7 @@ menu_install()
 
     umount /tmp/data/boot/grub
     umount /tmp/data/dev
+    umount /tmp/data/var/db/system
     umount /tmp/data/var
     umount /tmp/data/
 
