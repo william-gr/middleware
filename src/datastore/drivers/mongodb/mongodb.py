@@ -306,7 +306,7 @@ class MongodbDatastore(object):
         return self.get_one(collection, *args, **kwargs) is not None
 
     def insert(self, collection, obj, pkey=None, timestamp=True, config=False):
-        autopkey = pkey is None
+        autopkey = pkey is None and 'id' not in obj
         retries = 100
 
         if hasattr(obj, '__getstate__'):
