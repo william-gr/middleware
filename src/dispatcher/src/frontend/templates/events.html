@@ -33,11 +33,11 @@
         };
 
         sock.onLogin = function() {
-            sock.subscribe(["*"]);
-            sock.on("event", function(data) {
+            sock.subscribe("*");
+            sock.onEvent = function(name, args) {
                 ctx = {
-                    name: data.name,
-                    args: JSON.stringify(data.args, undefined, 4)
+                    name: name,
+                    args: JSON.stringify(args, undefined, 4)
                 };
 
                 $("<div/>", {
@@ -45,7 +45,7 @@
                     style: "width: 40%",
                     html: template(ctx)
                 }).prependTo("#events")
-            });
+            };
         };
     </script>
 {% endblock %}
