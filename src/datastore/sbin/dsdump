@@ -67,7 +67,6 @@ def dump_collection(ds, name):
     metadata = {
         'name': name,
         'pkey-type': ds.collection_get_pkey_type(name),
-        'last-id': ds.collection_get_max_id(name),
         'attributes': ds.collection_get_attrs(name)
     }
 

@@ -120,14 +120,6 @@ class PostgresDatastore(object):
             result = cur.fetchone()
             return result[0] if result[0] != 'USER-DEFINED' else result[1]
 
-    def collection_get_max_id(self, collection):
-        if self.collection_get_pkey_type(collection) != 'integer':
-            return None
-
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT max(id) FROM {0}".format(collection))
-            return cur.fetchone()[0]
-
     def collection_get_attrs(self, collection):
         return self.get_by_id('__collections', collection)
 

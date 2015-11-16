@@ -134,7 +134,6 @@ class MongodbDatastore(object):
             self.db['collections'].insert({
                 '_id': name,
                 'pkey-type': pkey_type,
-                'last-id': 0,
                 'attributes': attributes
             })
 
@@ -170,10 +169,6 @@ class MongodbDatastore(object):
     def collection_set_attrs(self, name):
         item = self.db['collections'].find_one({"_id": name})
         return item['attributes']
-
-    def collection_get_max_id(self, name):
-        item = self.db['collections'].find_one({"_id": name})
-        return item['last-id']
 
     def collection_get_migrations(self, name):
         item = self.db['collections'].find_one({"_id": name})
