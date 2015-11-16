@@ -831,7 +831,7 @@ menu_install()
     # Set default boot filesystem
     zpool set bootfs=freenas-boot/ROOT/default freenas-boot
 
-    # Start MongoDB for dspasswd, sdsinit and grub_install
+    # Start MongoDB for dspasswd and grub_install
     chroot /tmp/data /etc/rc.d/ldconfig start
     chroot /tmp/data /usr/local/sbin/dsinit --start-forked
 
@@ -843,9 +843,6 @@ menu_install()
 		chroot /tmp/data /usr/local/sbin/dspasswd root "${_password}"
 	fi
     fi
-
-    # Set up .system dataset
-    chroot /tmp/data /usr/local/sbin/sdsinit
 
     # Done with MongoDB
     chroot /tmp/data /usr/local/sbin/dsinit --stop-forked
