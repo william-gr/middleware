@@ -14,7 +14,6 @@ lib/dispatcher/src/frontend/templates/apidoc/events.html
 lib/dispatcher/src/frontend/templates/apidoc/tasks.html
 lib/dispatcher/src/frontend/templates/apidoc/schemas.html
 lib/dispatcher/src/frontend/static/middleware.js
-lib/dispatcher/src/frontend/static/emitter.js
 lib/dispatcher/src/frontend/static/term.js
 lib/dispatcher/src/frontend/static/jquery.jsonview.js
 lib/dispatcher/src/frontend/static/jquery.jsonview.css
