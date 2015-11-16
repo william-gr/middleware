@@ -30,7 +30,7 @@ import errno
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
 from dispatcher.rpc import RpcException, description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
-from fnutils import normalize
+from freenas.utils import normalize
 
 
 class FakeDisksProvider(Provider):

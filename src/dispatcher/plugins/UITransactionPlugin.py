@@ -31,7 +31,7 @@ import gevent
 from dispatcher.rpc import RpcException, pass_sender, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Provider
-from fnutils import first_or_default
+from freenas.utils import first_or_default
 
 
 transactions = {}

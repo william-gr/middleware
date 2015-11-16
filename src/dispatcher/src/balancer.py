@@ -42,7 +42,7 @@ from gevent.queue import Queue
 from gevent.lock import RLock
 from gevent.event import Event, AsyncResult
 from gevent.subprocess import Popen
-from fnutils import first_or_default
+from freenas.utils import first_or_default
 from resources import ResourceGraph, Resource
 from task import TaskException, TaskAbortException, VerifyException, TaskStatus, TaskState
 import collections

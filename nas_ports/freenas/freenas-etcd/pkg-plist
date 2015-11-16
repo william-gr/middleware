@@ -2,13 +2,13 @@
 /usr/local/lib/etcd/plugins/local/nginx/nginx.conf.mako
 /usr/local/lib/etcd/plugins/local/collectd.conf.mako
 /usr/local/lib/etcd/plugins/local/afp.conf.mako
+/usr/local/lib/etcd/plugins/local/snmpd.conf.mako
 /usr/local/lib/etcd/plugins/local/smbusers.mako
 /usr/local/lib/etcd/plugins/local/sudoers.mako
 /usr/local/lib/etcd/plugins/local/syslog-ng.conf.mako
 /usr/local/lib/etcd/plugins/local/inadyn-mt.conf.mako
 /usr/local/lib/etcd/plugins/local/proftpd.conf.mako
 /usr/local/lib/etcd/plugins/local/rsyncd.conf.mako
-/usr/local/lib/etcd/plugins/smartd_conf.py
 /usr/local/lib/etcd/plugins/local/apache24/httpd.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/ups.conf.mako
 /usr/local/lib/etcd/plugins/local/nut/upsd.conf.mako
@@ -21,6 +21,7 @@
 /usr/local/lib/etcd/plugins/local/haproxy.conf.mako
 /usr/local/lib/etcd/plugins/local/gip.lsp.mako
 /usr/local/lib/etcd/plugins/local/glusterfs/glusterd.vol.mako
+/usr/local/lib/etcd/plugins/smartd_conf.py
 /usr/local/lib/etcd/plugins/master.passwd.mako
 /usr/local/lib/etcd/plugins/motd.mako
 /usr/local/lib/etcd/plugins/ntp.conf.mako

@@ -41,9 +41,9 @@ from dispatcher.rpc import (
     )
 from utils import first_or_default
 from datastore import DuplicateKeyException
-from fnutils import include, exclude, normalize
-from fnutils.query import wrap
-from fnutils.copytree import count_files, copytree
+from freenas.utils import include, exclude, normalize
+from freenas.utils.query import wrap
+from freenas.utils.copytree import count_files, copytree
 
 
 VOLUMES_ROOT = '/mnt'

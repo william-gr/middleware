@@ -37,7 +37,7 @@ from dispatcher.rpc import RpcException, description, accepts, returns, pass_sen
 from dispatcher.rpc import SchemaHelper as h
 from task import Provider, Task, TaskStatus, VerifyException, TaskException
 from auth import FileToken
-from fnutils.query import wrap
+from freenas.utils.query import wrap
 
 
 @description("Provides informations filesystem structure")

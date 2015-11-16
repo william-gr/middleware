@@ -30,7 +30,7 @@ import errno
 from dispatcher.rpc import description, accepts, returns, private
 from dispatcher.rpc import SchemaHelper as h
 from task import Task, TaskException, VerifyException, Provider, RpcException, query
-from fnutils import normalize
+from freenas.utils import normalize
 
 
 class SharesProvider(Provider):

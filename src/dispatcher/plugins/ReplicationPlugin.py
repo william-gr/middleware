@@ -41,8 +41,8 @@ from task import Provider, Task, ProgressTask, VerifyException, TaskException
 from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns, private
 from dispatcher.client import Client, ClientError
 from lib.system import SubprocessException, system
-from fnutils import to_timedelta, first_or_default
-from fnutils.query import wrap
+from freenas.utils import to_timedelta, first_or_default
+from freenas.utils.query import wrap
 from lib import sendzfs
 
 """

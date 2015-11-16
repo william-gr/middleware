@@ -41,8 +41,8 @@ import renderers
 from datastore.config import ConfigStore
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException
-from fnutils import configure_logging
-from fnutils.debug import DebugService
+from freenas.utils import configure_logging
+from freenas.utils.debug import DebugService
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'

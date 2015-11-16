@@ -73,7 +73,7 @@ from schemas import register_general_purpose_schemas
 from api.handler import ApiHandler
 from balancer import Balancer
 from auth import PasswordAuthenticator, TokenStore, Token, TokenException, User, Service
-from fnutils import FaultTolerantLogHandler
+from freenas.utils import FaultTolerantLogHandler
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'

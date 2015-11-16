@@ -49,8 +49,8 @@ from pyee import EventEmitter
 from dispatcher.client import Client, ClientError
 from dispatcher.rpc import RpcService, RpcException, private
 from datastore import DatastoreException, get_datastore
-from fnutils.debug import DebugService
-from fnutils import configure_logging, to_timedelta
+from freenas.utils.debug import DebugService
+from freenas.utils import configure_logging, to_timedelta
 
 
 gevent.monkey.patch_all(thread=False)

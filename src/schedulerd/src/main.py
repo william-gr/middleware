@@ -40,9 +40,9 @@ from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
 from dispatcher.rpc import RpcService, RpcException, private
 from dispatcher.client import Client, ClientError
-from fnutils import exclude, configure_logging
-from fnutils.query import wrap
-from fnutils.debug import DebugService
+from freenas.utils import exclude, configure_logging
+from freenas.utils.query import wrap
+from freenas.utils.debug import DebugService
 
 
 DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'

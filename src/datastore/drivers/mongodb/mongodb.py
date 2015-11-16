@@ -36,7 +36,7 @@ import pymongo
 import pymongo.errors
 from six import string_types
 from datastore import DuplicateKeyException
-from fnutils.query import wrap
+from freenas.utils.query import wrap
 
 
 class MongodbDatastore(object):

@@ -37,8 +37,8 @@ from dispatcher.rpc import RpcException, accepts, returns, description
 from dispatcher.rpc import SchemaHelper as h
 from balancer import TaskState
 from resources import Resource
-from fnutils import first_or_default
-from fnutils.query import wrap
+from freenas.utils import first_or_default
+from freenas.utils.query import wrap
 
 
 logger = logging.getLogger('ZfsPlugin')

@@ -36,8 +36,8 @@ from bsd import geom
 from gevent.lock import RLock
 from resources import Resource
 from datetime import datetime, timedelta
-from fnutils import first_or_default
-from fnutils.query import wrap
+from freenas.utils import first_or_default
+from freenas.utils.query import wrap
 from cam import CamDevice
 from cache import CacheStore
 from lib.geom import confxml
