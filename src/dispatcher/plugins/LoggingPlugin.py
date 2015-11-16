@@ -40,11 +40,14 @@ class SyslogEventSource(EventSource):
         self.register_event_type("syslog.changed")
 
     def run(self):
+        # Initial call to obtain cursor
+        cursor = self.datastore.listen('syslog')
+
         while True:
-            for i in self.datastore.listen('syslog'):
+            for i in self.datastore.tail(cursor):
                 self.dispatcher.dispatch_event('syslog.changed', {
                     'operation': 'create',
-                    'ids': [str(i['id'])]
+                    'ids': [i['id'].hex()]
                 })
 
 
