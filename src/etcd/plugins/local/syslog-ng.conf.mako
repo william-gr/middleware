@@ -55,10 +55,10 @@ destination mongodb {
         value-pairs(
             pair("program" "$PROGRAM"),
             pair("host" "$HOST"),
-            pair("pid" "$PID"),
-            pair("seqnum" "$SEQNUM"),
+            pair("pid" int("$PID")),
+            pair("seqnum" int64("$SEQNUM")),
             pair("message" "$MESSAGE"),
-            pair("date" "$UNIXTIME"),
+            pair("date" datetime("$UNIXTIME")),
             pair("priority" "$PRIORITY"),
             pair("facility" "$FACILITY")
         )
