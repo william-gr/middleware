@@ -2023,7 +2023,7 @@
             "pkey-type": "native",
             "attributes": {
                 "type": "log",
-                "cap": 268435456
+                "cap": 8589934592
             }
         },
         "data": {
