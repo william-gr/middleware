@@ -1,6 +1,14 @@
 from setuptools import setup
 
 
+install_requires = [
+    'jsonschema',
+    'freenas.utils',
+    'paramiko',
+    'six',
+    'ws4py',
+]
+
 setup(
     name='dispatcher-client',
     version='10.0',
@@ -16,4 +24,5 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
     ],
+    install_requires=install_requires,
 )
