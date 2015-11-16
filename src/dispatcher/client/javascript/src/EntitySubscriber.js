@@ -46,7 +46,7 @@ var conversions_table = {
 };
 
 
-function eval_logic_and(item, lst){
+function evalLogicAnd(item, lst){
     for (let i of lst){
         if (!evalTuple(item, i)){
             return false;
@@ -56,7 +56,7 @@ function eval_logic_and(item, lst){
     return true;
 }
 
-function eval_logic_or(item, lst){
+function evalLogicOr(item, lst){
     for (let i of lst){
         if (evalTuple(item, i)){
             return true;
@@ -66,7 +66,7 @@ function eval_logic_or(item, lst){
     return false;
 }
 
-function eval_logic_nor(item, lst){
+function evalLogicNor(item, lst){
     for (let i of lst){
         if (evalTuple(item, i)){
             return false;
@@ -77,17 +77,16 @@ function eval_logic_nor(item, lst){
 }
 
 function evalLogicOperator(item, t){
-    let op = t[0];
-    let lst = t[1];
-    let functName = 'eval_logic_';
-    functName.concat(op);
-    return window[functName](item, lst);
+    let [op, lst] = t;
+    switch (op) {
+      case and: return evalLogicAnd(item, lst);
+      case or: return evalLogicOr(item, lst);
+      case nor: return evalLogicNor(item, lst);
+    }
 }
 
 function evalFieldOperator(item, t){
-    let left = t[0];
-    let op = t[1];
-    let right = t[2];
+    let [left, op, right] = t;
 
     if (t.length == 4){
         right = conversions_table[t[3]](right);
