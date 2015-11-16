@@ -12,7 +12,8 @@ MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS common Python modules
 
 RUN_DEPENDS=	\
-		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil
+		${PYTHON_PKGNAMEPREFIX}dateutil>0:${PORTSDIR}/devel/py-dateutil \
+		${PYTHON_PKGNAMEPREFIX}six>0:${PORTSDIR}/devel/py-six
 
 USES=		python
 USE_PYTHON=	autoplist distutils
