@@ -354,12 +354,12 @@ class MongodbDatastore(object):
         else:
             obj = copy.deepcopy(obj)
 
-        if 'id' in obj:
+        if 'id' in obj and pkey != obj['id']:
             # We gonna remove the document and reinsert it to change the id...
             full_obj = self.get_by_id(collection, pkey)
             full_obj.update(obj)
             self.delete(collection, pkey)
-            self.insert(collection, full_obj, timestamp=False)
+            self.insert(collection, full_obj, pkey=obj['id'], timestamp=False)
             return
 
         if timestamp:
