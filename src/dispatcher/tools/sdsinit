@@ -26,21 +26,58 @@
 #
 #####################################################################
 
+import argparse
 import time
 import os
+import sys
+import json
 import shutil
 import errno
 import logging
 import libzfs
 import uuid
-from datastore import get_default_datastore
+import datastore
 from datastore.config import ConfigStore
 
 
+DEFAULT_CONFIGFILE = '/usr/local/etc/middleware.conf'
 SYSTEM_DIR = '/var/db/system'
 logger = logging.getLogger('SystemDataset')
-ds = get_default_datastore()
-cs = ConfigStore(ds)
+ds = None
+cs = None
+
+
+def init_datastore(filename, alt):
+    global ds
+    global cs
+
+    try:
+        f = open(filename)
+        conf = json.load(f)
+        f.close()
+    except IOError as err:
+        print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+    except ValueError as err:
+        print("Cannot read config file: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
+
+    if 'datastore' not in conf:
+        print("Cannot initialize datastore: configuration not found", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        dsn = 'dsn-alt' if alt else 'dsn'
+        ds = datastore.get_datastore(
+            conf['datastore']['driver'],
+            conf['datastore'][dsn],
+            conf['datastore'].get('database', 'freenas')
+        )
+
+        cs = ConfigStore(ds)
+    except datastore.DatastoreException as err:
+        print("Cannot initialize datastore: {0}".format(str(err)), file=sys.stderr)
+        sys.exit(1)
 
 
 def link_directories():
@@ -125,6 +162,13 @@ def mount_system_dataset(dsid, pool, path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
+    parser.add_argument('--alt', action='store_true', help='Use alternate DSN')
+
+    args = parser.parse_args()
+    init_datastore(args.c, args.alt)
+
     dsid = cs.get('system.dataset.id')
     if not dsid:
         dsid = uuid.uuid4().hex[:8]
