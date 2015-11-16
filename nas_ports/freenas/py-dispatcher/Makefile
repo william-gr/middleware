@@ -11,7 +11,12 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS Command Line Iterface
 
-RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py
+RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py \
+		${PYTHON_PKGNAMEPREFIX}jsonschema>0:${PORTSDIR}/devel/py-jsonschema \
+		${PYTHON_PKGNAMEPREFIX}gevent>0:${PORTSDIR}/devel/py-gevent \
+		${PYTHON_PKGNAMEPREFIX}paramiko>0:${PORTSDIR}/security/py-paramiko \
+		${PYTHON_PKGNAMEPREFIX}six>0:${PORTSDIR}/devel/py-six \
+		${PYTHON_PKGNAMEPREFIX}freenas.utils>0:${PORTSDIR}/freenas/py-freenas.utils
 
 USES=		python
 USE_PYTHON=	autoplist distutils
