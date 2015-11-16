@@ -1,6 +1,10 @@
 lib/node_modules/dispatcher-client/package.json
 lib/node_modules/dispatcher-client/lib/DispatcherClient.js
 lib/node_modules/dispatcher-client/lib/EntitySubscriber.js
+lib/node_modules/dispatcher-client/lib/ErrnoCodes.js
+lib/node_modules/dispatcher-client/lib/ShellClient.js
+lib/dispatcher/src/frontend/__init__.py
+lib/dispatcher/src/frontend/frontend.py
 lib/dispatcher/src/frontend/templates/nav.html
 lib/dispatcher/src/frontend/templates/tasks.html
 lib/dispatcher/src/frontend/templates/events.html
@@ -13,6 +17,7 @@ lib/dispatcher/src/frontend/templates/apidoc/rpc.html
 lib/dispatcher/src/frontend/templates/apidoc/events.html
 lib/dispatcher/src/frontend/templates/apidoc/tasks.html
 lib/dispatcher/src/frontend/templates/apidoc/schemas.html
+lib/dispatcher/src/frontend/static/emitter.js
 lib/dispatcher/src/frontend/static/middleware.js
 lib/dispatcher/src/frontend/static/term.js
 lib/dispatcher/src/frontend/static/jquery.jsonview.js
