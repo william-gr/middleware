@@ -128,6 +128,7 @@ class MongodbDatastore(object):
         attributes = attributes or {}
         ttl_index = attributes.get('ttl_index')
         unique_indexes = attributes.get('unique_indexes', [])
+        cap = attributes.get('cap')
 
         if not self.db['collections'].find_one(name):
             self.db['collections'].insert({
@@ -135,6 +136,17 @@ class MongodbDatastore(object):
                 'pkey-type': pkey_type,
                 'last-id': 0,
                 'attributes': attributes
+            })
+
+        db = self._get_db(name).database
+
+        if name not in db.collection_names():
+            db.create_collection(name)
+
+        if cap:
+            db.command({
+                'convertToCapped': name,
+                'size': cap
             })
 
         if ttl_index:
@@ -299,6 +311,9 @@ class MongodbDatastore(object):
         return self.get_one(collection, *args, **kwargs) is not None
 
     def insert(self, collection, obj, pkey=None, timestamp=True, config=False):
+        autopkey = pkey is None
+        retries = 100
+
         if hasattr(obj, '__getstate__'):
             obj = obj.__getstate__()
         elif type(obj) is not dict or config:
