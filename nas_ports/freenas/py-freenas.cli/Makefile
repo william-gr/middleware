@@ -20,7 +20,7 @@ RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}columnize>0:${PORTSDIR}/devel/py-columnize \
 		${PYTHON_PKGNAMEPREFIX}texttable>0:${PORTSDIR}/textproc/py-texttable \
 		${PYTHON_PKGNAMEPREFIX}six>0:${PORTSDIR}/devel/py-six \
 		${PYTHON_PKGNAMEPREFIX}freenas.utils>0:${PORTSDIR}/freenas/py-freenas.utils \
-		${PYTHON_PKGNAMEPREFIX}dispatcher>0:${PORTSDIR}/freenas/py-dispatcher
+		${PYTHON_PKGNAMEPREFIX}freenas.dispatcher>0:${PORTSDIR}/freenas/py-freenas.dispatcher
 
 USES=		python
 USE_PYTHON=	autoplist distutils
