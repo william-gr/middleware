@@ -87,9 +87,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
     parser.add_argument('-f', metavar='FILE', help='Input file name')
+    parser.add_argument('-t', metavar='TYPE', default='', help='Collection types to restore')
     parser.add_argument('--alt', action='store_true', help='Use alternate DSN')
 
     args = parser.parse_args()
+    types = list(filter(None, args.t.split(',')))
     init_datastore(args.c, args.alt)
 
     try:
@@ -103,8 +105,13 @@ def main():
         sys.exit(1)
 
     for i in dump:
+        metadata = i['metadata']
+        attrs = metadata['attributes']
+        if types and 'type' in attrs.keys() and attrs['type'] not in types:
+            continue
+
         restore_collection(i)
-        print("Restored collection {0}".format(i['metadata']['name']), file=sys.stderr)
+        print("Restored collection {0}".format(metadata['name']), file=sys.stderr)
 
 
 if __name__ == '__main__':

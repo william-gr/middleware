@@ -186,11 +186,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
     parser.add_argument('-f', metavar='FILE', help='Input file path')
+    parser.add_argument('-t', metavar='TYPE', default='', help='Collection types to restore')
     parser.add_argument('-d', metavar='DIR', help='Migrations directory path')
     parser.add_argument('--force', action='store_true', help='Forcibly (re)apply migrations')
     parser.add_argument('--alt', action='store_true', help='Use alternate DSN')
 
     args = parser.parse_args()
+    types = list(filter(None, args.t.split(',')))
     init_datastore(args.c, args.alt)
 
     try:
@@ -217,9 +219,14 @@ def main():
     log("Input file: {0}".format(args.f))
 
     for i in dump:
-        directory = os.path.join(args.d, i['metadata']['name']) if args.d else None
+        metadata = i['metadata']
+        attrs = metadata['attributes']
+        if types and 'type' in attrs.keys() and attrs['type'] not in types:
+            continue
+
+        directory = os.path.join(args.d, metadata['name']) if args.d else None
         migrate_collection(i, directory, args.force)
-        print("Migrated collection {0}".format(i['metadata']['name']), file=sys.stderr)
+        print("Migrated collection {0}".format(metadata['name']), file=sys.stderr)
 
     logfile.close()
 
