@@ -27,6 +27,96 @@
 
 var diff = require('deep-diff').diff;
 
+
+var operatorsTable = {
+    '=': (x, y) => x == y,
+    '!=': (x, y) => x != y,
+    '>': (x, y) => x > y,
+    '<': (x, y) => x < y,
+    '>=': (x, y) => x >= y,
+    '<=': (x, y) => x <= y,
+    '~': (x, y) => x.match(y),
+    'in': (x, y) => y.indexOf(x) > -1,
+    'nin': (x, y) => y.indexOf(x) == -1
+};
+
+
+var conversions_table = {
+    'timestamp': v => Date.parse(v)/1000
+};
+
+
+function eval_logic_and(item, lst){
+    for (let i of lst){
+        if (!evalTuple(item, i)){
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function eval_logic_or(item, lst){
+    for (let i of lst){
+        if (evalTuple(item, i)){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function eval_logic_nor(item, lst){
+    for (let i of lst){
+        if (evalTuple(item, i)){
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function evalLogicOperator(item, t){
+    let op = t[0];
+    let lst = t[1];
+    let functName = 'eval_logic_';
+    functName.concat(op);
+    return window[functName](item, lst);
+}
+
+function evalFieldOperator(item, t){
+    let left = t[0];
+    let op = t[1];
+    let right = t[2];
+
+    if (t.length == 4){
+        right = conversions_table[t[3]](right);
+    }
+
+    return operatorsTable[op](item[left], right);
+}
+
+function evalTuple(item, t){
+    if (t.length == 2){
+        return evalLogicOperator(item, t);
+    }
+    if ((t.length == 3)||(t.length == 4)){
+        return evalFieldOperator(item, t);
+    }
+}
+
+function matches(obj, rules){
+    let fail = false;
+    for (let r of rules){
+        if (!evalTuple(obj, r)){
+            fail = true;
+            break;
+        }
+    }
+
+    return !fail;
+}
+
 class CappedMap
 {
     constructor(maxsize)
@@ -69,6 +159,16 @@ class CappedMap
             }
         }
         this.maxsize = maxsize;
+    }
+
+    deleteKey(key)
+    {
+        this.map.delete(key);
+    }
+
+    entries()
+    {
+        return this.map.entries();
     }
 
 }
@@ -120,7 +220,67 @@ export class EntitySubscriber
         if (event.action == "delete") {
             for (let entity of event.entities)
                 if (this.objects.has(entity.id))
-                    this.objects.delete(entity.id);
+                    this.objects.deleteKey(entity.id);
+        }
+    }
+
+    query(rules, params, callback){
+        if (this.objects.getSize() == this.maxsize){
+            DispatcherClient.call(`${this.name}.query`, rules.concat(params), callback);
+        } else {
+            let single = params["single"];
+            let count = params["count"];
+            let offset = params["offset"];
+            let limit = params["limit"];
+            let sort = params["sort"];
+            let result = new Array();
+
+            if (rules.length == 0){
+                result = this.objects.entries();
+            } else {
+                for (let i of this.objects.entries()){
+                    if(matches(i, rules)){
+                       result.push(i);
+                    }
+                }
+            }
+
+            if (sort){
+                let sortKeys = [];
+                let direction = [];
+                for (let i of sort){
+                    if (i.charAt(0) == '-'){
+                        sortKeys.push(i.slice(1));
+                        direction.push('desc');
+                    } else {
+                        sortKeys.push(i);
+                        direction.push('asc');
+                    }
+                }
+                _.map(_.sortByOrder(result, sortKeys, direction), _.values);
+            }
+
+            if (offset){
+                callback(result.slice(offset));
+            }
+
+            if (limit) {
+                callback(result.slice(0,limit));
+            }
+
+            if ((!result.length) && (single)){
+                callback(null);
+            }
+
+            if (single) {
+                callback(result[0]);
+            }
+
+            if (count) {
+                callback(result.length);
+            }
+
+            callback(result);
         }
     }
 }
