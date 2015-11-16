@@ -59,6 +59,7 @@ export class DispatcherClient
         this.socket = null;
         this.pendingCalls = new Map();
         this.eventHandlers = new Map();
+        this.subscriptions = new Map();
 
         /* Callbacks */
         this.onEvent = () => {};
@@ -75,6 +76,7 @@ export class DispatcherClient
             var data = JSON.parse(msg.data);
         } catch (e) {
             console.warn(`Malformed response: "${msg.data}"`);
+            this.onError(INVALID_JSON_RESPONSE);
             return;
         }
 
@@ -101,16 +103,26 @@ export class DispatcherClient
                 return;
             }
 
-            if (data.name == "response") {
+            if (data.name == "response" || data.name == "error") {
                 if (!this.pendingCalls.has(data.id)) {
                     console.warn(`Spurious RPC response: ${data.id}`);
                     this.onError(SPURIOUS_RPC_RESPONSE);
                     return;
                 }
 
+                var result = data.args;
+                if (data.name == "error") {
+                    result = new RPCException(
+                        data.args.code,
+                        data.args.message,
+                        data.args.extra,
+                        data.args.stacktrace
+                    );
+                }
+
                 let call = this.pendingCalls.get(data.id);
                 clearTimeout(call.timeout);
-                call.callback(data.args);
+                call.callback(result);
                 this.pendingCalls.delete(data.id);
             }
         }
@@ -124,6 +136,15 @@ export class DispatcherClient
 
     __onclose()
     {
+        let errno = getCode("ECONNRESET");
+
+        for (let call of this.pendingCalls.values()) {
+            call.callback(new RPCException(
+                errno.code,
+                errno.description
+            ));
+        }
+
         console.log("Connection closed");
         this.onDisconnect();
     }
@@ -139,6 +160,7 @@ export class DispatcherClient
         ));
 
         this.pendingCalls.delete(id);
+        this.onError(RPC_CALL_TIMEOUT, call.method, call.args);
     }
 
     static __uuid() {
@@ -205,14 +227,30 @@ export class DispatcherClient
         this.socket.send(DispatcherClient.__pack("rpc", "call", payload, id));
     }
 
-    subscribe(patterns)
+    subscribe(pattern)
     {
-        this.socket.send(DispatcherClient.__pack("events", "subscribe", patterns));
+        if (!this.subscriptions.has(pattern)) {
+            this.socket.send(DispatcherClient.__pack("events", "subscribe", [pattern]));
+            this.subscriptions.set(pattern, 0);
+        }
+
+        let refcount = this.subscriptions.get(pattern) + 1;
+        this.subscriptions.set(pattern, refcount);
     }
 
-    unsubscribe(patterns)
+    unsubscribe(pattern)
     {
-        this.socket.send(DispatcherClient.__pack("events", "unsubscribe", patterns));
+        if (!this.subscriptions.has(pattern)) {
+            throw new Error(`No previous subscription for ${pattern}`)
+        }
+
+        let refcount = this.subscriptions.get(pattern) - 1;
+        this.subscriptions.set(pattern, refcount);
+
+        if (refcount === 0) {
+            this.socket.send(DispatcherClient.__pack("events", "unsubscribe", [pattern]));
+            this.subscriptions.delete(pattern);
+        }
     }
 
     emitEvent(name, args)
@@ -232,6 +270,7 @@ export class DispatcherClient
         let cookie = DispatcherClient.__uuid();
         let list = this.eventHandlers.get(name);
         list.set(cookie, callback);
+        this.subscribe(name);
     }
 
     unregisterEventHandler(name, cookie)
@@ -245,6 +284,7 @@ export class DispatcherClient
             throw new Error("no handler registered for that cookie");
         }
 
+        this.unsubscribe(name);
         list.delete(cookie);
     }
 }
