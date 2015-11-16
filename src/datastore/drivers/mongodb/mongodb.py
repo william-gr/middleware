@@ -270,7 +270,9 @@ class MongodbDatastore(object):
         return result
 
     def listen(self, collection, *args, **kwargs):
-        cur = self._get_db(collection).find(self._build_query(args), tailable=True, await_data=True)
+        return self._get_db(collection).find(self._build_query(args), tailable=True, await_data=True)
+
+    def tail(self, cur):
         for i in cur:
             i['id'] = i.pop('_id')
             yield i
