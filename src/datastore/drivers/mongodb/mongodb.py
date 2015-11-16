@@ -324,7 +324,7 @@ class MongodbDatastore(object):
                 pkey_type = self.collection_get_pkey_type(collection)
                 if pkey_type in ('serial', 'integer'):
                     ret = self._get_db(collection).find_one(sort=[('_id', pymongo.DESCENDING)])
-                    pkey = ret['_id'] + 1
+                    pkey = ret['_id'] + 1 if ret else 1
                 elif pkey_type == 'uuid':
                     pkey = str(uuid.uuid4())
 
