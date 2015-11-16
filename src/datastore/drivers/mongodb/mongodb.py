@@ -309,28 +309,32 @@ class MongodbDatastore(object):
         if 'id' in obj:
             pkey = obj.pop('id')
 
-        if pkey is None:
-            pkey_type = self.collection_get_pkey_type(collection)
-            if pkey_type in ('serial', 'integer'):
-                ret = self.db['collections'].find_and_modify({'_id': collection}, {'$inc': {'last-id': 1}})
-                pkey = ret['last-id']
-            elif pkey_type == 'uuid':
-                pkey = str(uuid.uuid4())
+        while True:
+            if autopkey:
+                pkey_type = self.collection_get_pkey_type(collection)
+                if pkey_type in ('serial', 'integer'):
+                    ret = self._get_db(collection).find_one(sort=[('_id', pymongo.DESCENDING)])
+                    pkey = ret['_id'] + 1
+                elif pkey_type == 'uuid':
+                    pkey = str(uuid.uuid4())
 
-        obj['_id'] = pkey
+            obj['_id'] = pkey
+            if timestamp:
+                t = datetime.now()
+                obj['updated_at'] = t
+                obj['created_at'] = t
 
-        if timestamp:
-            t = datetime.now()
-            obj['updated_at'] = t
-            obj['created_at'] = t
+            try:
+                db = self._get_db(collection)
+                db.insert(obj)
+            except pymongo.errors.DuplicateKeyError:
+                if autopkey and retries > 0:
+                    retries -= 1
+                    continue
 
-        try:
-            db = self._get_db(collection)
-            db.insert(obj)
-        except pymongo.errors.DuplicateKeyError:
-            raise DuplicateKeyException('Document with given key already exists')
+                raise DuplicateKeyException('Document with given key already exists')
 
-        return pkey
+            return pkey
 
     def update(self, collection, pkey, obj, upsert=False, timestamp=True, config=False):
         if hasattr(obj, '__getstate__'):
