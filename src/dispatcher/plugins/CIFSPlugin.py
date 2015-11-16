@@ -30,7 +30,7 @@ import re
 import smbconf
 import enum
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from freenas.dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from lib.system import system, SubprocessException
 from lib.freebsd import get_sysctl
 from task import Task, Provider, TaskException, ValidationException

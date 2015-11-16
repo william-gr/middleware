@@ -29,7 +29,7 @@ import logging
 import os
 
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from freenas.dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from resources import Resource
 from task import Task, Provider, TaskException, ValidationException
 

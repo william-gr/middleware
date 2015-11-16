@@ -31,7 +31,7 @@ import os
 import re
 import time
 
-from dispatcher.rpc import RpcException
+from freenas.dispatcher.rpc import RpcException
 from shared import BaseTestCase
 
 

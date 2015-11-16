@@ -28,7 +28,7 @@
 import time
 from task import Provider, query
 from auth import Token
-from dispatcher.rpc import (description, pass_sender, returns, accepts,
+from freenas.dispatcher.rpc import (description, pass_sender, returns, accepts,
                             SchemaHelper as h)
 
 

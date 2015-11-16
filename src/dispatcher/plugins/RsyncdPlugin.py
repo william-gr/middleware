@@ -33,7 +33,7 @@ from tempfile import TemporaryFile
 
 from datastore import DatastoreException
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
+from freenas.dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, returns
 from task import (
     Task, ProgressTask, Provider, TaskException, query,
     ValidationException, VerifyException,

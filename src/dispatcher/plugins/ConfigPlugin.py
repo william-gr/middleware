@@ -26,7 +26,7 @@
 #####################################################################
 
 from task import Provider, Task, VerifyException, TaskException
-from dispatcher.rpc import description, accepts, returns, private
+from freenas.dispatcher.rpc import description, accepts, returns, private
 
 
 @description("Provides access to configuration store")

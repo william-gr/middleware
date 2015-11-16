@@ -29,7 +29,7 @@ import unittest
 import json
 import sys
 
-from dispatcher.rpc import RpcException
+from freenas.dispatcher.rpc import RpcException
 from shared import BaseTestCase
 
 __doc__ = """  This group is tests are to verify that

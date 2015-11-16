@@ -33,8 +33,8 @@ import uuid
 import struct
 import socket
 import select
-from dispatcher.jsonenc import dumps
-from dispatcher.spawn_thread import ClientType
+from freenas.dispatcher.jsonenc import dumps
+from freenas.dispatcher.spawn_thread import ClientType
 
 _thread_type = ClientType.THREADED
 _debug_log_file = None

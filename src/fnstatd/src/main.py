@@ -49,8 +49,8 @@ import gevent
 import gevent.monkey
 import gevent.socket
 from gevent.server import StreamServer
-from dispatcher.client import Client, ClientError
-from dispatcher.rpc import RpcService, RpcException
+from freenas.dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcService, RpcException
 from datastore import DatastoreException, get_datastore
 from ringbuffer import MemoryRingBuffer, PersistentRingBuffer
 from freenas.utils.debug import DebugService

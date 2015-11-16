@@ -30,8 +30,8 @@ import sys
 import json
 import unittest
 from threading import Event, Lock
-from dispatcher.rpc import RpcException
-from dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcException
+from freenas.dispatcher.client import Client, ClientError
 
 
 class BaseTestCase(unittest.TestCase):

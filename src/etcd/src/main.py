@@ -39,8 +39,8 @@ import imp
 import setproctitle
 import renderers
 from datastore.config import ConfigStore
-from dispatcher.client import Client, ClientError
-from dispatcher.rpc import RpcService, RpcException
+from freenas.dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcService, RpcException
 from freenas.utils import configure_logging
 from freenas.utils.debug import DebugService
 

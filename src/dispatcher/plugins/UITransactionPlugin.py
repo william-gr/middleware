@@ -28,8 +28,8 @@
 import errno
 import time
 import gevent
-from dispatcher.rpc import RpcException, pass_sender, accepts, returns, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, pass_sender, accepts, returns, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 from task import Provider
 from freenas.utils import first_or_default
 

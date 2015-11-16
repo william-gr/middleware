@@ -46,8 +46,8 @@ import traceback
 
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigNode, ConfigStore
-from dispatcher.client import Client, ClientError
-from dispatcher.rpc import RpcService, RpcException, private
+from freenas.dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcService, RpcException, private
 from freenas.utils import configure_logging
 from freenas.utils.debug import DebugService
 from freenas.utils.pipesubr import pipeopen, run

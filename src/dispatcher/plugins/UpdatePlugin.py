@@ -37,7 +37,7 @@ import re
 import tempfile
 from resources import Resource
 from cache import CacheStore
-from dispatcher.rpc import RpcException, description, accepts, returns, private, SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, private, SchemaHelper as h
 from gevent import subprocess
 from task import Provider, Task, ProgressTask, TaskException, VerifyException
 

@@ -31,8 +31,8 @@ import logging
 from task import Provider
 from lib.system import system, SubprocessException
 from lib.geom import confxml
-from dispatcher.rpc import accepts, returns, description
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import accepts, returns, description
+from freenas.dispatcher.rpc import SchemaHelper as h
 
 logger = logging.getLogger('SwapPlugin')
 

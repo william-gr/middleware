@@ -29,8 +29,8 @@ import errno
 import os
 import re
 from datastore import DatastoreException
-from dispatcher.rpc import RpcException, description, accepts, returns
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns
+from freenas.dispatcher.rpc import SchemaHelper as h
 from task import Provider, Task, TaskException, ValidationException, VerifyException, query
 
 from OpenSSL import crypto

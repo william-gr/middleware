@@ -2,7 +2,7 @@ __author__ = 'jceel'
 
 import json
 
-from dispatcher.rpc import RpcException
+from freenas.dispatcher.rpc import RpcException
 
 
 class ApiHandler(object):

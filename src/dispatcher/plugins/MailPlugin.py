@@ -36,7 +36,7 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 
 from datastore.config import ConfigNode
-from dispatcher.rpc import (
+from freenas.dispatcher.rpc import (
     RpcException, SchemaHelper as h, accepts, description, returns
 )
 from task import Provider, Task, TaskException

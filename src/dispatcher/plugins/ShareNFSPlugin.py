@@ -28,8 +28,8 @@
 import errno
 import logging
 from task import Task, TaskStatus, Provider, TaskException
-from dispatcher.rpc import RpcException, description, accepts, returns, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 
 
 logger = logging.getLogger(__name__)

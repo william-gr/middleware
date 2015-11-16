@@ -46,8 +46,8 @@ from task import (
     Provider, Task, ProgressTask, TaskStatus, TaskException, VerifyException,
     query, ValidationException
 )
-from dispatcher.rpc import RpcException, accepts, returns, description, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, accepts, returns, description, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 
 # Note the following monkey patch is required for pySMART to work correctly
 gevent.monkey.patch_subprocess()

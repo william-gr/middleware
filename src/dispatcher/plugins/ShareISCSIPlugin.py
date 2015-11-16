@@ -31,8 +31,8 @@ import uuid
 import hashlib
 import ctl
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
-from dispatcher.rpc import RpcException, description, accepts, returns, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 from freenas.utils import normalize
 from freenas.utils.query import wrap
 

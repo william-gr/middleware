@@ -43,8 +43,8 @@ import ipaddress
 import io
 from datastore import get_datastore, DatastoreException
 from datastore.config import ConfigStore
-from dispatcher.client import Client, ClientError
-from dispatcher.rpc import RpcService, RpcException, private
+from freenas.dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcService, RpcException, private
 from freenas.utils.query import wrap
 from freenas.utils.debug import DebugService
 from freenas.utils import configure_logging

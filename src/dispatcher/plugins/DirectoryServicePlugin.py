@@ -28,7 +28,7 @@
 import errno
 import logging
 
-from dispatcher.rpc import (
+from freenas.dispatcher.rpc import (
     accepts,
     description,
     returns,

@@ -33,8 +33,8 @@ import os
 import stat
 import bsd
 from bsd import acl
-from dispatcher.rpc import RpcException, description, accepts, returns, pass_sender, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, pass_sender, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 from task import Provider, Task, TaskStatus, VerifyException, TaskException
 from auth import FileToken
 from freenas.utils.query import wrap

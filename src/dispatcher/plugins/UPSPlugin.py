@@ -33,7 +33,7 @@ import socket
 import time
 
 from datastore.config import ConfigNode
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private, returns
+from freenas.dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private, returns
 from lib.system import system, SubprocessException
 from task import Task, Provider, TaskException, ValidationException
 

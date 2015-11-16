@@ -32,7 +32,7 @@ import random
 import string
 import re
 from task import Provider, Task, TaskException, ValidationException, VerifyException, query
-from dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, SchemaHelper as h
 from datastore import DuplicateKeyException, DatastoreException
 from lib.system import SubprocessException, system
 

@@ -36,7 +36,7 @@ import bsd.kld
 from lib.system import system, SubprocessException
 from lib.freebsd import fstyp
 from task import Provider, Task, ProgressTask, TaskException, VerifyException, query
-from dispatcher.rpc import (
+from freenas.dispatcher.rpc import (
     RpcException, description, accepts, returns, private, SchemaHelper as h
     )
 from utils import first_or_default

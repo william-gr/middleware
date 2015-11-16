@@ -29,8 +29,8 @@ import errno
 import psutil
 from task import Task, TaskStatus, Provider, TaskException
 from resources import Resource
-from dispatcher.rpc import RpcException, description, accepts, returns, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 from freenas.utils import first_or_default, normalize
 
 

@@ -32,10 +32,10 @@ import uuid
 import errno
 import time
 from .jsonenc import dumps, loads
-from dispatcher import rpc
-from dispatcher.spawn_thread import spawn_thread
-from dispatcher.spawn_thread import ClientType
-from dispatcher.client_transport import ClientTransportBuilder
+from freenas.dispatcher import rpc
+from freenas.dispatcher.spawn_thread import spawn_thread
+from freenas.dispatcher.spawn_thread import ClientType
+from freenas.dispatcher.client_transport import ClientTransportBuilder
 from freenas.utils.query import matches
 from ws4py.compat import urlsplit
 

@@ -28,8 +28,8 @@ import errno
 import logging
 from datastore import DatastoreException
 from task import Task, Provider, TaskException, ValidationException, VerifyException, query
-from dispatcher.rpc import RpcException, accepts, description, returns
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, accepts, description, returns
+from freenas.dispatcher.rpc import SchemaHelper as h
 from lib.system import system, SubprocessException
 
 logger = logging.getLogger('NTPPlugin')

@@ -27,7 +27,7 @@
 
 import errno
 import logging
-from dispatcher.rpc import RpcService, RpcException
+from freenas.dispatcher.rpc import RpcService, RpcException
 from datastore.config import ConfigStore
 import collections
 

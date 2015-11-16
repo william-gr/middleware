@@ -28,8 +28,8 @@
 import os
 import errno
 from task import Task, TaskStatus, Provider, TaskException, VerifyException
-from dispatcher.rpc import RpcException, description, accepts, returns, private
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, returns, private
+from freenas.dispatcher.rpc import SchemaHelper as h
 from freenas.utils import normalize
 
 

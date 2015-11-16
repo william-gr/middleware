@@ -31,7 +31,7 @@ import logging
 import six
 import sys
 import traceback
-from dispatcher import validator
+from freenas.dispatcher import validator
 from jsonschema import RefResolver
 
 

@@ -36,8 +36,8 @@ import inspect
 import subprocess
 import bsd
 from datetime import datetime
-from dispatcher import validator
-from dispatcher.rpc import RpcException
+from freenas.dispatcher import validator
+from freenas.dispatcher.rpc import RpcException
 from gevent.queue import Queue
 from gevent.lock import RLock
 from gevent.event import Event, AsyncResult

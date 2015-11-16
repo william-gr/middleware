@@ -46,8 +46,8 @@ import tty
 from gevent.queue import Queue, Channel
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from pyee import EventEmitter
-from dispatcher.client import Client, ClientError
-from dispatcher.rpc import RpcService, RpcException, private
+from freenas.dispatcher.client import Client, ClientError
+from freenas.dispatcher.rpc import RpcService, RpcException, private
 from datastore import DatastoreException, get_datastore
 from freenas.utils.debug import DebugService
 from freenas.utils import configure_logging, to_timedelta

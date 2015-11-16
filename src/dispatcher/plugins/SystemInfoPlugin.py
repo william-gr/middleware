@@ -38,7 +38,7 @@ from bsd import devinfo
 from datastore import DatastoreException
 from datetime import datetime
 from dateutil import tz, parser
-from dispatcher.rpc import (
+from freenas.dispatcher.rpc import (
     RpcException,
     SchemaHelper as h,
     accepts,

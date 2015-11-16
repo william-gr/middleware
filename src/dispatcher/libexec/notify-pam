@@ -27,7 +27,7 @@
 #####################################################################
 
 import os
-from dispatcher.client import Client
+from freenas.dispatcher.client import Client
 
 
 def main():

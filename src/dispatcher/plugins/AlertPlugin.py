@@ -30,7 +30,7 @@ import socket
 from datetime import datetime
 
 from datastore import DatastoreException
-from dispatcher.rpc import (
+from freenas.dispatcher.rpc import (
     RpcException,
     SchemaHelper as h,
     accepts,

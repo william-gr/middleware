@@ -28,7 +28,7 @@ import logging
 import requests
 from io import StringIO
 from task import Task, Provider
-from dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private
+from freenas.dispatcher.rpc import RpcException, SchemaHelper as h, description, accepts, private
 from freenas.utils import normalize
 from lxml import etree
 

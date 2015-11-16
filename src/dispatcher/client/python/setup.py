@@ -10,10 +10,11 @@ install_requires = [
 ]
 
 setup(
-    name='dispatcher-client',
-    version='10.0',
-    description='Dispatcher client library',
-    packages=['dispatcher'],
+    name='freenas.dispatcher',
+    version='10.2',
+    description='FreeNAS dispatcher client library',
+    packages=['freenas', 'freenas.dispatcher'],
+    namespace_packages=[str('freenas')],
     license='BSD',
     platforms='any',
     classifiers=[

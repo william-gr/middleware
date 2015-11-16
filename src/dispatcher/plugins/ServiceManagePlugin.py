@@ -32,8 +32,8 @@ import logging
 
 from task import Task, Provider, TaskException, VerifyException, query
 from resources import Resource
-from dispatcher.rpc import RpcException, description, accepts, private, returns
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, description, accepts, private, returns
+from freenas.dispatcher.rpc import SchemaHelper as h
 from datastore.config import ConfigNode
 from lib.system import system, SubprocessException
 from freenas.utils import extend as extend_dict

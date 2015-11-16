@@ -33,8 +33,8 @@ from datetime import datetime
 from threading import Event
 from task import (Provider, Task, TaskStatus, TaskException,
                   VerifyException, TaskAbortException, query)
-from dispatcher.rpc import RpcException, accepts, returns, description
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import RpcException, accepts, returns, description
+from freenas.dispatcher.rpc import SchemaHelper as h
 from balancer import TaskState
 from resources import Resource
 from freenas.utils import first_or_default

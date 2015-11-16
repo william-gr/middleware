@@ -32,7 +32,7 @@ import errno
 import subprocess
 from gevent.event import Event
 from gevent.lock import Semaphore
-from dispatcher.rpc import RpcService, RpcException, pass_sender, private
+from freenas.dispatcher.rpc import RpcService, RpcException, pass_sender, private
 from auth import ShellToken
 from task import TaskState
 from utils import first_or_default

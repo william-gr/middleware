@@ -32,8 +32,8 @@ import time
 from bsd import geom
 from event import EventSource
 from task import Provider
-from dispatcher.rpc import accepts, returns, description
-from dispatcher.rpc import SchemaHelper as h
+from freenas.dispatcher.rpc import accepts, returns, description
+from freenas.dispatcher.rpc import SchemaHelper as h
 from gevent import socket
 from lib.freebsd import get_sysctl
 from freenas.utils import exclude

@@ -36,8 +36,8 @@ import traceback
 import logging
 import queue
 from threading import Event
-from dispatcher.client import Client, ClientType
-from dispatcher.rpc import RpcService, RpcException
+from freenas.dispatcher.client import Client, ClientType
+from freenas.dispatcher.rpc import RpcService, RpcException
 from datastore import get_default_datastore
 from datastore.config import ConfigStore
 from task import TaskException

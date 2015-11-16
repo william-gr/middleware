@@ -65,8 +65,8 @@ from geventwebsocket import (WebSocketServer, WebSocketApplication, Resource,
 
 from datastore import get_datastore
 from datastore.config import ConfigStore
-from dispatcher.jsonenc import loads, dumps
-from dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
+from freenas.dispatcher.jsonenc import loads, dumps
+from freenas.dispatcher.rpc import RpcContext, RpcException, ServerLockProxy, convert_schema
 from resources import ResourceGraph
 from services import ManagementService, DebugService, EventService, TaskService, PluginService, ShellService, LockService
 from schemas import register_general_purpose_schemas
