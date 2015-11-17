@@ -23,6 +23,10 @@ prestart()
 
     # mount .system dataset (or create it/fix links if needed)
     /usr/local/sbin/sdsinit
+    /usr/local/sbin/dsmigrate \
+        -t log \
+        -f /usr/local/share/datastore/factory.json \
+        -d /usr/local/share/datastore/migrations
 }
 
 poststart()
