@@ -102,6 +102,7 @@ def do_check_dbdirs(driver_name, db_dir):
         logdb = os.path.join(db_dir, 'freenas.db/freenas-log')
         if not os.path.islink(logdb):
             # Do system dataset fixup - nuke freenas-log from the orbit
+            print("Migrating freenas-log to .system dataset")
             shutil.rmtree(logdb)
             os.symlink('/var/db/system/log-db', logdb)
             moved = True
