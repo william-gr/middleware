@@ -11,6 +11,7 @@ VALID_CATEGORIES+= freenas
 MAINTAINER=	dev@ixsystems.com
 COMMENT=	FreeNAS Command Line Iterface
 
+BUILD_DEPENDS=	${PYTHON_PKGNAMEPREFIX}freenas.utils>0:${PORTSDIR}/freenas/py-freenas.utils
 RUN_DEPENDS=	${PYTHON_PKGNAMEPREFIX}ws4py>0:${PORTSDIR}/freenas/py-ws4py \
 		${PYTHON_PKGNAMEPREFIX}jsonschema>0:${PORTSDIR}/devel/py-jsonschema \
 		${PYTHON_PKGNAMEPREFIX}gevent>0:${PORTSDIR}/devel/py-gevent \
@@ -22,6 +23,7 @@ USES=		python
 USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
 
+MAKE_ENV=	VERSION=${PRODUCT_VERSION}
 WRKSRC=		/usr/middleware_src/dispatcher/client/python
 
 checksum fetch:
