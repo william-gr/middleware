@@ -26,4 +26,6 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     install_requires=install_requires,
+    setup_requires=['freenas.utils'],
+    use_freenas=True,
 )
