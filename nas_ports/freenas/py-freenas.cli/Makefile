@@ -2,7 +2,6 @@
 
 PORTNAME=	freenas.cli
 PORTVERSION=	${PRODUCT_VERSION:C/\-.*//:C/\_.*//}
-PORTREVISION=	${REVISION}
 PORTREVISION=   ${REVISION}
 PKGNAMEPREFIX=	${PYTHON_PKGNAMEPREFIX}
 
@@ -27,6 +26,7 @@ USES=		python
 USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
 
+MAKE_ENV=	VERSION=${PRODUCT_VERSION}
 WRKSRC=		/usr/middleware_src/cli
 
 PLIST_FILES=	bin/cli bin/logincli

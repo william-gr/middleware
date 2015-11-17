@@ -19,6 +19,7 @@ USES=		python
 USE_PYTHON=	autoplist distutils
 EXTRACT_ONLY=
 
+MAKE_ENV=	VERSION=${PRODUCT_VERSION}
 WRKSRC=		/usr/middleware_src/utils
 
 checksum fetch:
