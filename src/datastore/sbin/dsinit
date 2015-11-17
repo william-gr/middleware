@@ -99,6 +99,13 @@ def do_check_dbdirs(driver_name, db_dir):
                 shutil.move(j, perdb_dir)
                 moved = True
 
+        logdb = os.path.join(db_dir, 'freenas.db/freenas-log')
+        if not os.path.islink(logdb):
+            # Do system dataset fixup - nuke freenas-log from the orbit
+            shutil.rmtree(logdb)
+            os.symlink('/var/db/system/log-db', logdb)
+            moved = True
+
         # Journal might reference old name paths, so rename it to avoid mongodb error
         if moved:
             journal = os.path.join(db_dir, 'freenas.db/journal')
