@@ -141,7 +141,8 @@ def create_system_dataset(dsid, pool):
         ds.properties['canmount'].value = 'noauto'
         ds.properties['mountpoint'].value = SYSTEM_DIR
     except libzfs.ZFSException as err:
-        logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
+        if err.code != libzfs.Error.BUSY:
+            logger.warning('Cannot set properties on .system dataset: {0}'.format(str(err)))
 
 
 def mount_system_dataset(dsid, pool, path):
