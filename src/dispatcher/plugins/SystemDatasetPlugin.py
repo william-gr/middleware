@@ -251,5 +251,3 @@ def _init(dispatcher, plugin):
 
     plugin.register_hook('system_dataset.pre_detach')
     plugin.register_hook('system_dataset.pre_attach')
-
-    dispatcher.call_sync('system_dataset.init')
