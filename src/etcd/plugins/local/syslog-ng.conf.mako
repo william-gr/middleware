@@ -60,6 +60,7 @@ destination mongodb {
             pair("seqnum" int64("$SEQNUM")),
             pair("message" "$MESSAGE"),
             pair("date" datetime("$UNIXTIME")),
+            pair("created_at" datetime("$UNIXTIME")),
             pair("priority" "$PRIORITY"),
             pair("facility" "$FACILITY")
         )
