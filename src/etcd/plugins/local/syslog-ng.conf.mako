@@ -53,6 +53,7 @@ destination mongodb {
         database("freenas-log"),
         collection("syslog"),
         value-pairs(
+            pair("_id", "$(uuid)"),
             pair("program" "$PROGRAM"),
             pair("host" "$HOST"),
             pair("pid" int("$PID")),

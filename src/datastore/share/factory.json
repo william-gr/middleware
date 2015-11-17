@@ -2020,7 +2020,7 @@
         "metadata": {
             "name": "syslog",
             "migration": "keep",
-            "pkey-type": "native",
+            "pkey-type": "uuid",
             "attributes": {
                 "type": "log",
                 "cap": 8589934592
