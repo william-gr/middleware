@@ -25,6 +25,7 @@
 #
 #####################################################################
 
+from datetime import datetime
 from event import EventSource
 from task import Provider
 
@@ -41,7 +42,7 @@ class SyslogEventSource(EventSource):
 
     def run(self):
         # Initial call to obtain cursor
-        cursor = self.datastore.listen('syslog')
+        cursor = self.datastore.listen('syslog', ('created_at', '>=', datetime.now()))
 
         while True:
             for i in self.datastore.tail(cursor):
