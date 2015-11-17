@@ -31,7 +31,11 @@ from task import Provider
 
 class SyslogProvider(Provider):
     def query(self, filter=None, params=None):
-        return self.datastore.query('syslog', *(filter or []), **(params or {}))
+        def extend(o):
+            o['id'] = str(o['id'])
+            return o
+
+        return self.datastore.query('syslog', *(filter or []), callback=extend, **(params or {}))
 
 
 class SyslogEventSource(EventSource):
@@ -47,7 +51,7 @@ class SyslogEventSource(EventSource):
             for i in self.datastore.tail(cursor):
                 self.dispatcher.dispatch_event('syslog.changed', {
                     'operation': 'create',
-                    'ids': [i['id'].hex()]
+                    'ids': [str(i['id'])]
                 })
 
 
