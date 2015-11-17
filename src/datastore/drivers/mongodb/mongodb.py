@@ -306,15 +306,15 @@ class MongodbDatastore(object):
         return self.get_one(collection, *args, **kwargs) is not None
 
     def insert(self, collection, obj, pkey=None, timestamp=True, config=False):
-        autopkey = pkey is None and 'id' not in obj
-        retries = 100
-
         if hasattr(obj, '__getstate__'):
             obj = obj.__getstate__()
         elif type(obj) is not dict or config:
             obj = {'value': obj}
         else:
             obj = copy.copy(obj)
+
+        autopkey = pkey is None and 'id' not in obj
+        retries = 100
 
         if 'id' in obj:
             pkey = obj.pop('id')
