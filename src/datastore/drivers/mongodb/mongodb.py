@@ -378,3 +378,9 @@ class MongodbDatastore(object):
     def delete(self, collection, pkey):
         db = self._get_db(collection)
         db.remove(pkey)
+
+    def lock(self):
+        self.conn.fsync(lock=True)
+
+    def unlock(self):
+        self.conn.unlock()

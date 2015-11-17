@@ -122,6 +122,18 @@ def do_check_dbdirs(driver_name, db_dir):
         os.unlink(os.path.join(db_dir, 'freenas.db/mongod.lock'))
 
 
+def do_lock():
+    from datastore import get_default_datastore
+    ds = get_default_datastore()
+    ds.lock()
+
+
+def do_unlock():
+    from datastore import get_default_datastore
+    ds = get_default_datastore()
+    ds.lock()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', metavar='CONFIG', default=DEFAULT_CONFIGFILE, help='Config file name')
@@ -130,6 +142,8 @@ def main():
     parser.add_argument('--start-forked', action='store_true')
     parser.add_argument('--stop-forked', action='store_true')
     parser.add_argument('--check-dbdirs', action='store_true')
+    parser.add_argument('--lock', action='store_true')
+    parser.add_argument('--unlock', action='store_true')
     args = parser.parse_args()
     config = read_config(args.c)
 
@@ -150,6 +164,12 @@ def main():
 
     if args.stop_forked:
         sys.exit(do_stop_forked(control, db_dir))
+
+    if args.lock:
+        do_lock()
+
+    if args.unlock:
+        do_unlock()
 
 
 if __name__ == '__main__':
