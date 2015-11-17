@@ -105,7 +105,8 @@ def do_check_dbdirs(driver_name, db_dir):
             os.symlink('/var/db/system/log-db', logdb)
 
         # Remove journal. It's assumed that database is fully synced to disk
-        shutil.rmtree(os.path.join(db_dir, 'freenas.db/journal'))
+        if os.path.exists(os.path.join(db_dir, 'freenas.db/journal')):
+            shutil.rmtree(os.path.join(db_dir, 'freenas.db/journal'))
 
         # Just in case, remove old lock file
         os.unlink(os.path.join(db_dir, 'freenas.db/mongod.lock'))
