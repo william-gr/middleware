@@ -77,7 +77,6 @@ def do_stop_forked(control, db_dir):
 
 def do_check_dbdirs(driver_name, db_dir):
     if driver_name == 'mongodb':
-        moved = False
         for i in glob.glob(os.path.join(db_dir, 'freenas.db/*.ns')):
             name, ext = os.path.splitext(i)
             basename = os.path.basename(name)
@@ -97,7 +96,6 @@ def do_check_dbdirs(driver_name, db_dir):
                 if os.path.exists(existing):
                     os.unlink(existing)
                 shutil.move(j, perdb_dir)
-                moved = True
 
         logdb = os.path.join(db_dir, 'freenas.db/freenas-log')
         if not os.path.islink(logdb):
@@ -105,18 +103,9 @@ def do_check_dbdirs(driver_name, db_dir):
             print("Migrating freenas-log to .system dataset")
             shutil.rmtree(logdb)
             os.symlink('/var/db/system/log-db', logdb)
-            moved = True
 
-        # Journal might reference old name paths, so rename it to avoid mongodb error
-        if moved:
-            journal = os.path.join(db_dir, 'freenas.db/journal')
-            i = 0
-            while True:
-                name = '{0}.old{1}'.format(journal, i if i else '')
-                if not os.path.exists(name):
-                    break
-                i += 1
-            shutil.move(journal, name)
+        # Remove journal. It's assumed that database is fully synced to disk
+        shutil.rmtree(os.path.join(db_dir, 'freenas.db/journal'))
 
         # Just in case, remove old lock file
         os.unlink(os.path.join(db_dir, 'freenas.db/mongod.lock'))
