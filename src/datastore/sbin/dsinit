@@ -120,7 +120,7 @@ def do_lock():
 def do_unlock():
     from datastore import get_default_datastore
     ds = get_default_datastore()
-    ds.lock()
+    ds.unlock()
 
 
 def main():
